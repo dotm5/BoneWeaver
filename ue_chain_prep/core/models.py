@@ -53,3 +53,55 @@ class PreflightResult:
     mesh_names: tuple[str, ...]
     bone_states: tuple[BoneState, ...]
     issues: tuple[ValidationIssue, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class PhysicsNode:
+    node_id: str
+    kind: str
+    bone_name: str | None
+    joint_position: tuple[float, float, float]
+    rest_rotation: tuple[float, float, float, float] | None
+    local_x: tuple[float, float, float] | None
+    local_y: tuple[float, float, float] | None
+    local_z: tuple[float, float, float] | None
+    parent_node_id: str | None
+    child_node_ids: tuple[str, ...]
+    is_kinematic: bool
+    source: str
+
+
+@dataclass(frozen=True, slots=True)
+class PhysicsEdge:
+    edge_id: str
+    kind: str
+    parent_node_id: str
+    child_node_id: str
+    rest_vector: tuple[float, float, float]
+    rest_length: float
+    source: str
+
+
+@dataclass(frozen=True, slots=True)
+class PhysicsChain:
+    chain_id: str
+    node_ids: tuple[str, ...]
+    edge_ids: tuple[str, ...]
+    real_bone_names: tuple[str, ...]
+    root_node_id: str
+    terminal_node_id: str
+    has_virtual_tip: bool
+    branch_parent_node_id: str | None
+    resolved: bool
+    issue_codes: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class PhysicsGraph:
+    graph_id: str
+    node_ids: tuple[str, ...]
+    edge_ids: tuple[str, ...]
+    nodes: tuple[PhysicsNode, ...]
+    edges: tuple[PhysicsEdge, ...]
+    chains: tuple[PhysicsChain, ...]
+    issue_codes: tuple[str, ...]
