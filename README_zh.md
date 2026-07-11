@@ -4,7 +4,7 @@ UE Chain Prep 是 Blender 4.2+ 扩展。它把 UE 导入骨架的 Bone Head 与�
 
 ## 安装
 
-在 Blender“偏好设置 → 扩展 → 从磁盘安装”中选择 `dist/ue_chain_prep-0.1.0.zip`。插件不依赖 NumPy、pytest 或其他外部 Python 包。
+在 Blender“偏好设置 → 扩展 → 从磁盘安装”中选择 `dist/ue_chain_prep-0.1.2.zip`。插件不依赖 NumPy、pytest 或其他外部 Python 包。
 
 标准交互已简化为：选择骨骼链和目标用途 → “检查并预览” → “应用转换”。算法阈值位于高级设置，结果/恢复单独分层，Plan ID、Fingerprint 和原始 Issue Code 默认隐藏。完整说明见 [用户工作流](docs/user-workflow.md)。
 
@@ -36,7 +36,7 @@ Active Action/NLA/Driver、非单位 Pose、相关 Constraint、Bone-parented ob
 
 ## 动画警告
 
-v0.1.0 是 Physics Preparation 工具，不是 UE 动画 Basis 重定向工具。转换后继续直接导入 UE 动画可能需要 Basis Rebase。
+v0.1.2 是 Physics Preparation 工具，不是 UE 动画 Basis 重定向工具。转换后继续直接导入 UE 动画可能需要 Basis Rebase。
 
 ## Blender 5.2 下的 BoneX 1.2.6
 

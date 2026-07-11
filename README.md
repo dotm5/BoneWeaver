@@ -8,7 +8,7 @@ The `REST_ONLY_STRICT` MVP changes only selected bones' `tail`, `roll`, and `use
 
 ## Install
 
-Install `dist/ue_chain_prep-0.1.0.zip` through Blender Preferences → Extensions → Install from Disk. The extension has no external Python dependencies.
+Install `dist/ue_chain_prep-0.1.2.zip` through Blender Preferences → Extensions → Install from Disk. The extension has no external Python dependencies.
 
 ## Recommended workflow
 
@@ -24,7 +24,7 @@ The default roll mode is Minimal Twist. Parallel Transport is opt-in. Virtual ti
 
 ## Important limitation
 
-Version 0.1.0 is a physics-preparation tool, not a UE animation-basis retargeter. Active Actions, NLA, drivers, non-identity pose, related constraints, ambiguous branches, connected external children, and low-confidence terminal solutions block Apply.
+Version 0.1.2 is a physics-preparation tool, not a UE animation-basis retargeter. Active Actions, NLA, drivers, non-identity pose, related constraints, ambiguous branches, connected external children, and low-confidence terminal solutions block Apply.
 
 ## BoneX 1.2.6 on Blender 5.2
 

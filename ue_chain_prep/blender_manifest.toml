@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 
 id = "ue_chain_prep"
-version = "0.1.0"
+version = "0.1.2"
 name = "UE Chain Prep"
 tagline = "Prepare Unreal joints for Blender physics bone chains"
 maintainer = "Project Maintainer"

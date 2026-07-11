@@ -8,7 +8,7 @@ from ue_chain_prep import contracts
 class ContractSnapshotTests(unittest.TestCase):
     def test_versions_and_identity_are_stable(self) -> None:
         self.assertEqual(contracts.ADDON_ID, "ue_chain_prep")
-        self.assertEqual(contracts.ADDON_VERSION, "0.1.0")
+        self.assertEqual(contracts.ADDON_VERSION, "0.1.2")
         self.assertEqual(contracts.SCHEMA_VERSION, "3.1.0")
         self.assertEqual(contracts.ALGORITHM_VERSION, "uecp-physics-graph-v3-interaction-hardening")
 
