@@ -20,10 +20,11 @@ class SchemaAndManifestTests(unittest.TestCase):
 
     def test_all_schema_documents_parse_and_are_closed(self) -> None:
         expected = {
-            "settings.schema.json": "uecp://schema/settings/3.0.0",
-            "conversion-plan.schema.json": "uecp://schema/conversion-plan/3.0.0",
-            "snapshot.schema.json": "uecp://schema/snapshot/3.0.0",
-            "diagnostic-report.schema.json": "uecp://schema/diagnostic-report/3.0.0",
+            "settings.schema.json": "uecp://schema/settings/3.1.0",
+            "conversion-plan.schema.json": "uecp://schema/conversion-plan/3.1.0",
+            "snapshot.schema.json": "uecp://schema/snapshot/3.1.0",
+            "diagnostic-report.schema.json": "uecp://schema/diagnostic-report/3.1.0",
+            "export-manifest.schema.json": "uecp://schema/export-manifest/3.1.0",
         }
         for filename, schema_id in expected.items():
             with self.subTest(filename=filename):

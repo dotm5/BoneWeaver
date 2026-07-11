@@ -48,12 +48,22 @@ class ValidationTests(unittest.TestCase):
         self.assertEqual(report.non_target_bone_changes, 0)
         self.assertEqual(report.weight_digest_changes, 0)
         self.assertLessEqual(report.maximum_neutral_mesh_delta, 1.0e-7)
+        self.assertEqual(len(report.mesh_validation_results), 1)
+        mesh_result = report.mesh_validation_results[0]
+        self.assertEqual(mesh_result.mesh_name, self.mesh.name)
+        self.assertEqual(mesh_result.coordinate_space, "EVALUATED_MESH_OBJECT_LOCAL")
+        self.assertEqual(mesh_result.tolerance_mode, "AUTO_PRODUCTION")
+        self.assertEqual(mesh_result.result, "PASS")
+        self.assertGreaterEqual(mesh_result.hard_limit, mesh_result.soft_limit)
+        self.assertGreaterEqual(mesh_result.baseline_max_delta, 0.0)
+        self.assertGreaterEqual(mesh_result.float32_ulp_budget, 0.0)
 
     def test_validate_and_export_diagnostic_json(self) -> None:
         bpy.ops.uecp.analyze()
         runtime = bpy.context.window_manager.uecp_runtime
         bpy.ops.uecp.apply(plan_id=runtime.plan_id)
-        self.assertEqual(bpy.ops.uecp.validate(validation_scope="CURRENT_PLAN"), {"FINISHED"})
+        self.assertNotIn("validation_scope", bpy.types.UECP_OT_validate.bl_rna.properties)
+        self.assertEqual(bpy.ops.uecp.validate(), {"FINISHED"})
         output = Path(__file__).resolve().parents[1] / "test-output" / "diagnostic-report.json"
         output.parent.mkdir(parents=True, exist_ok=True)
         self.assertEqual(bpy.ops.uecp.export_report(filepath=str(output)), {"FINISHED"})
@@ -64,6 +74,9 @@ class ValidationTests(unittest.TestCase):
         self.assertIn("side_effect_audit", payload)
         self.assertGreater(payload["performance"]["bone_count"], 0)
         self.assertIn("analyze_time", payload["performance"])
+        mesh_validation = payload["validation"]["mesh_validation_results"][0]
+        self.assertEqual(mesh_validation["coordinate_space"], "EVALUATED_MESH_OBJECT_LOCAL")
+        self.assertIn("recommended_relative_factor", mesh_validation)
 
 
 if __name__ == "__main__":

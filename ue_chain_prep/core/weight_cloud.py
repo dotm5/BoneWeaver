@@ -7,11 +7,13 @@ from dataclasses import dataclass
 
 from .eigen3 import jacobi_eigen_symmetric_3x3
 from .models import WeightCloudStats
+from .weight_islands import PerMeshWeightedInput
 
 
 @dataclass(frozen=True, slots=True)
 class WeightEvidenceCollection:
     points_by_bone: dict[str, tuple[tuple[tuple[float, float, float], float], ...]]
+    per_mesh_inputs_by_bone: dict[str, tuple[PerMeshWeightedInput, ...]]
     vertex_count: int
     membership_count: int
     peak_point_count: int
@@ -30,6 +32,7 @@ def collect_weight_evidence(
     """Collect all target memberships in one pass per mesh vertex."""
     targets = set(target_bone_names)
     collected = {name: [] for name in sorted(targets)}
+    per_mesh_collected = {name: [] for name in sorted(targets)}
     vertex_count = 0
     membership_count = 0
     for mesh_obj in mesh_objects:
@@ -48,6 +51,7 @@ def collect_weight_evidence(
             areas = [1.0] * len(mesh.vertices)
         group_names = {group.index: group.name for group in mesh_obj.vertex_groups}
         target_indices = {index: name for index, name in group_names.items() if name in targets}
+        indexed_for_mesh = {name: [] for name in sorted(targets)}
         for vertex in mesh.vertices:
             vertex_count += 1
             memberships = []
@@ -64,9 +68,21 @@ def collect_weight_evidence(
                 exclusivity = raw_weight / max(denominator, 1.0e-12) if exclusivity_mode in {"CHAIN_NORMALIZED", "SELECTED_SET_NORMALIZED"} else 1.0
                 statistical_weight = areas[vertex.index] * adjusted * exclusivity
                 if statistical_weight > 0.0:
-                    collected[name].append((tuple(float(value) for value in positions[vertex.index]), statistical_weight))
+                    point = tuple(float(value) for value in positions[vertex.index])
+                    collected[name].append((point, statistical_weight))
+                    indexed_for_mesh[name].append((vertex.index, point, statistical_weight))
+        edges = tuple(sorted(tuple(sorted(tuple(edge.vertices))) for edge in mesh.edges))
+        for name, weighted_vertices in indexed_for_mesh.items():
+            if weighted_vertices:
+                per_mesh_collected[name].append(
+                    PerMeshWeightedInput(mesh_obj.name, tuple(weighted_vertices), edges)
+                )
     frozen = {name: tuple(points) for name, points in collected.items()}
-    return WeightEvidenceCollection(frozen, vertex_count, membership_count, max((len(points) for points in frozen.values()), default=0))
+    per_mesh_frozen = {name: tuple(inputs) for name, inputs in per_mesh_collected.items()}
+    return WeightEvidenceCollection(
+        frozen, per_mesh_frozen, vertex_count, membership_count,
+        max((len(points) for points in frozen.values()), default=0),
+    )
 
 
 def _normalize(vector):

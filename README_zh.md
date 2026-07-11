@@ -6,6 +6,8 @@ UE Chain Prep 是 Blender 4.2+ 扩展。它把 UE 导入骨架的 Bone Head 与�
 
 在 Blender“偏好设置 → 扩展 → 从磁盘安装”中选择 `dist/ue_chain_prep-0.1.0.zip`。插件不依赖 NumPy、pytest 或其他外部 Python 包。
 
+标准交互已简化为：选择骨骼链和目标用途 → “检查并预览” → “应用转换”。算法阈值位于高级设置，结果/恢复单独分层，Plan ID、Fingerprint 和原始 Issue Code 默认隐藏。完整说明见 [用户工作流](docs/user-workflow.md)。
+
 ## 推荐顺序
 
 1. 导入 UE 模型与原始权重；
@@ -41,3 +43,7 @@ v0.1.0 是 Physics Preparation 工具，不是 UE 动画 Basis 重定向工具�
 BoneX 1.2.6 的 Soft Connection 面板可能在 `draw()` 中初始化 `Object["bonex_data"]`，Blender 5.2 会拒绝这种 UI 绘制期写入。该问题不加载 UE Chain Prep 也能独立复现。项目提供了带版本校验、备份和恢复能力的本地修复工具，详见 [BoneX 1.2.6 draw-context 修复说明](docs/bonex-1.2.6-draw-context-hotfix.md)。应用或恢复后需重启 Blender。
 
 详见 [架构](docs/architecture.md)、[算法](docs/algorithms.md)、[安全合同](docs/safety.md) 与 [BoneX/Wiggle 手工验收表](docs/manual-test-bonex-wiggle.md)。
+
+## 后端稳健性
+
+生产默认现已使用逐 Mesh 的 evaluated object-local 中性验证、父链安全 Leaf 回退、候选方向聚类、分叉主延续评分、权重岛保护、带 Armature 指纹的幂等 Override、字段级 Mutation/Topology 账本、导出硬 Gate 与独立 Blender 重开验证。本轮不增加普通工作流按钮，也不改变主面板布局。详见 [容差合同](docs/validation-tolerance.md)、[分叉解析](docs/branch-resolution.md) 与 [导出合同](docs/export-contract.md)。

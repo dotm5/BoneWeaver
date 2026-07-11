@@ -10,7 +10,8 @@ from .core.runtime_store import clear_plans
 from .translations import register as register_translations
 from .translations import unregister as unregister_translations
 from .ui import UI_CLASSES
-from .ui.draw import disable_preview
+from .controllers.session import SessionController
+from .controllers.preview import PreviewController
 
 
 CLASSES = PROPERTY_CLASSES + OPERATOR_CLASSES + UI_CLASSES
@@ -24,6 +25,7 @@ def register() -> None:
     for cls in CLASSES:
         bpy.utils.register_class(cls)
     register_properties()
+    SessionController.register_handlers()
     register_translations()
     _registered = True
 
@@ -31,11 +33,13 @@ def register() -> None:
 def unregister() -> None:
     global _registered
     if not _registered:
-        disable_preview()
+        SessionController.unregister_handlers()
+        PreviewController.disable(bpy.context)
         clear_plans()
         unregister_properties()
         return
-    disable_preview()
+    SessionController.unregister_handlers()
+    PreviewController.disable(bpy.context)
     clear_plans()
     unregister_properties()
     unregister_translations()

@@ -34,6 +34,8 @@ def build_diagnostic_report(plan, validation, snapshot_id=None):
         "terminal_candidates": [to_data(solution) for solution in plan.terminal_solutions],
         "weight_statistics": [to_data(cloud) for cloud in plan.weight_clouds],
         "segment_sampling_hints": [to_data(hint) for hint in plan.segment_sampling_hints],
+        "branch_resolutions": [to_data(item) for item in plan.branch_resolutions],
+        "topology_ledger": to_data(plan.topology_ledger),
         "validation": to_data(validation),
         "performance": get_performance(plan.plan_id),
         "side_effect_audit": {
@@ -70,6 +72,8 @@ def conversion_plan_to_data(plan):
         "terminal_solutions": [to_data(item) for item in plan.terminal_solutions],
         "proposals": [to_data(item) for item in plan.proposals],
         "segment_sampling_hints": [to_data(item) for item in plan.segment_sampling_hints],
+        "branch_resolutions": [to_data(item) for item in plan.branch_resolutions],
+        "topology_ledger": to_data(plan.topology_ledger),
         "issues": [to_data(item) for item in plan.issues],
     }
 

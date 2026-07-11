@@ -7,17 +7,33 @@ import bpy
 
 _HANDLER = None
 _CACHE = ()
+_GPU_CACHE = None
+
+
+def _build_gpu_cache():
+    import gpu
+    from gpu_extras.batch import batch_for_shader
+
+    shader = gpu.shader.from_builtin("POLYLINE_UNIFORM_COLOR")
+    batches = tuple(
+        (batch_for_shader(shader, "LINES", {"pos": (start, end)}), color)
+        for start, end, color in _CACHE
+    )
+    return shader, batches
+
+
+def _ensure_gpu_cache():
+    global _GPU_CACHE
+    if _GPU_CACHE is None:
+        _GPU_CACHE = _build_gpu_cache()
+    return _GPU_CACHE
 
 
 def _draw_callback():
     if not _CACHE:
         return
-    import gpu
-    from gpu_extras.batch import batch_for_shader
-
-    shader = gpu.shader.from_builtin("POLYLINE_UNIFORM_COLOR")
-    for start, end, color in _CACHE:
-        batch = batch_for_shader(shader, "LINES", {"pos": (start, end)})
+    shader, batches = _ensure_gpu_cache()
+    for batch, color in batches:
         shader.bind()
         shader.uniform_float("color", color)
         shader.uniform_float("viewportSize", (1.0, 1.0))
@@ -25,19 +41,21 @@ def _draw_callback():
         batch.draw(shader)
 
 
-def enable_preview(cache):
-    global _HANDLER, _CACHE
-    disable_preview()
+def _enable_preview(cache):
+    global _HANDLER, _CACHE, _GPU_CACHE
+    _disable_preview()
     _CACHE = tuple(cache)
+    _GPU_CACHE = None
     _HANDLER = bpy.types.SpaceView3D.draw_handler_add(_draw_callback, (), "WINDOW", "POST_VIEW")
 
 
-def disable_preview():
-    global _HANDLER, _CACHE
+def _disable_preview():
+    global _HANDLER, _CACHE, _GPU_CACHE
     if _HANDLER is not None:
         bpy.types.SpaceView3D.draw_handler_remove(_HANDLER, "WINDOW")
     _HANDLER = None
     _CACHE = ()
+    _GPU_CACHE = None
 
 
 def is_preview_enabled():

@@ -16,7 +16,7 @@ class UECP_UL_proposals(bpy.types.UIList):
 class UECP_UL_issues(bpy.types.UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         issue_icon = "ERROR" if item.severity == "BLOCKER" else ("INFO" if item.severity == "INFO" else "QUESTION")
-        layout.label(text=f"{item.code}: {item.message}", icon=issue_icon)
+        layout.label(text=item.message, icon=issue_icon)
 
 
 UI_LIST_CLASSES = (UECP_UL_chains, UECP_UL_proposals, UECP_UL_issues)

@@ -15,6 +15,7 @@ from bpy.props import (
 from .constants import enum_items
 from .contracts import (
     BoneForwardAxis,
+    BranchResolutionMode,
     ExclusivityMode,
     MeshScope,
     OverrideMode,
@@ -25,11 +26,31 @@ from .contracts import (
     ScopeMode,
     TerminalMode,
     TipLengthMode,
+    ValidationToleranceMode,
 )
 
 
+def _algorithm_setting_changed(_settings, context) -> None:
+    runtime = getattr(getattr(context, "window_manager", None), "uecp_runtime", None)
+    if runtime is None or not runtime.plan_id:
+        return
+    from .controllers.preview import PreviewController
+    PreviewController.disable(context)
+    if runtime.state == PlanState.ANALYZED.value:
+        runtime.state = PlanState.STALE.value
+    runtime.last_error = "UECP_SETTINGS_CHANGED_AFTER_ANALYZE"
+
+
+def _preview_setting_changed(_settings, context) -> None:
+    from .controllers.preview import PreviewController
+    PreviewController.tag_redraw(context)
+
+
 class UECP_PG_TerminalOverride(bpy.types.PropertyGroup):
+    armature_data_name: StringProperty(default="")
+    armature_structural_fingerprint: StringProperty(default="")
     bone_name: StringProperty(name="Bone")
+    chain_id: StringProperty(default="")
     mode: EnumProperty(items=enum_items(OverrideMode), default=OverrideMode.NONE.value)
     reference_object: PointerProperty(type=bpy.types.Object)
     direction: FloatVectorProperty(size=3, default=(0.0, 1.0, 0.0), subtype="DIRECTION")
@@ -39,48 +60,68 @@ class UECP_PG_TerminalOverride(bpy.types.PropertyGroup):
     enabled: BoolProperty(default=True)
 
 
+class UECP_PG_BranchOverride(bpy.types.PropertyGroup):
+    armature_data_name: StringProperty(default="")
+    armature_structural_fingerprint: StringProperty(default="")
+    branch_bone_name: StringProperty(default="")
+    selected_child_name: StringProperty(default="")
+    enabled: BoolProperty(default=True)
+
+
 class UECP_PG_Settings(bpy.types.PropertyGroup):
-    scope_mode: EnumProperty(items=enum_items(ScopeMode), default=ScopeMode.SELECTED_BONES.value)
-    mesh_scope: EnumProperty(items=enum_items(MeshScope), default=MeshScope.ALL_ASSOCIATED_MESHES.value)
-    physics_profile: EnumProperty(items=enum_items(PhysicsProfile), default=PhysicsProfile.BONEX_ROTATION_CHAIN.value)
-    terminal_mode: EnumProperty(items=enum_items(TerminalMode), default=TerminalMode.AUTO_HYBRID.value)
-    bone_forward_axis: EnumProperty(items=enum_items(BoneForwardAxis), default=BoneForwardAxis.AUTO.value)
-    tip_length_mode: EnumProperty(items=enum_items(TipLengthMode), default=TipLengthMode.AUTO_EVIDENCE.value)
-    absolute_tip_length: FloatProperty(default=0.0, min=0.0)
-    roll_mode: EnumProperty(items=enum_items(RollMode), default=RollMode.MINIMAL_TWIST.value)
-    radial_reference_mode: EnumProperty(items=enum_items(RadialReferenceMode), default=RadialReferenceMode.ARMATURE_ORIGIN.value)
-    radial_reference_object: PointerProperty(type=bpy.types.Object)
-    radial_reference_bone: StringProperty(default="")
-    minimum_weight: FloatProperty(default=0.02, min=0.0, max=1.0)
-    weight_exponent: FloatProperty(default=2.0, min=0.25, max=8.0)
-    use_vertex_area_weight: BoolProperty(default=True)
-    exclusivity_mode: EnumProperty(items=enum_items(ExclusivityMode), default=ExclusivityMode.CHAIN_NORMALIZED.value)
-    terminal_percentile: FloatProperty(default=0.90, min=0.50, max=0.999)
-    minimum_candidate_score: FloatProperty(default=0.62, min=0.0, max=1.0)
-    candidate_minimum_margin: FloatProperty(default=0.08, min=0.0, max=1.0)
-    minimum_confidence: FloatProperty(default=0.70, min=0.0, max=1.0)
-    medium_confidence: FloatProperty(default=0.50, min=0.0, max=1.0)
-    minimum_length_ratio: FloatProperty(default=0.25, min=0.01, max=2.0)
-    maximum_length_ratio: FloatProperty(default=2.0, min=0.1, max=10.0)
-    maximum_auto_bend_degrees: FloatProperty(default=115.0, min=0.0, max=180.0)
-    parallel_transport_weight: FloatProperty(default=0.65, min=0.0, max=1.0)
-    old_axis_weight: FloatProperty(default=0.35, min=0.0, max=1.0)
-    enable_segment_sampling_hints: BoolProperty(default=True)
-    long_segment_ratio_warning: FloatProperty(default=2.5, min=1.0, max=20.0)
-    virtual_preview_subdivision_max: IntProperty(default=8, min=0, max=50)
-    strict_whole_armature_pose: BoolProperty(default=True)
-    validate_full_mesh: BoolProperty(default=True)
-    create_role_collections: BoolProperty(default=False)
-    preview_show_joint_graph: BoolProperty(default=True)
-    preview_show_virtual_tips: BoolProperty(default=True)
-    preview_show_candidate_axes: BoolProperty(default=True)
-    preview_show_old_axes: BoolProperty(default=True)
-    preview_show_new_axes: BoolProperty(default=True)
-    preview_show_weight_centroid: BoolProperty(default=True)
-    preview_axis_scale: FloatProperty(default=0.1, min=1.0e-9)
-    position_epsilon_factor: FloatProperty(default=1.0e-7, min=1.0e-10, max=1.0e-3)
+    scope_mode: EnumProperty(items=enum_items(ScopeMode), default=ScopeMode.SELECTED_BONES.value, update=_algorithm_setting_changed)
+    mesh_scope: EnumProperty(items=enum_items(MeshScope), default=MeshScope.ALL_ASSOCIATED_MESHES.value, update=_algorithm_setting_changed)
+    physics_profile: EnumProperty(items=enum_items(PhysicsProfile), default=PhysicsProfile.BONEX_ROTATION_CHAIN.value, update=_algorithm_setting_changed)
+    branch_resolution_mode: EnumProperty(
+        items=enum_items(BranchResolutionMode),
+        default=BranchResolutionMode.AUTO_MAIN_PATH.value,
+        update=_algorithm_setting_changed,
+    )
+    terminal_mode: EnumProperty(items=enum_items(TerminalMode), default=TerminalMode.AUTO_HYBRID.value, update=_algorithm_setting_changed)
+    bone_forward_axis: EnumProperty(items=enum_items(BoneForwardAxis), default=BoneForwardAxis.AUTO.value, update=_algorithm_setting_changed)
+    tip_length_mode: EnumProperty(items=enum_items(TipLengthMode), default=TipLengthMode.AUTO_EVIDENCE.value, update=_algorithm_setting_changed)
+    absolute_tip_length: FloatProperty(default=0.0, min=0.0, update=_algorithm_setting_changed)
+    roll_mode: EnumProperty(items=enum_items(RollMode), default=RollMode.MINIMAL_TWIST.value, update=_algorithm_setting_changed)
+    radial_reference_mode: EnumProperty(items=enum_items(RadialReferenceMode), default=RadialReferenceMode.ARMATURE_ORIGIN.value, update=_algorithm_setting_changed)
+    radial_reference_object: PointerProperty(type=bpy.types.Object, update=_algorithm_setting_changed)
+    radial_reference_bone: StringProperty(default="", update=_algorithm_setting_changed)
+    minimum_weight: FloatProperty(default=0.02, min=0.0, max=1.0, update=_algorithm_setting_changed)
+    weight_exponent: FloatProperty(default=2.0, min=0.25, max=8.0, update=_algorithm_setting_changed)
+    use_vertex_area_weight: BoolProperty(default=True, update=_algorithm_setting_changed)
+    exclusivity_mode: EnumProperty(items=enum_items(ExclusivityMode), default=ExclusivityMode.CHAIN_NORMALIZED.value, update=_algorithm_setting_changed)
+    terminal_percentile: FloatProperty(default=0.90, min=0.50, max=0.999, update=_algorithm_setting_changed)
+    minimum_candidate_score: FloatProperty(default=0.62, min=0.0, max=1.0, update=_algorithm_setting_changed)
+    candidate_minimum_margin: FloatProperty(default=0.08, min=0.0, max=1.0, update=_algorithm_setting_changed)
+    candidate_direction_merge_angle_degrees: FloatProperty(default=7.5, min=0.0, max=45.0, update=_algorithm_setting_changed)
+    minimum_confidence: FloatProperty(default=0.70, min=0.0, max=1.0, update=_algorithm_setting_changed)
+    medium_confidence: FloatProperty(default=0.50, min=0.0, max=1.0, update=_algorithm_setting_changed)
+    minimum_length_ratio: FloatProperty(default=0.25, min=0.01, max=2.0, update=_algorithm_setting_changed)
+    maximum_length_ratio: FloatProperty(default=2.0, min=0.1, max=10.0, update=_algorithm_setting_changed)
+    maximum_auto_bend_degrees: FloatProperty(default=115.0, min=0.0, max=180.0, update=_algorithm_setting_changed)
+    parallel_transport_weight: FloatProperty(default=0.65, min=0.0, max=1.0, update=_algorithm_setting_changed)
+    old_axis_weight: FloatProperty(default=0.35, min=0.0, max=1.0, update=_algorithm_setting_changed)
+    enable_segment_sampling_hints: BoolProperty(default=True, update=_algorithm_setting_changed)
+    long_segment_ratio_warning: FloatProperty(default=2.5, min=1.0, max=20.0, update=_algorithm_setting_changed)
+    virtual_preview_subdivision_max: IntProperty(default=8, min=0, max=50, update=_algorithm_setting_changed)
+    strict_whole_armature_pose: BoolProperty(default=True, update=_algorithm_setting_changed)
+    validate_full_mesh: BoolProperty(default=True, update=_algorithm_setting_changed)
+    create_role_collections: BoolProperty(default=False, update=_algorithm_setting_changed)
+    preview_show_joint_graph: BoolProperty(default=True, update=_preview_setting_changed)
+    preview_show_virtual_tips: BoolProperty(default=True, update=_preview_setting_changed)
+    preview_show_candidate_axes: BoolProperty(default=True, update=_preview_setting_changed)
+    preview_show_old_axes: BoolProperty(default=True, update=_preview_setting_changed)
+    preview_show_new_axes: BoolProperty(default=True, update=_preview_setting_changed)
+    preview_show_weight_centroid: BoolProperty(default=True, update=_preview_setting_changed)
+    preview_axis_scale: FloatProperty(default=0.1, min=1.0e-9, update=_preview_setting_changed)
+    validation_tolerance_mode: EnumProperty(
+        items=enum_items(ValidationToleranceMode),
+        default=ValidationToleranceMode.AUTO_PRODUCTION.value,
+        update=_algorithm_setting_changed,
+    )
+    position_epsilon_factor: FloatProperty(default=1.0e-7, min=1.0e-10, max=1.0e-3, update=_algorithm_setting_changed)
     last_export_directory: StringProperty(default="", subtype="DIR_PATH")
     terminal_overrides: CollectionProperty(type=UECP_PG_TerminalOverride)
+    branch_overrides: CollectionProperty(type=UECP_PG_BranchOverride)
 
 
 class UECP_PG_Runtime(bpy.types.PropertyGroup):
@@ -95,6 +136,14 @@ class UECP_PG_Runtime(bpy.types.PropertyGroup):
     issue_count_blocker: IntProperty(default=0, min=0)
     active_chain_index: IntProperty(default=0, min=0)
     active_proposal_index: IntProperty(default=0, min=0)
+    active_issue_index: IntProperty(default=0, min=0)
+    selection_signature: StringProperty(default="")
+    settings_signature: StringProperty(default="")
+    plan_bone_count: IntProperty(default=0, min=0)
+    plan_chain_count: IntProperty(default=0, min=0)
+    terminal_reliable_count: IntProperty(default=0, min=0)
+    terminal_attention_count: IntProperty(default=0, min=0)
+    details_loaded: BoolProperty(default=False)
     preview_enabled: BoolProperty(default=False)
     last_error: StringProperty(default="")
     generation: IntProperty(default=0, min=0)
@@ -118,10 +167,12 @@ class UECP_PG_IssueItem(bpy.types.PropertyGroup):
     severity: StringProperty()
     code: StringProperty()
     message: StringProperty()
+    bone_name: StringProperty()
 
 
 PROPERTY_CLASSES = (
     UECP_PG_TerminalOverride,
+    UECP_PG_BranchOverride,
     UECP_PG_Settings,
     UECP_PG_Runtime,
     UECP_PG_ChainItem,
@@ -149,6 +200,14 @@ def register_properties() -> None:
         runtime.issue_count_blocker = 0
         runtime.active_chain_index = 0
         runtime.active_proposal_index = 0
+        runtime.active_issue_index = 0
+        runtime.selection_signature = ""
+        runtime.settings_signature = ""
+        runtime.plan_bone_count = 0
+        runtime.plan_chain_count = 0
+        runtime.terminal_reliable_count = 0
+        runtime.terminal_attention_count = 0
+        runtime.details_loaded = False
         runtime.preview_enabled = False
         runtime.last_error = ""
         runtime.generation = 0

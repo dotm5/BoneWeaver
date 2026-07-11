@@ -50,3 +50,33 @@ def make_bound_mesh(armature, *, name: str = "Mesh"):
     modifier = obj.modifiers.new(name="Armature", type="ARMATURE")
     modifier.object = armature
     return obj, modifier
+
+
+def make_bag_branch(*, name: str = "BranchRig"):
+    data = bpy.data.armatures.new(f"{name}Data")
+    obj = bpy.data.objects.new(name, data)
+    bpy.context.scene.collection.objects.link(obj)
+    bpy.context.view_layer.objects.active = obj
+    obj.select_set(True)
+    specs = (
+        ("bag_r_02", None, (0, 0, 0)),
+        ("bag_r_03", "bag_r_02", (0, 1, 0)),
+        ("bag_r_04", "bag_r_03", (0, 2, 0)),
+        ("bag_r_05", "bag_r_04", (0, 3, 0)),
+        ("bag_r_06", "bag_r_05", (0, 4, 0)),
+        ("bag_r_03a_01", "bag_r_03", (0.5, 1.7, 0)),
+        ("bag_r_03a_02", "bag_r_03a_01", (1.0, 2.4, 0)),
+    )
+    bpy.ops.object.mode_set(mode="EDIT")
+    for bone_name, parent_name, head in specs:
+        bone = data.edit_bones.new(bone_name)
+        bone.head = head
+        bone.tail = (head[0] + 0.15, head[1] + 0.15, head[2])
+        bone.parent = data.edit_bones.get(parent_name) if parent_name else None
+        bone.use_connect = False
+    data.edit_bones["bag_r_03a_01"].use_connect = True
+    bpy.ops.object.mode_set(mode="OBJECT")
+    for pose_bone in obj.pose.bones:
+        pose_bone.select = True
+    data.bones.active = data.bones["bag_r_02"]
+    return obj

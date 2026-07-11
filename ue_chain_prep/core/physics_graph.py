@@ -129,7 +129,9 @@ def with_virtual_tips(graph: PhysicsGraph, solutions) -> PhysicsGraph:
     chains = list(graph.chains)
     node_index = {node.node_id: index for index, node in enumerate(nodes)}
     for bone_name, solution in sorted(solutions.items()):
-        if solution.requires_confirmation or not solution.selected_candidate_id:
+        if not solution.selected_candidate_id:
+            continue
+        if solution.requires_confirmation and solution.resolution_class != "AUTO_SAFE_FALLBACK":
             continue
         real_id = _node_id(bone_name)
         if real_id not in node_index:

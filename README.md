@@ -31,3 +31,7 @@ Version 0.1.0 is a physics-preparation tool, not a UE animation-basis retargeter
 BoneX 1.2.6 may try to initialize `Object["bonex_data"]` while its Soft Connection panel is drawing, which Blender 5.2 rejects. This is a BoneX UI-context bug and reproduces without UE Chain Prep. A version-guarded, reversible local hotfix is documented in [BoneX 1.2.6 draw-context hotfix](docs/bonex-1.2.6-draw-context-hotfix.md). Restart Blender after applying or restoring it.
 
 See [architecture](docs/architecture.md), [algorithms](docs/algorithms.md), [safety](docs/safety.md), and the [manual BoneX/Wiggle checklist](docs/manual-test-bonex-wiggle.md).
+
+## Backend hardening
+
+The production default now uses per-mesh evaluated object-local neutral validation, safe parent-chain leaf fallback, clustered terminal evidence, scored branch continuation, topology-aware weight islands, scoped idempotent overrides, mutation/topology ledgers, a hard conversion-export gate, and independent reopen validation. These changes do not add normal-workflow buttons or change the panel layout. See [validation tolerance](docs/validation-tolerance.md), [branch resolution](docs/branch-resolution.md), and [export contract](docs/export-contract.md).

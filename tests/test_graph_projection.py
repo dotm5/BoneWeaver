@@ -4,6 +4,7 @@ import unittest
 
 from tests.test_physics_graph import state
 from ue_chain_prep.core.graph_projection import build_proposals
+from ue_chain_prep.core.branch_resolution import resolve_branch
 from ue_chain_prep.core.physics_graph import build_physics_graph, with_virtual_tips
 from ue_chain_prep.core.terminal_candidates import generate_candidates, select_candidate
 from ue_chain_prep.core.weight_cloud import analyze_weight_cloud
@@ -44,6 +45,28 @@ class GraphProjectionTests(unittest.TestCase):
         proposals = build_proposals(build_physics_graph(bones), bones, "WIGGLE2_STRETCH_CHAIN")
         self.assertEqual(len(proposals), 1)
         self.assertFalse(proposals[0].final_use_connect)
+
+    def test_resolved_branch_projects_main_tail_and_disconnects_side_root(self) -> None:
+        bones = (
+            state("bag_r_02", None, ("bag_r_03",), (0, 0, 0)),
+            state("bag_r_03", "bag_r_02", ("bag_r_04", "bag_r_03a_01"), (0, 1, 0)),
+            state("bag_r_04", "bag_r_03", ("bag_r_05",), (0, 2, 0)),
+            state("bag_r_05", "bag_r_04", ("bag_r_06",), (0, 3, 0)),
+            state("bag_r_06", "bag_r_05", (), (0, 4, 0)),
+            state("bag_r_03a_01", "bag_r_03", ("bag_r_03a_02",), (0.5, 1.7, 0)),
+            state("bag_r_03a_02", "bag_r_03a_01", (), (1.0, 2.4, 0)),
+        )
+        graph = build_physics_graph(bones)
+        resolution = resolve_branch("bag_r_03", bones)
+        proposals = build_proposals(
+            graph, bones, "BONEX_ROTATION_CHAIN", branch_resolutions=(resolution,)
+        )
+        by_name = {proposal.bone_name: proposal for proposal in proposals}
+        self.assertEqual(by_name["bag_r_03"].role, "BRANCH_CONTINUATION")
+        self.assertEqual(by_name["bag_r_03"].proposed_tail, (0.0, 2.0, 0.0))
+        self.assertTrue(by_name["bag_r_04"].final_use_connect)
+        self.assertEqual(by_name["bag_r_03a_01"].role, "BRANCH_SIDE_ROOT")
+        self.assertFalse(by_name["bag_r_03a_01"].final_use_connect)
 
 
 if __name__ == "__main__":

@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 import unittest
+import json
 
 import bpy
 import ue_chain_prep
 
-from tests.fixture_builders import clear_scene, make_bound_mesh, make_chain
+from tests.fixture_builders import clear_scene, make_bag_branch, make_bound_mesh, make_chain
 from ue_chain_prep.core.apply_transaction import apply_plan
 from ue_chain_prep.core.runtime_store import get_plan
+from ue_chain_prep.core.runtime_store import get_performance
 
 
 class ApplyTransactionTests(unittest.TestCase):
@@ -52,6 +54,9 @@ class ApplyTransactionTests(unittest.TestCase):
         bone_count = len(self.rig.data.bones)
         self.assertEqual(bpy.ops.uecp.apply(plan_id=runtime.plan_id), {"FINISHED"})
         self.assertEqual(runtime.state, "RESTORABLE")
+        performance = get_performance(runtime.plan_id)
+        self.assertGreater(performance["apply_time"], 0.0)
+        self.assertGreater(performance["validation_time"], 0.0)
         self.assertTrue(runtime.snapshot_text_name.startswith("UECP_SNAPSHOT::"))
         self.assertIn(runtime.snapshot_text_name, bpy.data.texts)
         self.assertEqual(len(bpy.data.objects), object_count)
@@ -85,6 +90,54 @@ class ApplyTransactionTests(unittest.TestCase):
         runtime = bpy.context.window_manager.uecp_runtime
         self.assertEqual(bpy.ops.uecp.apply(plan_id=runtime.plan_id), {"FINISHED"})
         self.assertTrue({"UECP_Anchors", "UECP_Dynamics", "UECP_BranchBoundaries", "UECP_LowConfidence"}.issubset(self.rig.data.collections.keys()))
+
+    def test_branch_apply_preserves_child_heads_and_parents_with_one_main_connection(self) -> None:
+        clear_scene()
+        self.rig = make_bag_branch()
+        self.mesh, _ = make_bound_mesh(self.rig)
+        for bone_name in self.rig.data.bones.keys():
+            group = self.mesh.vertex_groups.new(name=bone_name)
+            group.add([0, 1, 2], 1.0, "REPLACE")
+        before = {
+            bone.name: (
+                tuple(bone.head_local),
+                bone.parent.name if bone.parent else None,
+            )
+            for bone in self.rig.data.bones
+        }
+        self.assertEqual(bpy.ops.uecp.analyze(), {"FINISHED"})
+        runtime = bpy.context.window_manager.uecp_runtime
+        plan = get_plan(runtime.plan_id)
+        resolution = next(item for item in plan.branch_resolutions if item.branch_bone_name == "bag_r_03")
+        self.assertEqual(resolution.selected_child_name, "bag_r_04")
+        self.assertIsNotNone(plan.topology_ledger)
+        self.assertEqual(plan.topology_ledger.resolved_branch_count, 1)
+        self.assertEqual(plan.topology_ledger.proposal_count, len(plan.proposals))
+        self.assertEqual(runtime.issue_count_blocker, 0)
+        self.assertEqual(bpy.ops.uecp.apply(plan_id=runtime.plan_id), {"FINISHED"})
+        self.assertEqual(
+            tuple(self.rig.data.bones["bag_r_03"].tail_local),
+            tuple(self.rig.data.bones["bag_r_04"].head_local),
+        )
+        self.assertTrue(self.rig.data.bones["bag_r_04"].use_connect)
+        self.assertFalse(self.rig.data.bones["bag_r_03a_01"].use_connect)
+        snapshot = json.loads(bpy.data.texts[runtime.snapshot_text_name].as_string())
+        records = snapshot["mutation_records"]
+        proposal_ids = {proposal.proposal_id for proposal in plan.proposals}
+        self.assertGreater(len(records), 0)
+        self.assertTrue(all(record["proposal_id"] in proposal_ids for record in records))
+        side_record = next(record for record in records if record["bone_name"] == "bag_r_03a_01")
+        self.assertTrue(side_record["use_connect_changed"])
+        self.assertIn("BRANCH_SIDE_ROOT", side_record["reason_codes"])
+        self.assertEqual(snapshot["topology_ledger"]["mutation_record_count"], len(records))
+        after = {
+            bone.name: (
+                tuple(bone.head_local),
+                bone.parent.name if bone.parent else None,
+            )
+            for bone in self.rig.data.bones
+        }
+        self.assertEqual(after, before)
 
 
 if __name__ == "__main__":

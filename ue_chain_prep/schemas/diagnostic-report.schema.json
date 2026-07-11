@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "uecp://schema/diagnostic-report/3.0.0",
+  "$id": "uecp://schema/diagnostic-report/3.1.0",
   "title": "UE Chain Prep Diagnostic Report",
   "type": "object",
   "additionalProperties": false,

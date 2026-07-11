@@ -34,6 +34,8 @@ class PlanSerializationTests(unittest.TestCase):
         self.assertEqual(set(payload), set(schema["properties"]))
         self.assertTrue(set(schema["required"]).issubset(payload))
         self.assertEqual(payload["plan_id"], plan.plan_id)
+        self.assertIn("branch_resolutions", payload)
+        self.assertIn("topology_ledger", payload)
 
 
 if __name__ == "__main__":

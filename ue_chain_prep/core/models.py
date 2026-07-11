@@ -108,6 +108,25 @@ class PhysicsGraph:
 
 
 @dataclass(frozen=True, slots=True)
+class WeightComponentStats:
+    vertex_count: int
+    statistical_weight: float
+    centroid: tuple[float, float, float]
+    principal_axis: tuple[float, float, float] | None
+
+
+@dataclass(frozen=True, slots=True)
+class PerMeshWeightCloudStats:
+    mesh_name: str
+    component_count: int
+    components: tuple[WeightComponentStats, ...]
+    dominant_weight_ratio: float
+    selected_centroid: tuple[float, float, float] | None
+    selected_principal_axis: tuple[float, float, float] | None
+    selected_statistical_weight: float
+
+
+@dataclass(frozen=True, slots=True)
 class WeightCloudStats:
     bone_name: str
     mesh_names: tuple[str, ...]
@@ -127,6 +146,8 @@ class WeightCloudStats:
     cloud_class: str
     confidence: float
     warnings: tuple[str, ...]
+    per_mesh_clouds: tuple[PerMeshWeightCloudStats, ...] = ()
+    component_strategy: str = "DOMINANT_COMPONENT"
 
 
 @dataclass(frozen=True, slots=True)
@@ -155,6 +176,16 @@ class TerminalCandidate:
 
 
 @dataclass(frozen=True, slots=True)
+class TerminalCandidateCluster:
+    cluster_id: str
+    direction: tuple[float, float, float]
+    score: float
+    support_bonus: float
+    member_candidate_ids: tuple[str, ...]
+    evidence_kinds: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
 class TerminalSolution:
     bone_name: str
     source: str
@@ -168,6 +199,36 @@ class TerminalSolution:
     score_margin: float
     requires_confirmation: bool
     evidence: tuple[str, ...]
+    resolution_class: str = "UNRESOLVED"
+    candidate_clusters: tuple[TerminalCandidateCluster, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class BranchCandidate:
+    child_bone_name: str
+    immediate_edge_length: float
+    longest_downstream_path_length: float
+    branch_depth: int
+    deform_weight_mass: float
+    weighted_vertex_count: int
+    direction_continuity: float
+    naming_continuity: float
+    penalties: tuple[tuple[str, float], ...]
+    score: float
+
+
+@dataclass(frozen=True, slots=True)
+class BranchResolution:
+    branch_bone_name: str
+    mode: str
+    candidates: tuple[BranchCandidate, ...]
+    selected_child_name: str | None
+    side_child_names: tuple[str, ...]
+    score: float
+    margin: float
+    result: str
+    requires_confirmation: bool
+    issue_codes: tuple[str, ...]
 
 
 @dataclass(frozen=True, slots=True)
@@ -185,6 +246,41 @@ class BoneProposal:
     terminal_source: str
     confidence: float
     issue_codes: tuple[str, ...]
+    proposal_id: str = ""
+
+
+@dataclass(frozen=True, slots=True)
+class BoneMutationRecord:
+    bone_name: str
+    proposal_id: str
+    chain_id: str
+    role: str
+    tail_changed: bool
+    roll_changed: bool
+    use_connect_changed: bool
+    old_tail: tuple[float, float, float]
+    new_tail: tuple[float, float, float]
+    old_roll: float
+    new_roll: float
+    old_use_connect: bool
+    new_use_connect: bool
+    reason_codes: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class TopologyProjectionLedger:
+    selected_bone_count: int
+    selected_hierarchy_edge_count: int
+    linear_edge_count: int
+    branch_node_count: int
+    branch_edge_count: int
+    resolved_branch_count: int
+    unresolved_branch_count: int
+    external_child_edge_count: int
+    virtual_tip_count: int
+    proposal_count: int
+    mutation_record_count: int
+    skipped_by_design_count: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -235,6 +331,8 @@ class ConversionPlan:
     proposals: tuple[BoneProposal, ...]
     segment_sampling_hints: tuple[SegmentSamplingHint, ...]
     issues: tuple[ValidationIssue, ...]
+    branch_resolutions: tuple[BranchResolution, ...] = ()
+    topology_ledger: TopologyProjectionLedger | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -244,3 +342,7 @@ class TransactionResult:
     snapshot_id: str
     snapshot_text_name: str
     error: str | None
+    mutation_records: tuple[BoneMutationRecord, ...] = ()
+    topology_ledger: TopologyProjectionLedger | None = None
+    apply_time: float = 0.0
+    validation_time: float = 0.0

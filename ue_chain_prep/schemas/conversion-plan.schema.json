@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "uecp://schema/conversion-plan/3.0.0",
+  "$id": "uecp://schema/conversion-plan/3.1.0",
   "title": "UE Chain Prep Conversion Plan",
   "type": "object",
   "additionalProperties": false,
@@ -28,7 +28,9 @@
     "terminal_solutions": {"type": "array", "items": {"$ref": "#/$defs/terminalSolution"}},
     "proposals": {"type": "array", "items": {"$ref": "#/$defs/proposal"}},
     "segment_sampling_hints": {"type": "array", "items": {"$ref": "#/$defs/segmentSamplingHint"}},
-    "issues": {"type": "array", "items": {"$ref": "#/$defs/issue"}}
+    "issues": {"type": "array", "items": {"$ref": "#/$defs/issue"}},
+    "branch_resolutions": {"type": "array", "items": {"$ref": "#/$defs/branchResolution"}},
+    "topology_ledger": {"$ref": "#/$defs/topologyLedger"}
   },
   "$defs": {
     "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
@@ -113,6 +115,12 @@
     "weightCloud": {"type": "object", "additionalProperties": false, "required": ["bone_name", "sample_count", "confidence"], "properties": {"bone_name": {"type": "string"}, "sample_count": {"type": "integer", "minimum": 0}, "confidence": {"type": "number", "minimum": 0, "maximum": 1}}},
     "proposal": {"type": "object", "additionalProperties": false, "required": ["bone_name", "chain_id", "source_edge_id", "proposed_tail", "final_use_connect"], "properties": {"bone_name": {"type": "string"}, "chain_id": {"type": "string"}, "source_edge_id": {"type": "string"}, "proposed_tail": {"$ref": "#/$defs/vec3"}, "final_use_connect": {"type": "boolean"}}},
     "segmentSamplingHint": {"type": "object", "additionalProperties": false, "required": ["edge_id", "length_ratio", "suggested_virtual_subdivisions"], "properties": {"edge_id": {"type": "string"}, "length_ratio": {"type": "number"}, "suggested_virtual_subdivisions": {"type": "integer", "minimum": 0}}},
+    "branchCandidate": {"type": "object", "additionalProperties": true},
+    "branchResolution": {"type": "object", "additionalProperties": true},
+    "mutationRecord": {"type": "object", "additionalProperties": true},
+    "topologyLedger": {"type": "object", "additionalProperties": true},
+    "meshValidationResult": {"type": "object", "additionalProperties": true},
+    "exportManifest": {"type": "object", "additionalProperties": true},
     "issue": {"type": "object", "additionalProperties": false, "required": ["severity", "code", "message_key", "message"], "properties": {"severity": {"enum": ["INFO", "WARNING", "BLOCKER"]}, "code": {"type": "string", "pattern": "^UECP_[A-Z0-9_]+$"}, "message_key": {"type": "string"}, "message": {"type": "string"}}}
   }
 }

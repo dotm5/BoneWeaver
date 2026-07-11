@@ -8,29 +8,15 @@ import struct
 from .armature_reader import read_bone_states
 from .canonical import sha256
 from ..contracts import ALGORITHM_VERSION
+from .mesh_scan_cache import mesh_digest_pair
 
 
 def weight_digest(mesh_obj):
-    digest = hashlib.sha256()
-    groups = {group.index: group.name for group in mesh_obj.vertex_groups}
-    for vertex in mesh_obj.data.vertices:
-        digest.update(struct.pack("<Q", vertex.index))
-        for membership in sorted(vertex.groups, key=lambda item: groups.get(item.group, "")):
-            name = groups.get(membership.group, "").encode("utf-8")
-            digest.update(struct.pack("<I", len(name)))
-            digest.update(name)
-            digest.update(struct.pack("<f", float(membership.weight)))
-    return digest.hexdigest()
+    return mesh_digest_pair(mesh_obj)[0]
 
 
 def base_mesh_digest(mesh_obj):
-    return sha256(
-        (
-            tuple(tuple(float(value) for value in vertex.co) for vertex in mesh_obj.data.vertices),
-            tuple(tuple(edge.vertices) for edge in mesh_obj.data.edges),
-            tuple(tuple(polygon.vertices) for polygon in mesh_obj.data.polygons),
-        )
-    )
+    return mesh_digest_pair(mesh_obj)[1]
 
 
 def modifier_digest(mesh_obj):
@@ -50,15 +36,37 @@ def modifier_digest(mesh_obj):
 
 
 def settings_payload(settings):
-    excluded = {"rna_type", "last_export_directory", "preview_show_joint_graph", "preview_show_virtual_tips", "preview_show_candidate_axes", "preview_show_old_axes", "preview_show_new_axes", "preview_show_weight_centroid"}
+    excluded = {"rna_type", "last_export_directory", "preview_show_joint_graph", "preview_show_virtual_tips", "preview_show_candidate_axes", "preview_show_old_axes", "preview_show_new_axes", "preview_show_weight_centroid", "preview_axis_scale"}
     values = {}
     for prop in settings.bl_rna.properties:
-        if prop.identifier in excluded or prop.identifier == "terminal_overrides" or prop.type == "POINTER":
+        if prop.identifier in excluded or prop.identifier in {"terminal_overrides", "branch_overrides"} or prop.type == "POINTER":
             continue
         values[prop.identifier] = getattr(settings, prop.identifier)
     values["terminal_overrides"] = tuple(
-        (item.bone_name, item.mode, getattr(item.reference_object, "name", None), tuple(item.direction), item.length, item.mesh_object_name, item.vertex_index, item.enabled)
+        (
+            item.armature_data_name,
+            item.armature_structural_fingerprint,
+            item.bone_name,
+            item.chain_id,
+            item.mode,
+            getattr(item.reference_object, "name", None),
+            tuple(item.direction),
+            item.length,
+            item.mesh_object_name,
+            item.vertex_index,
+            item.enabled,
+        )
         for item in settings.terminal_overrides
+    )
+    values["branch_overrides"] = tuple(
+        (
+            item.armature_data_name,
+            item.armature_structural_fingerprint,
+            item.branch_bone_name,
+            item.selected_child_name,
+            item.enabled,
+        )
+        for item in settings.branch_overrides
     )
     values["radial_reference_object"] = getattr(settings.radial_reference_object, "name", None)
     values["algorithm_version"] = ALGORITHM_VERSION
@@ -88,6 +96,7 @@ def current_source_fingerprint(context, plan):
         mesh = context.scene.objects.get(expected.object_name)
         if mesh is None:
             return ""
-        meshes.append((mesh.name, weight_digest(mesh), base_mesh_digest(mesh), modifier_digest(mesh)))
+        current_weight_digest, current_base_mesh_digest = mesh_digest_pair(mesh)
+        meshes.append((mesh.name, current_weight_digest, current_base_mesh_digest, modifier_digest(mesh)))
     matrix = tuple(float(armature.matrix_world[row][column]) for row in range(4) for column in range(4))
     return sha256((ALGORITHM_VERSION, armature.name, armature.data.name, matrix, states, tuple(meshes)))

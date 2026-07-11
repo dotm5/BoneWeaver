@@ -32,6 +32,14 @@ class RollSolverTests(unittest.TestCase):
         self.assertLess((swing @ old).angle(new), 1.0e-6)
         self.assertAlmostEqual(swing.angle, math.pi / 2.0, places=6)
 
+    def test_mirrored_fallbacks_keep_matching_hemispheres(self) -> None:
+        left, left_fallback = minimal_twist_reference((0, 1, 0), (0, 1, 0), (1, 0, 0), (0, 0, 1))
+        right, right_fallback = minimal_twist_reference((0, 1, 0), (0, 1, 0), (-1, 0, 0), (0, 0, 1))
+        self.assertTrue(left_fallback)
+        self.assertTrue(right_fallback)
+        self.assertGreaterEqual(Vector(left).dot(Vector((0, 0, 1))), 0.0)
+        self.assertGreaterEqual(Vector(right).dot(Vector((0, 0, 1))), 0.0)
+
 
 if __name__ == "__main__":
     unittest.main()

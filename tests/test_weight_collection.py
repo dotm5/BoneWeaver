@@ -30,6 +30,11 @@ class WeightCollectionTests(unittest.TestCase):
         self.assertEqual(len(result.points_by_bone["Bone_0"]), 3)
         self.assertEqual(len(result.points_by_bone["Bone_1"]), 3)
         self.assertAlmostEqual(result.points_by_bone["Bone_0"][0][1], (0.1 / 3.0) * 0.25 * 0.5)
+        self.assertEqual(len(result.per_mesh_inputs_by_bone["Bone_0"]), 1)
+        compact_input = result.per_mesh_inputs_by_bone["Bone_0"][0]
+        self.assertEqual(compact_input.mesh_name, mesh.name)
+        self.assertEqual(len(compact_input.weighted_vertices), 3)
+        self.assertEqual(compact_input.edges, ((0, 1), (0, 2), (1, 2)))
 
 
 if __name__ == "__main__":

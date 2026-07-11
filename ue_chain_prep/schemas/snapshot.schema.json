@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "uecp://schema/snapshot/3.0.0",
+  "$id": "uecp://schema/snapshot/3.1.0",
   "title": "UE Chain Prep Snapshot",
   "type": "object",
   "additionalProperties": false,
@@ -19,6 +19,9 @@
     "mesh_digests": {"type": "object"},
     "modifier_digests": {"type": "object"},
     "object_counts": {"type": "object"},
-    "status": {"enum": ["CREATED", "APPLIED", "ROLLED_BACK", "RESTORED"]}
+    "status": {"enum": ["CREATED", "APPLIED", "ROLLED_BACK", "RESTORED"]},
+    "mutation_records": {"type": "array"},
+    "topology_ledger": {"type": "object"},
+    "post_validation": {"type": "object"}
   }
 }

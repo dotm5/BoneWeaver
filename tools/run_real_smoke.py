@@ -89,7 +89,7 @@ def main() -> int:
             if runtime.snapshot_text_name in bpy.data.texts:
                 payload["snapshot"] = json.loads(bpy.data.texts[runtime.snapshot_text_name].as_string())
             if "FINISHED" in apply_result:
-                bpy.ops.uecp.validate(validation_scope="CURRENT_PLAN")
+                bpy.ops.uecp.validate()
                 payload["diagnostic"] = get_report()
                 restore_result = bpy.ops.uecp.restore_snapshot(snapshot_text_name=runtime.snapshot_text_name)
                 payload["restore_result"] = sorted(restore_result)

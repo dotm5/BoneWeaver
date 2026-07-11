@@ -9,8 +9,8 @@ class ContractSnapshotTests(unittest.TestCase):
     def test_versions_and_identity_are_stable(self) -> None:
         self.assertEqual(contracts.ADDON_ID, "ue_chain_prep")
         self.assertEqual(contracts.ADDON_VERSION, "0.1.0")
-        self.assertEqual(contracts.SCHEMA_VERSION, "3.0.0")
-        self.assertEqual(contracts.ALGORITHM_VERSION, "uecp-physics-graph-v1")
+        self.assertEqual(contracts.SCHEMA_VERSION, "3.1.0")
+        self.assertEqual(contracts.ALGORITHM_VERSION, "uecp-physics-graph-v3-interaction-hardening")
 
     def test_stable_enum_values_match_spec(self) -> None:
         expected = {
@@ -28,6 +28,9 @@ class ContractSnapshotTests(unittest.TestCase):
             "RadialReferenceMode": {"ARMATURE_ORIGIN", "CURSOR", "OBJECT", "BONE_HEAD"},
             "ExclusivityMode": {"NONE", "CHAIN_NORMALIZED", "SELECTED_SET_NORMALIZED"},
             "PlanState": {"IDLE", "ANALYZED", "STALE", "APPLYING", "APPLIED", "VALIDATION_FAILED", "RESTORABLE", "RESTORED", "ERROR"},
+            "PlanAvailability": {"NONE", "AVAILABLE", "MISSING"},
+            "WorkflowStage": {"NO_CONTEXT", "READY_TO_ANALYZE", "ANALYZING", "READY_TO_APPLY", "NEEDS_ATTENTION", "BLOCKED", "STALE_SETTINGS", "STALE_SELECTION", "PLAN_LOST", "APPLYING", "APPLIED", "ROLLBACK_FAILED", "ERROR"},
+            "ActionAvailability": {"ENABLED", "DISABLED"},
             "IssueSeverity": {"INFO", "WARNING", "BLOCKER"},
             "OverrideMode": {"NONE", "CURSOR_POSITION", "REFERENCE_OBJECT", "EXPLICIT_DIRECTION_LENGTH", "MESH_VERTEX"},
         }
@@ -40,12 +43,16 @@ class ContractSnapshotTests(unittest.TestCase):
             contracts.OPERATOR_IDS,
             {
                 "analyze": "uecp.analyze",
+                "check_and_preview": "uecp.check_and_preview",
                 "apply": "uecp.apply",
                 "validate": "uecp.validate",
                 "preview_toggle": "uecp.preview_toggle",
                 "restore_snapshot": "uecp.restore_snapshot",
                 "export_report": "uecp.export_report",
+                "export_conversion": "uecp.export_conversion",
                 "clear_runtime": "uecp.clear_runtime",
+                "locate_issue": "uecp.locate_issue",
+                "load_details": "uecp.load_details",
             },
         )
 
