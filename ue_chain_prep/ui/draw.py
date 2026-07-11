@@ -66,10 +66,14 @@ def preview_cache():
     return _CACHE
 
 
-def build_plan_cache(plan):
+def build_plan_cache(plan, settings=None):
     nodes = {node.node_id: node for node in plan.physics_graph.nodes}
     lines = []
     for edge in plan.physics_graph.edges:
+        if settings is not None and not settings.preview_show_joint_graph:
+            continue
+        if settings is not None and edge.kind == "VIRTUAL_TIP_SEGMENT" and not settings.preview_show_virtual_tips:
+            continue
         color = (1.0, 0.55, 0.1, 1.0) if edge.kind == "VIRTUAL_TIP_SEGMENT" else (0.1, 0.7, 1.0, 1.0)
         lines.append((nodes[edge.parent_node_id].joint_position, nodes[edge.child_node_id].joint_position, color))
     return tuple(lines)

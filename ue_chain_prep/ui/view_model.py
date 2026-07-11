@@ -9,6 +9,7 @@ from ..core.fingerprint import settings_fingerprint
 from ..core.runtime_store import has_plan
 from ..controllers.selection import SelectionController
 from .draw import is_preview_enabled
+from ..core.snapshot_availability import snapshot_text_is_restorable
 
 
 @dataclass(frozen=True, slots=True)
@@ -90,6 +91,44 @@ class SnapshotSummary:
     bone_count: int = 0
 
 
+@dataclass(frozen=True, slots=True)
+class AdvancedPanelView:
+    show_absolute_length: bool
+    show_radial_reference: bool
+    show_parallel_transport: bool
+    override_count: int
+
+
+@dataclass(frozen=True, slots=True)
+class DetailsPanelView:
+    active_data: object
+    window_manager: object
+    chain_count: int
+    bone_count: int
+    blocker_count: int
+    warning_count: int
+    details_loaded: bool
+    has_chains: bool
+    has_issues: bool
+    has_proposals: bool
+    active_issue_index: int
+    selected_issue_bone: str
+
+
+@dataclass(frozen=True, slots=True)
+class RecoveryPanelView:
+    snapshot_available: bool
+    validation_available: bool
+
+
+@dataclass(frozen=True, slots=True)
+class DeveloperPanelView:
+    plan_state: str
+    plan_id: str
+    source_fingerprint: str
+    last_error: str
+
+
 def _action(key: str, label: str, icon: str, *, enabled: bool = True,
             reason: str = "", primary: bool = False) -> ActionView:
     return ActionView(OPERATOR_IDS[key], label, icon, enabled, reason, primary)
@@ -145,6 +184,12 @@ def derive_panel_view_state(
         return PanelViewState(stage.value, result=_result(stage, title, description, runtime_summary),
                               primary_action=_action("clear_runtime", "重置本次会话", "FILE_REFRESH", primary=True), **common)
 
+    has_plan_identity = bool(runtime_summary.plan_id)
+    if has_plan_identity and PlanAvailability(plan_availability) == PlanAvailability.MISSING:
+        stage = WorkflowStage.PLAN_LOST
+        return PanelViewState(stage.value, result=_result(stage, "分析结果已不可用", "请重新检查。", runtime_summary),
+                              primary_action=_action("check_and_preview", "重新检查", "FILE_REFRESH", primary=True), **common)
+
     if runtime_summary.state in {PlanState.RESTORABLE.value, PlanState.APPLIED.value}:
         stage = WorkflowStage.APPLIED
         secondary = ((_action("restore_snapshot", "恢复转换前状态", "LOOP_BACK"),)
@@ -154,11 +199,6 @@ def derive_panel_view_state(
                               primary_action=_action("check_and_preview", "检查另一条骨骼链", "VIEWZOOM", primary=True),
                               secondary_actions=secondary, **common)
 
-    has_plan_identity = bool(runtime_summary.plan_id)
-    if has_plan_identity and PlanAvailability(plan_availability) == PlanAvailability.MISSING:
-        stage = WorkflowStage.PLAN_LOST
-        return PanelViewState(stage.value, result=_result(stage, "分析结果已不可用", "请重新检查。", runtime_summary),
-                              primary_action=_action("check_and_preview", "重新检查", "FILE_REFRESH", primary=True), **common)
     if available and runtime_summary.settings_signature and runtime_summary.settings_signature != current_settings_signature:
         stage = WorkflowStage.STALE_SETTINGS
         return PanelViewState(stage.value, result=_result(stage, "设置已经改变", "请重新检查后再应用。", runtime_summary),
@@ -166,6 +206,10 @@ def derive_panel_view_state(
     if available and runtime_summary.selection_signature and runtime_summary.selection_signature != current_selection_signature:
         stage = WorkflowStage.STALE_SELECTION
         return PanelViewState(stage.value, result=_result(stage, "当前选择已经改变", "上次结果不再针对当前骨骼选择。", runtime_summary),
+                              primary_action=_action("check_and_preview", "重新检查", "FILE_REFRESH", primary=True), **common)
+    if available and runtime_summary.state == PlanState.STALE.value:
+        stage = WorkflowStage.STALE_SELECTION
+        return PanelViewState(stage.value, result=_result(stage, "模型内容已经改变", "请重新检查后再应用。", runtime_summary),
                               primary_action=_action("check_and_preview", "重新检查", "FILE_REFRESH", primary=True), **common)
 
     if available and runtime_summary.blocker_count:
@@ -228,9 +272,47 @@ def panel_view_state_from_context(context) -> PanelViewState:
         is_busy=runtime.is_busy,
         last_error=runtime.last_error,
     )
-    snapshot_available = bool(runtime.snapshot_text_name and context.blend_data.texts.get(runtime.snapshot_text_name))
+    texts = getattr(context.blend_data, "texts", None)
+    snapshot_available = bool(
+        runtime.snapshot_available and runtime.snapshot_text_name
+        and texts is not None and texts.get(runtime.snapshot_text_name)
+    )
     snapshot = SnapshotSummary(snapshot_available, runtime.snapshot_text_name, runtime.plan_bone_count)
     return derive_panel_view_state(
         context_summary, runtime_summary, availability, selection_signature,
         settings_fingerprint(settings), snapshot,
     )
+
+
+def advanced_panel_view_from_context(context) -> AdvancedPanelView:
+    settings = context.scene.uecp_settings
+    return AdvancedPanelView(
+        settings.tip_length_mode == "ABSOLUTE",
+        settings.roll_mode == "RADIAL_REFERENCE",
+        settings.roll_mode == "PARALLEL_TRANSPORT",
+        len(settings.terminal_overrides),
+    )
+
+
+def details_panel_view_from_context(context) -> DetailsPanelView:
+    wm = context.window_manager
+    state = wm.uecp_runtime
+    issue_index = min(state.active_issue_index, max(0, len(wm.uecp_issue_items) - 1))
+    issue_bone = wm.uecp_issue_items[issue_index].bone_name if wm.uecp_issue_items else ""
+    return DetailsPanelView(
+        state, wm, state.plan_chain_count, state.plan_bone_count,
+        state.issue_count_blocker, state.issue_count_warning, state.details_loaded,
+        bool(wm.uecp_chain_items), bool(wm.uecp_issue_items), bool(wm.uecp_proposal_items),
+        issue_index, issue_bone,
+    )
+
+
+def recovery_panel_view_from_context(context) -> RecoveryPanelView:
+    state = context.window_manager.uecp_runtime
+    snapshot_available = snapshot_text_is_restorable(state.snapshot_text_name)
+    return RecoveryPanelView(snapshot_available, bool(state.plan_id and has_plan(state.plan_id)))
+
+
+def developer_panel_view_from_context(context) -> DeveloperPanelView:
+    state = context.window_manager.uecp_runtime
+    return DeveloperPanelView(state.state, state.plan_id, state.plan_fingerprint, state.last_error)

@@ -1,5 +1,6 @@
 """Blender RNA properties for persistent settings and transient UI state."""
 
+
 import bpy
 from bpy.props import (
     BoolProperty,
@@ -30,6 +31,15 @@ from .contracts import (
 )
 
 
+PHYSICS_PROFILE_ITEMS = (
+    (PhysicsProfile.BONEX_ROTATION_CHAIN.value, "BoneX · 稳定旋转链", ""),
+    (PhysicsProfile.BONEX_TRANSLATION_ALLOWED.value, "BoneX · 允许平移", ""),
+    (PhysicsProfile.WIGGLE2_ROTATION_CHAIN.value, "Wiggle · 稳定旋转链", ""),
+    (PhysicsProfile.WIGGLE2_STRETCH_CHAIN.value, "Wiggle · 可伸缩链", ""),
+    (PhysicsProfile.GEOMETRY_ONLY.value, "仅整理骨骼链", ""),
+)
+
+
 def _algorithm_setting_changed(_settings, context) -> None:
     runtime = getattr(getattr(context, "window_manager", None), "uecp_runtime", None)
     if runtime is None or not runtime.plan_id:
@@ -41,8 +51,15 @@ def _algorithm_setting_changed(_settings, context) -> None:
     runtime.last_error = "UECP_SETTINGS_CHANGED_AFTER_ANALYZE"
 
 
-def _preview_setting_changed(_settings, context) -> None:
+def _preview_setting_changed(settings, context) -> None:
     from .controllers.preview import PreviewController
+    runtime = getattr(getattr(context, "window_manager", None), "uecp_runtime", None)
+    if runtime is not None and runtime.plan_id:
+        from .core.runtime_store import get_plan, has_plan
+        from .ui.draw import build_plan_cache
+        if has_plan(runtime.plan_id):
+            PreviewController.rebuild(context, build_plan_cache(get_plan(runtime.plan_id), settings))
+            return
     PreviewController.tag_redraw(context)
 
 
@@ -71,7 +88,7 @@ class UECP_PG_BranchOverride(bpy.types.PropertyGroup):
 class UECP_PG_Settings(bpy.types.PropertyGroup):
     scope_mode: EnumProperty(items=enum_items(ScopeMode), default=ScopeMode.SELECTED_BONES.value, update=_algorithm_setting_changed)
     mesh_scope: EnumProperty(items=enum_items(MeshScope), default=MeshScope.ALL_ASSOCIATED_MESHES.value, update=_algorithm_setting_changed)
-    physics_profile: EnumProperty(items=enum_items(PhysicsProfile), default=PhysicsProfile.BONEX_ROTATION_CHAIN.value, update=_algorithm_setting_changed)
+    physics_profile: EnumProperty(items=PHYSICS_PROFILE_ITEMS, default=PhysicsProfile.BONEX_ROTATION_CHAIN.value, update=_algorithm_setting_changed)
     branch_resolution_mode: EnumProperty(
         items=enum_items(BranchResolutionMode),
         default=BranchResolutionMode.AUTO_MAIN_PATH.value,
@@ -131,6 +148,7 @@ class UECP_PG_Runtime(bpy.types.PropertyGroup):
     plan_summary: StringProperty(default="")
     snapshot_id: StringProperty(default="")
     snapshot_text_name: StringProperty(default="")
+    snapshot_available: BoolProperty(default=False)
     issue_count_info: IntProperty(default=0, min=0)
     issue_count_warning: IntProperty(default=0, min=0)
     issue_count_blocker: IntProperty(default=0, min=0)
@@ -187,14 +205,17 @@ def register_properties() -> None:
     bpy.types.WindowManager.uecp_chain_items = CollectionProperty(type=UECP_PG_ChainItem)
     bpy.types.WindowManager.uecp_proposal_items = CollectionProperty(type=UECP_PG_BoneProposalItem)
     bpy.types.WindowManager.uecp_issue_items = CollectionProperty(type=UECP_PG_IssueItem)
+    from .core.snapshot_availability import discover_latest_restorable_snapshot
+    latest_snapshot_id, latest_snapshot_name = discover_latest_restorable_snapshot()
     for window_manager in getattr(bpy.data, "window_managers", ()):
         runtime = window_manager.uecp_runtime
         runtime.state = PlanState.IDLE.value
         runtime.plan_id = ""
         runtime.plan_fingerprint = ""
         runtime.plan_summary = ""
-        runtime.snapshot_id = ""
-        runtime.snapshot_text_name = ""
+        runtime.snapshot_id = latest_snapshot_id
+        runtime.snapshot_text_name = latest_snapshot_name
+        runtime.snapshot_available = bool(latest_snapshot_name)
         runtime.issue_count_info = 0
         runtime.issue_count_warning = 0
         runtime.issue_count_blocker = 0

@@ -4,7 +4,7 @@
 
 - Blender：5.2.0 LTS RC `710df102694f`
 - 命令：`blender.exe --background --factory-startup --python tests/run_blender_tests.py -- --verbose`
-- 结果：160 run，0 failures，0 errors，0 skipped。
+- 结果：168 run，0 failures，0 errors，0 skipped。
 
 覆盖包含 ViewModel 全状态映射、唯一主动作、Plan Lost、Settings/Selection Stale、Preview Controller、Load/Undo/Redo handlers、Clear/Restore 清理、算法设置与 Preview-only 设置差异、Operator 薄适配、主面板结构、Developer 默认隐藏、RNA 列表 lazy、Apply/transaction/rollback、ZIP 注册循环以及算法/性能回归。
 
@@ -22,4 +22,4 @@
 
 ## 发布包
 
-Blender extension build 与隔离安装/三次注册循环通过。`dist/ue_chain_prep-0.1.0.zip` 为 95,147 bytes，SHA-256 `0F4C47E9A427B1AFE6754A75FB9814BB0CF3AA47B98E8A103312C8B6A17E5CEA`。
+Blender extension build 与隔离安装/三次注册循环通过。`dist/ue_chain_prep-0.1.0.zip` 为 97,803 bytes，SHA-256 `610D67CCED9E33BFEED372253CBE7507C79618A7C64131CFE90CC1F5FE1CFFAD`。

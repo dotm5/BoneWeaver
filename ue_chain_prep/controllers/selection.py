@@ -47,4 +47,14 @@ class SelectionController:
         for pose_bone in armature.pose.bones:
             pose_bone.select = pose_bone.name == bone_name
         armature.data.bones.active = armature.data.bones[bone_name]
+        area = getattr(context, "area", None)
+        if area is not None and area.type == "VIEW_3D":
+            region = next((item for item in area.regions if item.type == "WINDOW"), None)
+            if region is not None:
+                try:
+                    import bpy
+                    with context.temp_override(area=area, region=region, space_data=area.spaces.active):
+                        bpy.ops.view3d.view_selected(use_all_regions=False)
+                except RuntimeError:
+                    pass
         return True

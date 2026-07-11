@@ -10,6 +10,6 @@
 
 ## 实测
 
-Blender 5.2 RC、`x1.blend`、85 个目标 Bone：Analyze 43.087 s，tracemalloc peak 10,155,672 bytes，Preview cache 构建 0.000194 s，UI item count 0。Apply、导出和独立重开验证均通过；源文件前后签名一致。
+Blender 5.2 RC、`x1.blend`、85 个目标 Bone 的最终验证：Analyze 17.823 s，tracemalloc peak 10,155,832 bytes，Preview cache 构建 0.000091 s，UI item count 0。Apply、导出和独立重开验证均通过；源文件前后签名一致。
 
 程序化规模契约覆盖 100 Bones/100k Vertices、300/500k 与 500/1M，紧凑权重点缓冲按每个选中顶点 36 bytes 线性增长。固定秒数不作为跨机器 Gate。

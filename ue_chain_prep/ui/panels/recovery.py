@@ -3,6 +3,7 @@
 import bpy
 
 from ...contracts import OPERATOR_IDS
+from ..view_model import recovery_panel_view_from_context
 
 
 class UECP_PT_recovery(bpy.types.Panel):
@@ -16,10 +17,12 @@ class UECP_PT_recovery(bpy.types.Panel):
 
     def draw(self, context):
         layout = self.layout
-        runtime = context.window_manager.uecp_runtime
-        if runtime.snapshot_text_name:
+        view = recovery_panel_view_from_context(context)
+        if view.snapshot_available:
             layout.label(text="已保存恢复快照", icon="RECOVER_LAST")
             layout.operator(OPERATOR_IDS["restore_snapshot"], icon="LOOP_BACK")
         else:
             layout.label(text="尚无恢复快照", icon="INFO")
-        layout.operator(OPERATOR_IDS["validate"], icon="CHECKMARK")
+        row = layout.row()
+        row.enabled = view.validation_available
+        row.operator(OPERATOR_IDS["validate"], icon="CHECKMARK")

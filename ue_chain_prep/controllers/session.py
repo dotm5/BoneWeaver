@@ -9,6 +9,7 @@ from ..contracts import PlanState
 from ..core.runtime_store import clear_plans
 from ..core.runtime_store import get_plan, has_plan
 from .preview import PreviewController
+from ..core.snapshot_availability import discover_latest_restorable_snapshot
 
 
 class SessionController:
@@ -50,6 +51,14 @@ class SessionController:
     def reset_session(context) -> None:
         SessionController.clear_analysis(context)
         context.window_manager.uecp_runtime.generation = 0
+
+    @staticmethod
+    def refresh_snapshot(context) -> None:
+        runtime = getattr(context.window_manager, "uecp_runtime", None)
+        if runtime is None:
+            return
+        runtime.snapshot_id, runtime.snapshot_text_name = discover_latest_restorable_snapshot()
+        runtime.snapshot_available = bool(runtime.snapshot_text_name)
 
     @staticmethod
     def populate_details(context, max_items: int = 200) -> bool:
@@ -106,6 +115,7 @@ class SessionController:
     def on_load_post(_unused):
         if hasattr(bpy.context.window_manager, "uecp_runtime"):
             SessionController.invalidate_for_scene_change(bpy.context, "load_post")
+            SessionController.refresh_snapshot(bpy.context)
 
     @staticmethod
     @persistent

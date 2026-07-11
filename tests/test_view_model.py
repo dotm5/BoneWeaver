@@ -65,12 +65,22 @@ class PanelViewModelTests(unittest.TestCase):
         stale_selection = self._derive(runtime=RuntimeSummary(**base), availability=PlanAvailability.AVAILABLE,
                                        selection="sel-b")
         lost = self._derive(runtime=RuntimeSummary(**base), availability=PlanAvailability.MISSING)
+        lost_after_apply = self._derive(runtime=RuntimeSummary(
+            **{**base, "state": PlanState.RESTORABLE.value}
+        ), availability=PlanAvailability.MISSING, snapshot=SnapshotSummary(True, "UECP_SNAPSHOT::1", 6))
         self.assertEqual(WorkflowStage.STALE_SETTINGS.value, stale_settings.workflow_stage)
         self.assertEqual(WorkflowStage.STALE_SELECTION.value, stale_selection.workflow_stage)
         self.assertEqual(WorkflowStage.PLAN_LOST.value, lost.workflow_stage)
-        for view in (stale_settings, stale_selection, lost):
+        self.assertEqual(WorkflowStage.PLAN_LOST.value, lost_after_apply.workflow_stage)
+        for view in (stale_settings, stale_selection, lost, lost_after_apply):
             self.assertEqual("uecp.check_and_preview", view.primary_action.operator_id)
             self.assertEqual("重新检查", view.primary_action.label)
+
+        stale_source = self._derive(runtime=RuntimeSummary(
+            **{**base, "state": PlanState.STALE.value}, last_error="UECP_STATE_CHANGED_AFTER_ANALYZE"
+        ), availability=PlanAvailability.AVAILABLE)
+        self.assertEqual(WorkflowStage.STALE_SELECTION.value, stale_source.workflow_stage)
+        self.assertEqual("uecp.check_and_preview", stale_source.primary_action.operator_id)
 
     def test_busy_applied_rollback_and_error_states_are_explainable(self):
         analyzing = self._derive(runtime=RuntimeSummary(state=PlanState.IDLE.value, is_busy=True))

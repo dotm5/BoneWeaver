@@ -22,12 +22,30 @@ def register() -> None:
     global _registered
     if _registered:
         return
-    for cls in CLASSES:
-        bpy.utils.register_class(cls)
-    register_properties()
-    SessionController.register_handlers()
-    register_translations()
-    _registered = True
+    registered_classes = []
+    properties_attempted = False
+    try:
+        for cls in CLASSES:
+            bpy.utils.register_class(cls)
+            registered_classes.append(cls)
+        properties_attempted = True
+        register_properties()
+        SessionController.register_handlers()
+        register_translations()
+        _registered = True
+    except Exception:
+        SessionController.unregister_handlers()
+        PreviewController.disable(bpy.context)
+        clear_plans()
+        if properties_attempted:
+            unregister_properties()
+        for cls in reversed(registered_classes):
+            try:
+                bpy.utils.unregister_class(cls)
+            except RuntimeError:
+                pass
+        _registered = False
+        raise
 
 
 def unregister() -> None:
@@ -36,7 +54,6 @@ def unregister() -> None:
         SessionController.unregister_handlers()
         PreviewController.disable(bpy.context)
         clear_plans()
-        unregister_properties()
         return
     SessionController.unregister_handlers()
     PreviewController.disable(bpy.context)

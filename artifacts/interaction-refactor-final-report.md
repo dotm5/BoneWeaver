@@ -11,7 +11,7 @@
 
 ## 实测后未复现的风险
 
-- 160 项自动测试未复现 Preview 清理、注册泄漏、镜像 Roll fallback、方向聚类 Margin、断开权重岛、逐 Mesh tolerance 或事务安全回归。
+- 168 项自动测试未复现 Preview 清理、注册泄漏、镜像 Roll fallback、方向聚类 Margin、断开权重岛、逐 Mesh tolerance 或事务安全回归。
 - 85 Bone 真实模型中两个分叉均稳定解析，0 blocker；Apply、导出和独立重开验证通过。
 
 ## 仍需真实 BoneX/Wiggle 验证
@@ -23,5 +23,5 @@
 ## 版本声明
 
 - `algorithm_version`：已修改，升级到 `uecp-physics-graph-v3-interaction-hardening`。
-- JSON `schema_version`：未修改，保持 `3.1.0`；本轮没有新增或改变持久化 Plan/Snapshot/Diagnostic 字段。
+- JSON `schema_version`：本交付分支相对父提交从 `3.0.0` 升级到 `3.1.0`，用于已纳入本分支的 branch、tolerance、mutation、topology 与 export 持久化字段；交互 ViewModel/RNA 状态本身未再增加持久化 JSON 字段。
 - BoneX 1.2.6 hotfix 仍是独立支持工具；UECP Runtime 未导入、修改或初始化 BoneX 状态。

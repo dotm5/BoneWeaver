@@ -100,6 +100,12 @@ class ControllerLifecycleTests(unittest.TestCase):
         self.assertEqual({"FINISHED"}, bpy.ops.uecp.check_and_preview())
         runtime = bpy.context.window_manager.uecp_runtime
         self.assertTrue(PreviewController.is_enabled())
+        from ue_chain_prep.ui import draw
+        cache_count = len(draw.preview_cache())
+        bpy.context.scene.uecp_settings.preview_show_virtual_tips = False
+        self.assertEqual("ANALYZED", runtime.state)
+        self.assertTrue(PreviewController.is_enabled())
+        self.assertLessEqual(len(draw.preview_cache()), cache_count)
         bpy.context.scene.uecp_settings.preview_axis_scale *= 1.1
         self.assertEqual("ANALYZED", runtime.state)
         self.assertTrue(PreviewController.is_enabled())
@@ -107,6 +113,29 @@ class ControllerLifecycleTests(unittest.TestCase):
         self.assertEqual("STALE", runtime.state)
         self.assertFalse(PreviewController.is_enabled())
         self.assertEqual("UECP_SETTINGS_CHANGED_AFTER_ANALYZE", runtime.last_error)
+
+    def test_descendant_scope_tracks_user_selection_not_expanded_plan_targets(self):
+        rig = make_chain(count=3, selected=("Bone_0",))
+        from tests.fixture_builders import make_bound_mesh
+        make_bound_mesh(rig)
+        bpy.context.scene.uecp_settings.scope_mode = "SELECTED_ROOTS_AND_DESCENDANTS"
+        self.assertEqual({"FINISHED"}, bpy.ops.uecp.analyze())
+        runtime = bpy.context.window_manager.uecp_runtime
+        self.assertEqual(SelectionController.signature(bpy.context), runtime.selection_signature)
+        from ue_chain_prep.ui.view_model import panel_view_state_from_context
+        self.assertNotEqual("STALE_SELECTION", panel_view_state_from_context(bpy.context).workflow_stage)
+        self.assertTrue(bpy.ops.uecp.apply.poll())
+
+    def test_changed_selection_blocks_poll_and_direct_apply(self):
+        rig = make_chain(count=3)
+        from tests.fixture_builders import make_bound_mesh
+        make_bound_mesh(rig)
+        self.assertEqual({"FINISHED"}, bpy.ops.uecp.analyze())
+        rig.pose.bones[2].select = False
+        self.assertFalse(bpy.ops.uecp.apply.poll())
+        from ue_chain_prep.controllers.workflow import WorkflowController
+        self.assertEqual({"CANCELLED"}, WorkflowController.apply(bpy.context))
+        self.assertEqual("STALE", bpy.context.window_manager.uecp_runtime.state)
 
 
 if __name__ == "__main__":

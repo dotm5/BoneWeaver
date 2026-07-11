@@ -3,6 +3,7 @@
 import bpy
 
 from ...contracts import OPERATOR_IDS
+from ..view_model import details_panel_view_from_context
 
 
 class UECP_PT_details(bpy.types.Panel):
@@ -16,21 +17,19 @@ class UECP_PT_details(bpy.types.Panel):
 
     def draw(self, context):
         layout = self.layout
-        runtime = context.window_manager.uecp_runtime
-        layout.label(text=f"{runtime.plan_chain_count} 条链 · {runtime.plan_bone_count} 根骨骼")
-        layout.label(text=f"需要处理：{runtime.issue_count_blocker} · 建议确认：{runtime.issue_count_warning}")
-        if not runtime.details_loaded:
+        view = details_panel_view_from_context(context)
+        layout.label(text=f"{view.chain_count} 条链 · {view.bone_count} 根骨骼")
+        layout.label(text=f"需要处理：{view.blocker_count} · 建议确认：{view.warning_count}")
+        if not view.details_loaded:
             layout.operator(OPERATOR_IDS["load_details"], icon="PRESET")
             return
-        wm = context.window_manager
-        if wm.uecp_chain_items:
-            layout.template_list("UECP_UL_chains", "", wm, "uecp_chain_items", runtime, "active_chain_index", rows=3)
-        if wm.uecp_issue_items:
-            layout.template_list("UECP_UL_issues", "", wm, "uecp_issue_items", runtime, "active_issue_index", rows=4)
-            item = wm.uecp_issue_items[min(runtime.active_issue_index, len(wm.uecp_issue_items) - 1)]
-            if item.bone_name:
+        if view.has_chains:
+            layout.template_list("UECP_UL_chains", "", view.window_manager, "uecp_chain_items", view.active_data, "active_chain_index", rows=3)
+        if view.has_issues:
+            layout.template_list("UECP_UL_issues", "", view.window_manager, "uecp_issue_items", view.active_data, "active_issue_index", rows=4)
+            if view.selected_issue_bone:
                 op = layout.operator(OPERATOR_IDS["locate_issue"], icon="VIEWZOOM")
-                op.issue_index = runtime.active_issue_index
-                op.bone_name = item.bone_name
-        if wm.uecp_proposal_items:
-            layout.template_list("UECP_UL_proposals", "", wm, "uecp_proposal_items", runtime, "active_proposal_index", rows=4)
+                op.issue_index = view.active_issue_index
+                op.bone_name = view.selected_issue_bone
+        if view.has_proposals:
+            layout.template_list("UECP_UL_proposals", "", view.window_manager, "uecp_proposal_items", view.active_data, "active_proposal_index", rows=4)

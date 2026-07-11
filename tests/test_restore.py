@@ -61,6 +61,13 @@ class RestoreTests(unittest.TestCase):
         self.assertEqual(self.geometry(), changed)
         self.assertEqual(runtime.last_error, "UECP_RESTORE_CONFLICT")
 
+    def test_snapshot_availability_rejects_weight_digest_change(self) -> None:
+        runtime = self.apply()
+        from ue_chain_prep.core.snapshot_availability import snapshot_text_is_restorable
+        self.assertTrue(snapshot_text_is_restorable(runtime.snapshot_text_name))
+        self.mesh.vertex_groups["Bone_0"].add([0], 0.5, "REPLACE")
+        self.assertFalse(snapshot_text_is_restorable(runtime.snapshot_text_name))
+
 
 if __name__ == "__main__":
     unittest.main()

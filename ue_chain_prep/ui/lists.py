@@ -10,7 +10,7 @@ class UECP_UL_chains(bpy.types.UIList):
 
 class UECP_UL_proposals(bpy.types.UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
-        layout.label(text=f"{item.bone_name} · {item.role} · {item.confidence:.2f}", icon="CON_BONE")
+        layout.label(text=f"{item.bone_name} · {item.role}", icon="CON_BONE")
 
 
 class UECP_UL_issues(bpy.types.UIList):

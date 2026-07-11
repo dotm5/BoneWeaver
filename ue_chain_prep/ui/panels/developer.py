@@ -3,6 +3,7 @@
 import bpy
 
 from ...contracts import ADDON_ID, ALGORITHM_VERSION, OPERATOR_IDS, SCHEMA_VERSION
+from ..view_model import developer_panel_view_from_context
 
 
 class UECP_PT_developer(bpy.types.Panel):
@@ -21,13 +22,13 @@ class UECP_PT_developer(bpy.types.Panel):
 
     def draw(self, context):
         layout = self.layout
-        runtime = context.window_manager.uecp_runtime
-        layout.label(text=f"Plan State: {runtime.state}")
-        layout.label(text=f"Plan ID: {runtime.plan_id or '-'}")
-        layout.label(text=f"Source Fingerprint: {runtime.plan_fingerprint or '-'}")
+        view = developer_panel_view_from_context(context)
+        layout.label(text=f"Plan State: {view.plan_state}")
+        layout.label(text=f"Plan ID: {view.plan_id or '-'}")
+        layout.label(text=f"Source Fingerprint: {view.source_fingerprint or '-'}")
         layout.label(text=f"Algorithm: {ALGORITHM_VERSION}")
         layout.label(text=f"Schema: {SCHEMA_VERSION}")
-        if runtime.last_error:
-            layout.label(text=runtime.last_error, icon="ERROR")
+        if view.last_error:
+            layout.label(text=view.last_error, icon="ERROR")
         layout.operator(OPERATOR_IDS["export_report"], icon="EXPORT")
         layout.operator(OPERATOR_IDS["clear_runtime"], icon="FILE_REFRESH")

@@ -33,7 +33,8 @@ class WorkflowController:
         runtime = getattr(context.window_manager, "uecp_runtime", None)
         return bool(runtime and not runtime.is_busy and runtime.state == PlanState.ANALYZED.value
                     and runtime.issue_count_blocker == 0 and runtime.plan_id
-                    and has_plan(runtime.plan_id))
+                    and has_plan(runtime.plan_id)
+                    and runtime.selection_signature == SelectionController.signature(context))
 
     @staticmethod
     def analyze(context, *, auto_preview: bool) -> set[str]:
@@ -62,7 +63,7 @@ class WorkflowController:
             attention = sum(solution.requires_confirmation for solution in plan.terminal_solutions)
             _current_memory, tracemalloc_peak = tracemalloc.get_traced_memory()
             preview_started = time.perf_counter()
-            cache = build_plan_cache(plan)
+            cache = build_plan_cache(plan, context.scene.uecp_settings)
             preview_build_time = time.perf_counter() - preview_started
             put_plan(plan)
             metrics = last_build_metrics()
@@ -84,9 +85,7 @@ class WorkflowController:
             runtime.plan_summary = f"{len(plan.bone_states)} bones, {len(plan.physics_graph.chains)} chains, {len(plan.issues)} issues"
             runtime.plan_id = plan.plan_id
             runtime.plan_fingerprint = plan.source_fingerprint
-            runtime.selection_signature = SelectionController.signature(
-                context, bone_names=tuple(state.name for state in plan.bone_states)
-            )
+            runtime.selection_signature = SelectionController.signature(context)
             runtime.settings_signature = plan.settings_fingerprint
             runtime.state = PlanState.ANALYZED.value
             runtime.generation += 1
@@ -115,6 +114,11 @@ class WorkflowController:
             runtime.state = PlanState.STALE.value
             runtime.last_error = "UECP_STATE_CHANGED_AFTER_ANALYZE"
             return {"CANCELLED"}
+        if runtime.selection_signature != SelectionController.signature(context):
+            runtime.state = PlanState.STALE.value
+            runtime.last_error = "UECP_STATE_CHANGED_AFTER_ANALYZE"
+            PreviewController.disable(context)
+            return {"CANCELLED"}
         plan = get_plan(requested)
         if current_source_fingerprint(context, plan) != plan.source_fingerprint:
             runtime.state = PlanState.STALE.value
@@ -134,6 +138,7 @@ class WorkflowController:
             put_performance(plan.plan_id, performance)
             runtime.snapshot_id = result.snapshot_id
             runtime.snapshot_text_name = result.snapshot_text_name
+            runtime.snapshot_available = bool(result.success and result.snapshot_text_name)
             if result.success:
                 runtime.state = PlanState.RESTORABLE.value
                 runtime.last_error = ""
@@ -168,5 +173,6 @@ class WorkflowController:
             return {"CANCELLED"}
         SessionController.clear_analysis(context)
         runtime.state = PlanState.RESTORED.value
+        runtime.snapshot_available = False
         runtime.last_error = ""
         return {"FINISHED"}

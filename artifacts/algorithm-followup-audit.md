@@ -14,4 +14,4 @@
 
 ## 版本
 
-算法版本升级为 `uecp-physics-graph-v3-interaction-hardening`。本轮没有改变 Plan/Snapshot/Diagnostic JSON 结构，Schema 保持 `3.1.0`。
+算法版本升级为 `uecp-physics-graph-v3-interaction-hardening`。交付分支已随后端强化把 Schema 从 3.0.0 升级至 `3.1.0`；本节记录的 Imported Axis/交互补丁没有在 3.1.0 之上再次改变 JSON 结构。

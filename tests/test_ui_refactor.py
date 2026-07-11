@@ -38,6 +38,17 @@ class UIRefactorTests(unittest.TestCase):
         ):
             self.assertTrue(hasattr(bpy.types, name), name)
 
+    def test_unimplemented_export_flags_are_not_public(self):
+        properties = bpy.types.UECP_OT_export_report.bl_rna.properties
+        for name in ("include_plan", "include_weight_stats", "include_snapshot_summary"):
+            self.assertNotIn(name, properties)
+
+    def test_panel_business_branching_lives_in_view_models(self):
+        root = Path(__file__).resolve().parents[1] / "ue_chain_prep" / "ui" / "panels"
+        for name in ("advanced.py", "details.py", "recovery.py", "developer.py"):
+            source = (root / name).read_text(encoding="utf-8")
+            self.assertNotIn("runtime =", source, name)
+
     def test_developer_diagnostics_default_hidden(self):
         from ue_chain_prep.ui.preferences import UECP_AddonPreferences as prefs_type
         prop = prefs_type.bl_rna.properties["enable_developer_diagnostics"]
@@ -64,6 +75,7 @@ class UIRefactorTests(unittest.TestCase):
     def test_issue_list_does_not_render_raw_issue_code(self):
         source = (Path(__file__).resolve().parents[1] / "ue_chain_prep" / "ui" / "lists.py").read_text(encoding="utf-8")
         self.assertNotIn("item.code", source)
+        self.assertNotIn("item.confidence", source)
 
 
 if __name__ == "__main__":

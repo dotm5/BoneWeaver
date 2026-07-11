@@ -10,9 +10,21 @@ import bpy
 from ..core.export_contract import assert_export_ready, build_export_manifest, file_signature
 from ..core.reopen_validation import launch_reopen_validation
 from ..core.runtime_store import get_plan, has_plan
+from ..core.runtime_store import get_report
+from ..core.serialization import dumps
 
 
 class ExportController:
+    @staticmethod
+    def export_report(context, filepath: str) -> set[str]:
+        report = get_report()
+        if report is None:
+            return {"CANCELLED"}
+        destination = Path(filepath)
+        destination.write_text(dumps(report), encoding="utf-8", newline="\n")
+        context.scene.uecp_settings.last_export_directory = str(destination.parent)
+        return {"FINISHED"}
+
     @staticmethod
     def export_conversion(context, filepath: str) -> set[str]:
         runtime = context.window_manager.uecp_runtime

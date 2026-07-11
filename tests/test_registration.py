@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+import json
 
 import bpy
 
@@ -51,6 +52,59 @@ class RegistrationTests(unittest.TestCase):
             "UECP_OT_export_report", "UECP_OT_clear_runtime",
         ):
             self.assertTrue(hasattr(bpy.types, name), name)
+
+    def test_partial_registration_failure_rolls_back_classes_properties_and_handlers(self) -> None:
+        import ue_chain_prep.registration as registration
+        from ue_chain_prep.controllers.session import SessionController
+        ue_chain_prep.unregister()
+        original = registration.register_translations
+        registration.register_translations = lambda: (_ for _ in ()).throw(RuntimeError("forced"))
+        try:
+            with self.assertRaisesRegex(RuntimeError, "forced"):
+                ue_chain_prep.register()
+        finally:
+            registration.register_translations = original
+        self.assertFalse(hasattr(bpy.types.Scene, "uecp_settings"))
+        self.assertFalse(hasattr(bpy.types, "UECP_OT_analyze"))
+        self.assertNotIn(SessionController.on_load_pre, bpy.app.handlers.load_pre)
+
+    def test_reregister_rediscovers_latest_persistent_snapshot_text(self) -> None:
+        from tests.fixture_builders import clear_scene, make_chain
+        from ue_chain_prep.core.armature_reader import read_bone_states
+        from ue_chain_prep.controllers.session import SessionController
+        clear_scene()
+        rig = make_chain(name="SnapshotRig", count=1)
+        state = read_bone_states(rig, ("Bone_0",))[0]
+        name = "UECP_SNAPSHOT::persisted"
+        text = bpy.data.texts.get(name) or bpy.data.texts.new(name)
+        text.clear()
+        payload = {
+            "kind": "uecp.snapshot", "status": "APPLIED", "snapshot_id": "persisted",
+            "created_at": "2026-07-11T23:58:00+00:00",
+            "armature": {"object_name": rig.name, "data_name": rig.data.name},
+            "expected_post_bones": {
+                state.name: {"head": state.head, "tail": state.tail, "roll": state.roll,
+                             "use_connect": state.use_connect, "parent_name": state.parent_name}
+            },
+        }
+        text.write(json.dumps(payload))
+        rolled_back = bpy.data.texts.new("UECP_SNAPSHOT::rolled-back")
+        rolled_back.write(json.dumps({**payload, "status": "ROLLED_BACK", "snapshot_id": "rolled-back",
+                                      "created_at": "2026-07-11T23:59:00+00:00"}))
+        ue_chain_prep.unregister()
+        ue_chain_prep.register()
+        runtime = bpy.context.window_manager.uecp_runtime
+        self.assertEqual("persisted", runtime.snapshot_id)
+        self.assertEqual(name, runtime.snapshot_text_name)
+        self.assertTrue(runtime.snapshot_available)
+        runtime.snapshot_id = ""
+        runtime.snapshot_text_name = ""
+        SessionController.on_load_post(None)
+        self.assertEqual(name, runtime.snapshot_text_name)
+        self.assertTrue(runtime.snapshot_available)
+        bpy.data.texts.remove(text)
+        bpy.data.texts.remove(rolled_back)
+        clear_scene()
 
 
 if __name__ == "__main__":

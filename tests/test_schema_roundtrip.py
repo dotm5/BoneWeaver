@@ -34,6 +34,10 @@ class SchemaAndManifestTests(unittest.TestCase):
                 self.assertEqual(payload["type"], "object")
                 self.assertFalse(payload["additionalProperties"])
                 self.assertTrue(payload["required"])
+        diagnostic = json.loads((PACKAGE / "schemas" / "diagnostic-report.schema.json").read_text(encoding="utf-8"))
+        for field in ("branch_resolutions", "topology_ledger"):
+            self.assertIn(field, diagnostic["required"])
+            self.assertIn(field, diagnostic["properties"])
 
     def test_conversion_plan_schema_contains_physics_graph_contract(self) -> None:
         payload = json.loads((PACKAGE / "schemas" / "conversion-plan.schema.json").read_text(encoding="utf-8"))
