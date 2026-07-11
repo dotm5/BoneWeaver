@@ -185,3 +185,14 @@ class BoneProposal:
     terminal_source: str
     confidence: float
     issue_codes: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class SegmentSamplingHint:
+    edge_id: str
+    segment_length: float
+    reference_length: float
+    length_ratio: float
+    suggested_virtual_subdivisions: int
+    severity: str
+    message_key: str

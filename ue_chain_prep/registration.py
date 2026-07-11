@@ -9,6 +9,7 @@ from .properties import PROPERTY_CLASSES, register_properties, unregister_proper
 from .translations import register as register_translations
 from .translations import unregister as unregister_translations
 from .ui import UI_CLASSES
+from .ui.draw import disable_preview
 
 
 CLASSES = PROPERTY_CLASSES + OPERATOR_CLASSES + UI_CLASSES
@@ -29,8 +30,10 @@ def register() -> None:
 def unregister() -> None:
     global _registered
     if not _registered:
+        disable_preview()
         unregister_properties()
         return
+    disable_preview()
     unregister_properties()
     unregister_translations()
     for cls in reversed(CLASSES):
