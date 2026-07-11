@@ -121,3 +121,43 @@ def build_physics_graph(bone_states: tuple[BoneState, ...], epsilon: float = 1.0
     payload = {"nodes": nodes, "edges": edges_tuple, "chains": chains_tuple, "issues": issue_codes}
     graph_id = sha256(payload)
     return PhysicsGraph(graph_id, tuple(node.node_id for node in nodes), tuple(edge.edge_id for edge in edges_tuple), nodes, edges_tuple, chains_tuple, issue_codes)
+
+
+def with_virtual_tips(graph: PhysicsGraph, solutions) -> PhysicsGraph:
+    nodes = list(graph.nodes)
+    edges = list(graph.edges)
+    chains = list(graph.chains)
+    node_index = {node.node_id: index for index, node in enumerate(nodes)}
+    for bone_name, solution in sorted(solutions.items()):
+        if solution.requires_confirmation or not solution.selected_candidate_id:
+            continue
+        real_id = _node_id(bone_name)
+        if real_id not in node_index:
+            continue
+        virtual_id = f"virtual:{bone_name}:{solution.selected_candidate_id}"
+        edge_id = f"virtual-tip:{bone_name}:{solution.selected_candidate_id}"
+        parent = nodes[node_index[real_id]]
+        virtual = PhysicsNode(virtual_id, "VIRTUAL_TIP", None, solution.tail, None, None, None, None, real_id, (), False, solution.source)
+        nodes[node_index[real_id]] = PhysicsNode(
+            parent.node_id, parent.kind, parent.bone_name, parent.joint_position, parent.rest_rotation,
+            parent.local_x, parent.local_y, parent.local_z, parent.parent_node_id,
+            tuple(sorted(parent.child_node_ids + (virtual_id,))), parent.is_kinematic, parent.source,
+        )
+        node_index[virtual_id] = len(nodes)
+        nodes.append(virtual)
+        vector = _sub(solution.tail, parent.joint_position)
+        edges.append(PhysicsEdge(edge_id, "VIRTUAL_TIP_SEGMENT", real_id, virtual_id, vector, _length(vector), solution.source))
+        for index, chain in enumerate(chains):
+            if chain.terminal_node_id == real_id:
+                chains[index] = PhysicsChain(
+                    chain.chain_id, chain.node_ids + (virtual_id,), chain.edge_ids + (edge_id,),
+                    chain.real_bone_names, chain.root_node_id, virtual_id, True,
+                    chain.branch_parent_node_id, True, chain.issue_codes,
+                )
+                break
+    nodes_tuple = tuple(sorted(nodes, key=lambda node: node.node_id))
+    edges_tuple = tuple(sorted(edges, key=lambda edge: edge.edge_id))
+    chains_tuple = tuple(chains)
+    payload = {"nodes": nodes_tuple, "edges": edges_tuple, "chains": chains_tuple, "issues": graph.issue_codes}
+    graph_id = sha256(payload)
+    return PhysicsGraph(graph_id, tuple(node.node_id for node in nodes_tuple), tuple(edge.edge_id for edge in edges_tuple), nodes_tuple, edges_tuple, chains_tuple, graph.issue_codes)

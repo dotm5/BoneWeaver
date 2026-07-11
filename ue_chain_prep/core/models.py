@@ -168,3 +168,20 @@ class TerminalSolution:
     score_margin: float
     requires_confirmation: bool
     evidence: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class BoneProposal:
+    bone_name: str
+    chain_id: str
+    source_edge_id: str
+    role: str
+    original_head: tuple[float, float, float]
+    original_tail: tuple[float, float, float]
+    original_roll: float
+    proposed_tail: tuple[float, float, float]
+    proposed_roll_reference_z: tuple[float, float, float]
+    final_use_connect: bool
+    terminal_source: str
+    confidence: float
+    issue_codes: tuple[str, ...]
