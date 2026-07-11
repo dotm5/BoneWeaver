@@ -68,8 +68,11 @@ def run_preflight(context) -> PreflightResult:
         if pose_bone:
             if pose_bone.constraints:
                 issues.append(_issue("BLOCKER", "UECP_RELATED_CONSTRAINT", "Target bone has constraints", bones=(name,)))
-            if not _is_identity(pose_bone.matrix_basis):
-                issues.append(_issue("BLOCKER", "UECP_NON_IDENTITY_POSE", "Armature pose is not identity", bones=(name,)))
+    strict_whole_pose = settings.strict_whole_armature_pose if settings else True
+    pose_bones = armature.pose.bones if strict_whole_pose else tuple(armature.pose.bones.get(name) for name in selected)
+    non_identity = tuple(pose_bone.name for pose_bone in pose_bones if pose_bone and not _is_identity(pose_bone.matrix_basis))
+    if non_identity:
+        issues.append(_issue("BLOCKER", "UECP_NON_IDENTITY_POSE", "Armature pose is not identity", bones=non_identity))
 
     animation = armature.animation_data
     if animation:
@@ -89,6 +92,9 @@ def run_preflight(context) -> PreflightResult:
 
     bindings, mesh_issues = find_associated_meshes(armature)
     issues.extend(mesh_issues)
+    if settings and settings.mesh_scope == "ACTIVE_ASSOCIATED_MESH":
+        active = context.view_layer.objects.active
+        bindings = tuple(binding for binding in bindings if active and binding.object_name == active.name)
     if not bindings:
         issues.append(_issue("BLOCKER", "UECP_NO_ASSOCIATED_MESH", "No associated Mesh was found", objects=(armature.name,)))
     for binding in bindings:

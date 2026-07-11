@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import dataclasses
 import json
 
 import bpy
@@ -11,7 +12,7 @@ from mathutils import Vector
 from .canonical import sha256
 from .context_guard import ContextStateGuard
 from .models import TransactionResult
-from .validation import capture_neutral_meshes, validate_post_apply
+from .validation import capture_armature_state, capture_neutral_meshes, validate_post_apply
 
 
 def _activate_armature(context, armature):
@@ -60,13 +61,15 @@ def _default_validator(context, plan):
 
 def apply_plan(context, plan, *, validator=None):
     neutral_baseline = capture_neutral_meshes(plan)
-    validator = validator or (lambda current_context, current_plan: validate_post_apply(current_context, current_plan, neutral_baseline).success)
+    armature_baseline = capture_armature_state(bpy.data.objects[plan.armature_object_name])
+    custom_validator = validator
     armature = bpy.data.objects[plan.armature_object_name]
     proposal_names = tuple(proposal.bone_name for proposal in plan.proposals)
     created_at = dt.datetime.now(dt.timezone.utc).isoformat()
     snapshot_id = ""
     text_name = ""
     pre_state = {}
+    created_role_collections = []
     with ContextStateGuard(context):
         try:
             _activate_armature(context, armature)
@@ -104,14 +107,41 @@ def apply_plan(context, plan, *, validator=None):
             for proposal in plan.proposals:
                 bone = armature.data.edit_bones[proposal.bone_name]
                 bone.tail = proposal.proposed_tail
-                bone.align_roll(Vector(proposal.proposed_roll_reference_z))
+                if "UECP_KEEP_NUMERIC_ROLL" in proposal.issue_codes:
+                    bone.roll = proposal.original_roll
+                else:
+                    bone.align_roll(Vector(proposal.proposed_roll_reference_z))
             for proposal in plan.proposals:
                 armature.data.edit_bones[proposal.bone_name].use_connect = proposal.final_use_connect
             payload["expected_post_bones"] = _capture_edit_state(armature, proposal_names)
             bpy.ops.object.mode_set(mode="OBJECT")
             context.view_layer.update()
-            if not validator(context, plan):
+            if custom_validator is None:
+                validation = validate_post_apply(context, plan, neutral_baseline, armature_baseline)
+                if not validation.success:
+                    raise RuntimeError(
+                        "post validation failed: " + ", ".join(validation.issues)
+                        + f"; maximum_neutral_mesh_delta={validation.maximum_neutral_mesh_delta:.17g}"
+                        + f"; allowed_neutral_mesh_delta={validation.allowed_neutral_mesh_delta:.17g}"
+                        + f"; non_target_bones={validation.non_target_bone_names}"
+                    )
+                payload["post_validation"] = dataclasses.asdict(validation)
+            elif not custom_validator(context, plan):
                 raise RuntimeError("post validation failed")
+            if any("UECP_CREATE_ROLE_COLLECTIONS" in proposal.issue_codes for proposal in plan.proposals):
+                collection_names = (
+                    "UECP_Anchors", "UECP_Dynamics", "UECP_BranchBoundaries", "UECP_LowConfidence"
+                )
+                collections = {}
+                for name in collection_names:
+                    collection = armature.data.collections.get(name)
+                    if collection is None:
+                        collection = armature.data.collections.new(name)
+                        created_role_collections.append(collection)
+                    collections[name] = collection
+                for proposal in plan.proposals:
+                    target = collections["UECP_Anchors"] if proposal.role == "ANCHOR" else collections["UECP_Dynamics"]
+                    target.assign(armature.data.bones[proposal.bone_name])
             payload["status"] = "APPLIED"
             text.clear()
             text.write(json.dumps(payload, ensure_ascii=False, sort_keys=True, indent=2))
@@ -123,6 +153,9 @@ def apply_plan(context, plan, *, validator=None):
                 bpy.ops.object.mode_set(mode="EDIT")
                 _write_fields(armature, pre_state)
                 bpy.ops.object.mode_set(mode="OBJECT")
+                for collection in reversed(created_role_collections):
+                    if armature.data.collections.get(collection.name):
+                        armature.data.collections.remove(collection)
                 context.view_layer.update()
                 if text_name and text_name in bpy.data.texts:
                     payload["status"] = "ROLLED_BACK"

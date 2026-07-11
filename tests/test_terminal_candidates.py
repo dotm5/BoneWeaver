@@ -4,7 +4,7 @@ import unittest
 
 from tests.test_physics_graph import state
 from ue_chain_prep.core.models import TerminalCandidate, TerminalCandidateScore
-from ue_chain_prep.core.terminal_candidates import generate_candidates, select_candidate
+from ue_chain_prep.core.terminal_candidates import authoritative_solution, generate_candidates, select_candidate
 from ue_chain_prep.core.weight_cloud import analyze_weight_cloud
 
 
@@ -36,6 +36,16 @@ class TerminalCandidateTests(unittest.TestCase):
         candidates = generate_candidates(bone, cloud, parent_direction=(0,0,1), reference_length=2.0)
         solution = select_candidate("Leaf", candidates, minimum_score=0.45, minimum_margin=0.01)
         self.assertGreater(solution.direction[2], 0.99)
+
+    def test_unique_direct_child_is_authoritative(self) -> None:
+        solution = authoritative_solution(
+            "Leaf", (0,0,0), (0,2,0),
+            source="UNIQUE_DIRECT_CHILD_HEAD", kind="DIRECT_CHILD",
+        )
+        self.assertEqual(solution.tail, (0.0, 2.0, 0.0))
+        self.assertEqual(solution.confidence, 1.0)
+        self.assertFalse(solution.requires_confirmation)
+        self.assertEqual(solution.candidates[0].score.total, 1.0)
 
 
 if __name__ == "__main__":

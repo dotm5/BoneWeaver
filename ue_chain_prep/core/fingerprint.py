@@ -57,9 +57,10 @@ def settings_payload(settings):
             continue
         values[prop.identifier] = getattr(settings, prop.identifier)
     values["terminal_overrides"] = tuple(
-        (item.bone_name, item.mode, tuple(item.direction), item.length, item.mesh_object_name, item.vertex_index, item.enabled)
+        (item.bone_name, item.mode, getattr(item.reference_object, "name", None), tuple(item.direction), item.length, item.mesh_object_name, item.vertex_index, item.enabled)
         for item in settings.terminal_overrides
     )
+    values["radial_reference_object"] = getattr(settings.radial_reference_object, "name", None)
     values["algorithm_version"] = ALGORITHM_VERSION
     return values
 

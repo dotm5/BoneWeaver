@@ -6,6 +6,7 @@ import dataclasses
 import json
 
 import bpy
+from .runtime_store import get_performance
 
 
 def to_data(value):
@@ -34,13 +35,42 @@ def build_diagnostic_report(plan, validation, snapshot_id=None):
         "weight_statistics": [to_data(cloud) for cloud in plan.weight_clouds],
         "segment_sampling_hints": [to_data(hint) for hint in plan.segment_sampling_hints],
         "validation": to_data(validation),
-        "performance": {},
+        "performance": get_performance(plan.plan_id),
         "side_effect_audit": {
             "weight_digest_changes": validation.weight_digest_changes,
             "base_mesh_digest_changes": validation.base_mesh_digest_changes,
             "modifier_digest_changes": validation.modifier_digest_changes,
             "non_target_bone_changes": validation.non_target_bone_changes,
         },
+    }
+
+
+def conversion_plan_to_data(plan):
+    return {
+        "kind": plan.kind,
+        "schema_version": plan.schema_version,
+        "algorithm_version": plan.algorithm_version,
+        "addon_version": plan.addon_version,
+        "plan_id": plan.plan_id,
+        "source_fingerprint": plan.source_fingerprint,
+        "settings_fingerprint": plan.settings_fingerprint,
+        "armature": {"object_name": plan.armature_object_name, "data_name": plan.armature_data_name},
+        "profile": plan.profile,
+        "scoring_profile": dict(plan.scoring_profile),
+        "meshes": [to_data(item) for item in plan.mesh_states],
+        "bones": [to_data(item) for item in plan.bone_states],
+        "physics_graph": {
+            "graph_id": plan.physics_graph.graph_id,
+            "nodes": [to_data(item) for item in plan.physics_graph.nodes],
+            "edges": [to_data(item) for item in plan.physics_graph.edges],
+            "chains": [to_data(item) for item in plan.physics_graph.chains],
+            "issues": list(plan.physics_graph.issue_codes),
+        },
+        "weight_clouds": [to_data(item) for item in plan.weight_clouds],
+        "terminal_solutions": [to_data(item) for item in plan.terminal_solutions],
+        "proposals": [to_data(item) for item in plan.proposals],
+        "segment_sampling_hints": [to_data(item) for item in plan.segment_sampling_hints],
+        "issues": [to_data(item) for item in plan.issues],
     }
 
 

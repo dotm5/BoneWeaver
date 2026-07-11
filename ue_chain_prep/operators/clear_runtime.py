@@ -3,6 +3,8 @@
 import bpy
 
 from ..contracts import OPERATOR_IDS, PlanState
+from ..core.runtime_store import clear_plans
+from ..ui.draw import disable_preview
 
 
 class UECP_OT_clear_runtime(bpy.types.Operator):
@@ -10,6 +12,8 @@ class UECP_OT_clear_runtime(bpy.types.Operator):
     bl_label = "Clear UECP Runtime"
 
     def execute(self, context):
+        disable_preview()
+        clear_plans()
         runtime = context.window_manager.uecp_runtime
         runtime.state = PlanState.IDLE.value
         runtime.plan_id = ""

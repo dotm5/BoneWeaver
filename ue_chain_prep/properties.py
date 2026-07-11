@@ -133,7 +133,10 @@ PROPERTY_CLASSES = (
 def register_properties() -> None:
     bpy.types.Scene.uecp_settings = PointerProperty(type=UECP_PG_Settings)
     bpy.types.WindowManager.uecp_runtime = PointerProperty(type=UECP_PG_Runtime)
-    for window_manager in bpy.data.window_managers:
+    bpy.types.WindowManager.uecp_chain_items = CollectionProperty(type=UECP_PG_ChainItem)
+    bpy.types.WindowManager.uecp_proposal_items = CollectionProperty(type=UECP_PG_BoneProposalItem)
+    bpy.types.WindowManager.uecp_issue_items = CollectionProperty(type=UECP_PG_IssueItem)
+    for window_manager in getattr(bpy.data, "window_managers", ()):
         runtime = window_manager.uecp_runtime
         runtime.state = PlanState.IDLE.value
         runtime.plan_id = ""
@@ -153,6 +156,9 @@ def register_properties() -> None:
 
 
 def unregister_properties() -> None:
+    for name in ("uecp_issue_items", "uecp_proposal_items", "uecp_chain_items"):
+        if hasattr(bpy.types.WindowManager, name):
+            delattr(bpy.types.WindowManager, name)
     if hasattr(bpy.types.WindowManager, "uecp_runtime"):
         del bpy.types.WindowManager.uecp_runtime
     if hasattr(bpy.types.Scene, "uecp_settings"):

@@ -87,7 +87,7 @@ def weighted_percentile(samples, percentile):
     return values[-1][0]
 
 
-def analyze_weight_cloud(bone_name, head, weighted_points, mesh_names=()):
+def analyze_weight_cloud(bone_name, head, weighted_points, mesh_names=(), percentile=0.9):
     points = tuple((tuple(float(v) for v in point), float(weight)) for point, weight in weighted_points if weight > 0.0)
     total = sum(weight for _, weight in points)
     if len(points) < 3 or total <= 1.0e-12:
@@ -109,7 +109,7 @@ def analyze_weight_cloud(bone_name, head, weighted_points, mesh_names=()):
     projections = [(sum(offset[i] * principal[i] for i in range(3)), weight) for offset, weight in offsets]
     positive_weight = sum(weight for projection, weight in projections if projection > 0.0)
     positive = tuple((projection, weight) for projection, weight in projections if projection > 0.0)
-    length = weighted_percentile(positive, 0.9) if positive else None
+    length = weighted_percentile(positive, percentile) if positive else None
     agreement = sum(principal[i] * centroid_direction[i] for i in range(3)) if centroid_direction else 0.0
     reliability = {"LINEAR": 1.0, "PLANAR": 0.7, "ISOTROPIC": 0.35}[cloud_class]
     confidence = min(1.0, reliability * min(1.0, len(points) / 8.0) * (0.5 + 0.5 * positive_weight / total))

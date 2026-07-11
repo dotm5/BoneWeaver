@@ -9,6 +9,25 @@ TRANSLATIONS = {
     "zh_HANS": {
         ("*", "UE Chain Prep"): "UE 骨链准备",
         ("Operator", "Analyze UE Bone Chains"): "分析 UE 骨骼链",
+        ("Operator", "Apply Chain Conversion"): "应用骨链转换",
+        ("Operator", "Validate Current Conversion"): "验证当前转换",
+        ("Operator", "Toggle Chain Preview"): "切换骨链预览",
+        ("Operator", "Restore UECP Snapshot"): "恢复 UECP 快照",
+        ("Operator", "Export UECP Diagnostic Report"): "导出 UECP 诊断报告",
+        ("Operator", "Clear UECP Runtime"): "清除 UECP 运行状态",
+        ("*", "Plan State"): "计划状态",
+        ("*", "Weight Evidence"): "权重证据",
+        ("*", "Preview & Diagnostics"): "预览与诊断",
+        ("*", "Scope Mode"): "骨骼范围",
+        ("*", "Mesh Scope"): "网格范围",
+        ("*", "Physics Profile"): "物理配置",
+        ("*", "Terminal Mode"): "末端推断模式",
+        ("*", "Bone Forward Axis"): "导入前向轴",
+        ("*", "Tip Length Mode"): "末端长度模式",
+        ("*", "Roll Mode"): "Roll 模式",
+        ("*", "Minimum Candidate Score"): "最低候选评分",
+        ("*", "Candidate Minimum Margin"): "候选最低分差",
+        ("*", "Minimum Confidence"): "最低置信度",
     }
 }
 

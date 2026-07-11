@@ -62,6 +62,8 @@ class ValidationTests(unittest.TestCase):
         self.assertEqual(payload["plan_id"], runtime.plan_id)
         self.assertIn("physics_graph_id", payload)
         self.assertIn("side_effect_audit", payload)
+        self.assertGreater(payload["performance"]["bone_count"], 0)
+        self.assertIn("analyze_time", payload["performance"])
 
 
 if __name__ == "__main__":

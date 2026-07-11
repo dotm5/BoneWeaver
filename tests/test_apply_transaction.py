@@ -23,12 +23,14 @@ class ApplyTransactionTests(unittest.TestCase):
         settings.minimum_candidate_score = 0.40
         settings.candidate_minimum_margin = 0.001
         settings.minimum_confidence = 0.40
+        settings.create_role_collections = False
 
     def tearDown(self) -> None:
         settings = bpy.context.scene.uecp_settings
         settings.minimum_candidate_score = 0.62
         settings.candidate_minimum_margin = 0.08
         settings.minimum_confidence = 0.70
+        settings.create_role_collections = False
         ue_chain_prep.unregister()
         for text in tuple(bpy.data.texts):
             if text.name.startswith("UECP_SNAPSHOT::"):
@@ -76,6 +78,13 @@ class ApplyTransactionTests(unittest.TestCase):
         self.assertFalse(result.success)
         self.assertTrue(result.rolled_back)
         self.assertEqual(self._geometry(), before)
+
+    def test_optional_role_collections_are_created_only_when_frozen_in_plan(self) -> None:
+        bpy.context.scene.uecp_settings.create_role_collections = True
+        bpy.ops.uecp.analyze()
+        runtime = bpy.context.window_manager.uecp_runtime
+        self.assertEqual(bpy.ops.uecp.apply(plan_id=runtime.plan_id), {"FINISHED"})
+        self.assertTrue({"UECP_Anchors", "UECP_Dynamics", "UECP_BranchBoundaries", "UECP_LowConfidence"}.issubset(self.rig.data.collections.keys()))
 
 
 if __name__ == "__main__":

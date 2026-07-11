@@ -3,7 +3,7 @@ schema_version = "1.0.0"
 id = "ue_chain_prep"
 version = "0.1.0"
 name = "UE Chain Prep"
-tagline = "Convert Unreal-style joints into physics-ready Blender bone chains"
+tagline = "Prepare Unreal joints for Blender physics bone chains"
 maintainer = "Project Maintainer"
 type = "add-on"
 
