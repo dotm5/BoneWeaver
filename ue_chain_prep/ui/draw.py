@@ -32,11 +32,15 @@ def _ensure_gpu_cache():
 def _draw_callback():
     if not _CACHE:
         return
+    import gpu
+
+    _, _, width, height = gpu.state.viewport_get()
+    viewport_size = (max(1.0, float(width)), max(1.0, float(height)))
     shader, batches = _ensure_gpu_cache()
     for batch, color in batches:
         shader.bind()
         shader.uniform_float("color", color)
-        shader.uniform_float("viewportSize", (1.0, 1.0))
+        shader.uniform_float("viewportSize", viewport_size)
         shader.uniform_float("lineWidth", 2.0)
         batch.draw(shader)
 

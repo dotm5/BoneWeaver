@@ -72,10 +72,30 @@ class UIRefactorTests(unittest.TestCase):
         self.assertGreater(len(wm.uecp_chain_items), 0)
         self.assertLessEqual(len(wm.uecp_proposal_items), 200)
 
-    def test_issue_list_does_not_render_raw_issue_code(self):
-        source = (Path(__file__).resolve().parents[1] / "ue_chain_prep" / "ui" / "lists.py").read_text(encoding="utf-8")
-        self.assertNotIn("item.code", source)
-        self.assertNotIn("item.confidence", source)
+    def test_issue_list_shows_affected_bone_and_readable_summary(self):
+        from ue_chain_prep.ui.lists import UECP_UL_issues
+
+        class FakeLayout:
+            def __init__(self):
+                self.labels = []
+
+            def label(self, *, text, icon):
+                self.labels.append((text, icon))
+
+        class FakeItem:
+            bone_name = "hair_ribbon_l_06"
+            code = "UECP_TERMINAL_CANDIDATE_AMBIGUOUS"
+            message = "UECP_TERMINAL_CANDIDATE_AMBIGUOUS"
+            severity = "BLOCKER"
+
+        layout = FakeLayout()
+        UECP_UL_issues.draw_item(None, None, layout, None, FakeItem(), None, None, None, 0)
+
+        self.assertEqual([("hair_ribbon_l_06 · 末端方向存在歧义", "ERROR")], layout.labels)
+
+    def test_details_locate_operator_shows_selected_bone(self):
+        source = (Path(__file__).resolve().parents[1] / "ue_chain_prep" / "ui" / "panels" / "details.py").read_text(encoding="utf-8")
+        self.assertIn('text=f"定位：{view.selected_issue_bone}"', source)
 
 
 if __name__ == "__main__":

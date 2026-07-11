@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.3 - 2026-07-12
+
+- Fixed preview-line visibility by passing the actual GPU viewport dimensions to the shader's `viewportSize` uniform.
+- Made issue details bone-readable by showing the affected bone with a concise issue summary and labeled locate action.
+
 ## 0.1.2 - 2026-07-12
 
 - Added pure `PanelViewState` workflow mapping and layered Main/Advanced/Details/Recovery/Developer panels.

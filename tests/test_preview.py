@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import sys
 import unittest
 from types import SimpleNamespace
+from unittest.mock import patch
 
 import bpy
 
@@ -45,6 +47,24 @@ class PreviewLifecycleTests(unittest.TestCase):
         self.assertEqual(1, len(draw.build_plan_cache(plan, settings)))
         settings.preview_show_joint_graph = False
         self.assertEqual(0, len(draw.build_plan_cache(plan, settings)))
+
+    def test_draw_callback_uses_actual_viewport_dimensions(self) -> None:
+        uniforms = {}
+        shader = SimpleNamespace(
+            bind=lambda: None,
+            uniform_float=lambda name, value: uniforms.__setitem__(name, value),
+        )
+        batch = SimpleNamespace(draw=lambda _shader: None)
+        draw._CACHE = (((0.0, 0.0, 0.0), (0.0, 1.0, 0.0), (1.0, 1.0, 1.0, 1.0)),)
+        draw._GPU_CACHE = (shader, ((batch, (1.0, 1.0, 1.0, 1.0)),))
+        fake_gpu = SimpleNamespace(
+            state=SimpleNamespace(viewport_get=lambda: (0, 0, 1920, 1080))
+        )
+
+        with patch.dict(sys.modules, {"gpu": fake_gpu}):
+            draw._draw_callback()
+
+        self.assertEqual((1920.0, 1080.0), uniforms["viewportSize"])
 
 
 if __name__ == "__main__":

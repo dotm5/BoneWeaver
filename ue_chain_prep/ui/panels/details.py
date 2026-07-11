@@ -28,7 +28,7 @@ class UECP_PT_details(bpy.types.Panel):
         if view.has_issues:
             layout.template_list("UECP_UL_issues", "", view.window_manager, "uecp_issue_items", view.active_data, "active_issue_index", rows=4)
             if view.selected_issue_bone:
-                op = layout.operator(OPERATOR_IDS["locate_issue"], icon="VIEWZOOM")
+                op = layout.operator(OPERATOR_IDS["locate_issue"], text=f"定位：{view.selected_issue_bone}", icon="VIEWZOOM")
                 op.issue_index = view.active_issue_index
                 op.bone_name = view.selected_issue_bone
         if view.has_proposals:
