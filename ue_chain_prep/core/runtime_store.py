@@ -6,6 +6,7 @@ from .models import ConversionPlan
 
 
 _PLAN_STORE: dict[str, ConversionPlan] = {}
+_LAST_REPORT: dict | None = None
 
 
 def put_plan(plan: ConversionPlan) -> None:
@@ -21,4 +22,15 @@ def has_plan(plan_id: str) -> bool:
 
 
 def clear_plans() -> None:
+    global _LAST_REPORT
     _PLAN_STORE.clear()
+    _LAST_REPORT = None
+
+
+def put_report(report: dict) -> None:
+    global _LAST_REPORT
+    _LAST_REPORT = report
+
+
+def get_report() -> dict | None:
+    return _LAST_REPORT

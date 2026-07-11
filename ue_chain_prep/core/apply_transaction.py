@@ -11,6 +11,7 @@ from mathutils import Vector
 from .canonical import sha256
 from .context_guard import ContextStateGuard
 from .models import TransactionResult
+from .validation import capture_neutral_meshes, validate_post_apply
 
 
 def _activate_armature(context, armature):
@@ -25,6 +26,7 @@ def _capture_edit_state(armature, names):
     return {
         name: {
             "head": tuple(float(value) for value in armature.data.edit_bones[name].head),
+            "parent_name": armature.data.edit_bones[name].parent.name if armature.data.edit_bones[name].parent else None,
             "tail": tuple(float(value) for value in armature.data.edit_bones[name].tail),
             "roll": float(armature.data.edit_bones[name].roll),
             "use_connect": bool(armature.data.edit_bones[name].use_connect),
@@ -57,7 +59,8 @@ def _default_validator(context, plan):
 
 
 def apply_plan(context, plan, *, validator=None):
-    validator = validator or _default_validator
+    neutral_baseline = capture_neutral_meshes(plan)
+    validator = validator or (lambda current_context, current_plan: validate_post_apply(current_context, current_plan, neutral_baseline).success)
     armature = bpy.data.objects[plan.armature_object_name]
     proposal_names = tuple(proposal.bone_name for proposal in plan.proposals)
     created_at = dt.datetime.now(dt.timezone.utc).isoformat()
@@ -104,6 +107,7 @@ def apply_plan(context, plan, *, validator=None):
                 bone.align_roll(Vector(proposal.proposed_roll_reference_z))
             for proposal in plan.proposals:
                 armature.data.edit_bones[proposal.bone_name].use_connect = proposal.final_use_connect
+            payload["expected_post_bones"] = _capture_edit_state(armature, proposal_names)
             bpy.ops.object.mode_set(mode="OBJECT")
             context.view_layer.update()
             if not validator(context, plan):
