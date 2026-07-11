@@ -105,3 +105,66 @@ class PhysicsGraph:
     edges: tuple[PhysicsEdge, ...]
     chains: tuple[PhysicsChain, ...]
     issue_codes: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class WeightCloudStats:
+    bone_name: str
+    mesh_names: tuple[str, ...]
+    sample_count: int
+    effective_sample_count: float
+    total_statistical_weight: float
+    centroid: tuple[float, float, float] | None
+    principal_axis: tuple[float, float, float] | None
+    eigenvalues: tuple[float, float, float] | None
+    linearity: float
+    planarity: float
+    sphericity: float
+    positive_projection_fraction: float
+    centroid_distance_ratio: float
+    direction_agreement: float
+    length_percentile: float | None
+    cloud_class: str
+    confidence: float
+    warnings: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class TerminalCandidateScore:
+    mesh_support: float
+    chain_continuity: float
+    cloud_shape_suitability: float
+    imported_axis_prior: float
+    length_plausibility: float
+    penalties: float
+    total: float
+
+
+@dataclass(frozen=True, slots=True)
+class TerminalCandidate:
+    candidate_id: str
+    kind: str
+    axis_label: str | None
+    direction: tuple[float, float, float]
+    raw_length: float
+    clamped_length: float
+    tail: tuple[float, float, float]
+    score: TerminalCandidateScore
+    evidence: tuple[str, ...]
+    issue_codes: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class TerminalSolution:
+    bone_name: str
+    source: str
+    selected_candidate_id: str | None
+    candidates: tuple[TerminalCandidate, ...]
+    virtual_tip_node_id: str | None
+    tail: tuple[float, float, float]
+    direction: tuple[float, float, float]
+    length: float
+    confidence: float
+    score_margin: float
+    requires_confirmation: bool
+    evidence: tuple[str, ...]
