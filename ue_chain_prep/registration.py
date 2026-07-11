@@ -6,6 +6,7 @@ import bpy
 
 from .operators import OPERATOR_CLASSES
 from .properties import PROPERTY_CLASSES, register_properties, unregister_properties
+from .core.runtime_store import clear_plans
 from .translations import register as register_translations
 from .translations import unregister as unregister_translations
 from .ui import UI_CLASSES
@@ -31,9 +32,11 @@ def unregister() -> None:
     global _registered
     if not _registered:
         disable_preview()
+        clear_plans()
         unregister_properties()
         return
     disable_preview()
+    clear_plans()
     unregister_properties()
     unregister_translations()
     for cls in reversed(CLASSES):

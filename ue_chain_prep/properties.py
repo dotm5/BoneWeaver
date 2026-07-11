@@ -133,6 +133,23 @@ PROPERTY_CLASSES = (
 def register_properties() -> None:
     bpy.types.Scene.uecp_settings = PointerProperty(type=UECP_PG_Settings)
     bpy.types.WindowManager.uecp_runtime = PointerProperty(type=UECP_PG_Runtime)
+    for window_manager in bpy.data.window_managers:
+        runtime = window_manager.uecp_runtime
+        runtime.state = PlanState.IDLE.value
+        runtime.plan_id = ""
+        runtime.plan_fingerprint = ""
+        runtime.plan_summary = ""
+        runtime.snapshot_id = ""
+        runtime.snapshot_text_name = ""
+        runtime.issue_count_info = 0
+        runtime.issue_count_warning = 0
+        runtime.issue_count_blocker = 0
+        runtime.active_chain_index = 0
+        runtime.active_proposal_index = 0
+        runtime.preview_enabled = False
+        runtime.last_error = ""
+        runtime.generation = 0
+        runtime.is_busy = False
 
 
 def unregister_properties() -> None:

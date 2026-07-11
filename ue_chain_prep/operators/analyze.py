@@ -2,8 +2,9 @@
 
 import bpy
 
-from ..contracts import OPERATOR_IDS
-from ..core.preflight import run_preflight
+from ..contracts import OPERATOR_IDS, PlanState
+from ..core.planner import build_plan
+from ..core.runtime_store import put_plan
 
 
 class UECP_OT_analyze(bpy.types.Operator):
@@ -20,21 +21,25 @@ class UECP_OT_analyze(bpy.types.Operator):
         runtime = context.window_manager.uecp_runtime
         runtime.is_busy = True
         try:
-            result = run_preflight(context)
+            plan = build_plan(context)
+            if plan is None:
+                runtime.last_error = "UECP_NO_ACTIVE_ARMATURE"
+                return {"CANCELLED"}
             counts = {"INFO": 0, "WARNING": 0, "BLOCKER": 0}
-            for issue in result.issues:
+            for issue in plan.issues:
                 counts[issue.severity] = counts.get(issue.severity, 0) + 1
             runtime.issue_count_info = counts["INFO"]
             runtime.issue_count_warning = counts["WARNING"]
             runtime.issue_count_blocker = counts["BLOCKER"]
             runtime.plan_summary = (
-                f"{len(result.selected_bone_names)} bones, "
-                f"{len(result.mesh_names)} meshes, {len(result.issues)} issues"
+                f"{len(plan.bone_states)} bones, "
+                f"{len(plan.mesh_states)} meshes, {len(plan.issues)} issues"
             )
+            put_plan(plan)
+            runtime.plan_id = plan.plan_id
+            runtime.plan_fingerprint = plan.source_fingerprint
+            runtime.state = PlanState.ANALYZED.value
             runtime.generation += 1
-            if result.armature_object_name is None:
-                runtime.last_error = "UECP_NO_ACTIVE_ARMATURE"
-                return {"CANCELLED"}
             runtime.last_error = ""
             return {"FINISHED"}
         finally:

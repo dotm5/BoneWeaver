@@ -196,3 +196,51 @@ class SegmentSamplingHint:
     suggested_virtual_subdivisions: int
     severity: str
     message_key: str
+
+
+@dataclass(frozen=True, slots=True)
+class MeshBindingState:
+    object_name: str
+    data_name: str
+    vertex_count: int
+    polygon_count: int
+    armature_modifier_names: tuple[str, ...]
+    selected_armature_modifier_name: str
+    object_matrix_world: tuple[float, ...]
+    mesh_to_armature_matrix: tuple[float, ...]
+    vertex_group_names: tuple[str, ...]
+    vertex_group_digest: str
+    modifier_digest: str
+    base_mesh_digest: str
+
+
+@dataclass(frozen=True, slots=True)
+class ConversionPlan:
+    kind: str
+    schema_version: str
+    algorithm_version: str
+    addon_version: str
+    plan_id: str
+    source_fingerprint: str
+    settings_fingerprint: str
+    armature_object_name: str
+    armature_data_name: str
+    profile: str
+    scoring_profile: tuple[tuple[str, float], ...]
+    mesh_states: tuple[MeshBindingState, ...]
+    bone_states: tuple[BoneState, ...]
+    physics_graph: PhysicsGraph
+    weight_clouds: tuple[WeightCloudStats, ...]
+    terminal_solutions: tuple[TerminalSolution, ...]
+    proposals: tuple[BoneProposal, ...]
+    segment_sampling_hints: tuple[SegmentSamplingHint, ...]
+    issues: tuple[ValidationIssue, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class TransactionResult:
+    success: bool
+    rolled_back: bool
+    snapshot_id: str
+    snapshot_text_name: str
+    error: str | None
