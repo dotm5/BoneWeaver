@@ -1,0 +1,118 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "uecp://schema/conversion-plan/3.0.0",
+  "title": "UE Chain Prep Conversion Plan",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "kind", "schema_version", "algorithm_version", "addon_version", "plan_id",
+    "source_fingerprint", "settings_fingerprint", "armature", "profile",
+    "scoring_profile", "meshes", "bones", "physics_graph", "weight_clouds",
+    "terminal_solutions", "proposals", "segment_sampling_hints", "issues"
+  ],
+  "properties": {
+    "kind": {"const": "uecp.conversion_plan"},
+    "schema_version": {"type": "string", "pattern": "^3\\.[0-9]+\\.[0-9]+$"},
+    "algorithm_version": {"type": "string", "minLength": 1},
+    "addon_version": {"type": "string"},
+    "plan_id": {"$ref": "#/$defs/sha256"},
+    "source_fingerprint": {"$ref": "#/$defs/sha256"},
+    "settings_fingerprint": {"$ref": "#/$defs/sha256"},
+    "armature": {"$ref": "#/$defs/armature"},
+    "profile": {"type": "string"},
+    "scoring_profile": {"type": "object", "additionalProperties": {"type": "number"}},
+    "meshes": {"type": "array", "items": {"$ref": "#/$defs/meshState"}},
+    "bones": {"type": "array", "items": {"$ref": "#/$defs/boneState"}},
+    "physics_graph": {"$ref": "#/$defs/physicsGraph"},
+    "weight_clouds": {"type": "array", "items": {"$ref": "#/$defs/weightCloud"}},
+    "terminal_solutions": {"type": "array", "items": {"$ref": "#/$defs/terminalSolution"}},
+    "proposals": {"type": "array", "items": {"$ref": "#/$defs/proposal"}},
+    "segment_sampling_hints": {"type": "array", "items": {"$ref": "#/$defs/segmentSamplingHint"}},
+    "issues": {"type": "array", "items": {"$ref": "#/$defs/issue"}}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "vec3": {"type": "array", "prefixItems": [{"type": "number"}, {"type": "number"}, {"type": "number"}], "items": false},
+    "quat": {"type": "array", "prefixItems": [{"type": "number"}, {"type": "number"}, {"type": "number"}, {"type": "number"}], "items": false},
+    "armature": {
+      "type": "object", "additionalProperties": false,
+      "required": ["object_name", "data_name"],
+      "properties": {"object_name": {"type": "string", "minLength": 1}, "data_name": {"type": "string", "minLength": 1}}
+    },
+    "meshState": {
+      "type": "object", "additionalProperties": false,
+      "required": ["object_name", "data_name", "vertex_count", "polygon_count", "vertex_group_digest", "modifier_digest", "base_mesh_digest"],
+      "properties": {
+        "object_name": {"type": "string"}, "data_name": {"type": "string"},
+        "vertex_count": {"type": "integer", "minimum": 0}, "polygon_count": {"type": "integer", "minimum": 0},
+        "vertex_group_digest": {"$ref": "#/$defs/sha256"}, "modifier_digest": {"$ref": "#/$defs/sha256"}, "base_mesh_digest": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "boneState": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "parent_name", "child_names", "head", "tail", "roll", "matrix_local", "local_x", "local_y", "local_z", "use_connect", "use_deform"],
+      "properties": {
+        "name": {"type": "string"}, "parent_name": {"type": ["string", "null"]},
+        "child_names": {"type": "array", "items": {"type": "string"}},
+        "head": {"$ref": "#/$defs/vec3"}, "tail": {"$ref": "#/$defs/vec3"}, "roll": {"type": "number"},
+        "matrix_local": {"type": "array", "items": {"type": "number"}},
+        "local_x": {"$ref": "#/$defs/vec3"}, "local_y": {"$ref": "#/$defs/vec3"}, "local_z": {"$ref": "#/$defs/vec3"},
+        "use_connect": {"type": "boolean"}, "use_deform": {"type": "boolean"}
+      }
+    },
+    "physicsNode": {
+      "type": "object", "additionalProperties": false,
+      "required": ["node_id", "kind", "bone_name", "joint_position", "parent_node_id", "child_node_ids", "is_kinematic", "source"],
+      "properties": {
+        "node_id": {"type": "string"}, "kind": {"enum": ["REAL_BONE", "VIRTUAL_TIP"]},
+        "bone_name": {"type": ["string", "null"]}, "joint_position": {"$ref": "#/$defs/vec3"},
+        "rest_rotation": {"anyOf": [{"$ref": "#/$defs/quat"}, {"type": "null"}]},
+        "parent_node_id": {"type": ["string", "null"]}, "child_node_ids": {"type": "array", "items": {"type": "string"}},
+        "is_kinematic": {"type": "boolean"}, "source": {"type": "string"}
+      }
+    },
+    "physicsEdge": {
+      "type": "object", "additionalProperties": false,
+      "required": ["edge_id", "kind", "parent_node_id", "child_node_id", "rest_vector", "rest_length", "source"],
+      "properties": {
+        "edge_id": {"type": "string"}, "kind": {"enum": ["HIERARCHY_SEGMENT", "VIRTUAL_TIP_SEGMENT"]},
+        "parent_node_id": {"type": "string"}, "child_node_id": {"type": "string"},
+        "rest_vector": {"$ref": "#/$defs/vec3"}, "rest_length": {"type": "number", "exclusiveMinimum": 0}, "source": {"type": "string"}
+      }
+    },
+    "physicsGraph": {
+      "type": "object", "additionalProperties": false,
+      "required": ["graph_id", "nodes", "edges", "chains", "issues"],
+      "properties": {
+        "graph_id": {"$ref": "#/$defs/sha256"}, "nodes": {"type": "array", "items": {"$ref": "#/$defs/physicsNode"}},
+        "edges": {"type": "array", "items": {"$ref": "#/$defs/physicsEdge"}}, "chains": {"type": "array"},
+        "issues": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "terminalCandidate": {
+      "type": "object", "additionalProperties": false,
+      "required": ["candidate_id", "kind", "direction", "raw_length", "clamped_length", "tail", "score", "evidence", "issues"],
+      "properties": {
+        "candidate_id": {"type": "string"}, "kind": {"type": "string"}, "axis_label": {"type": ["string", "null"]},
+        "direction": {"$ref": "#/$defs/vec3"}, "raw_length": {"type": "number", "exclusiveMinimum": 0},
+        "clamped_length": {"type": "number", "exclusiveMinimum": 0}, "tail": {"$ref": "#/$defs/vec3"},
+        "score": {"type": "object"}, "evidence": {"type": "array", "items": {"type": "string"}}, "issues": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "terminalSolution": {
+      "type": "object", "additionalProperties": false,
+      "required": ["bone_name", "source", "selected_candidate_id", "candidates", "virtual_tip_node_id", "tail", "direction", "length", "confidence", "score_margin", "requires_confirmation", "evidence"],
+      "properties": {
+        "bone_name": {"type": "string"}, "source": {"type": "string"}, "selected_candidate_id": {"type": ["string", "null"]},
+        "candidates": {"type": "array", "items": {"$ref": "#/$defs/terminalCandidate"}}, "virtual_tip_node_id": {"type": ["string", "null"]},
+        "tail": {"$ref": "#/$defs/vec3"}, "direction": {"$ref": "#/$defs/vec3"}, "length": {"type": "number", "exclusiveMinimum": 0},
+        "confidence": {"type": "number", "minimum": 0, "maximum": 1}, "score_margin": {"type": "number", "minimum": 0},
+        "requires_confirmation": {"type": "boolean"}, "evidence": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "weightCloud": {"type": "object", "additionalProperties": false, "required": ["bone_name", "sample_count", "confidence"], "properties": {"bone_name": {"type": "string"}, "sample_count": {"type": "integer", "minimum": 0}, "confidence": {"type": "number", "minimum": 0, "maximum": 1}}},
+    "proposal": {"type": "object", "additionalProperties": false, "required": ["bone_name", "chain_id", "source_edge_id", "proposed_tail", "final_use_connect"], "properties": {"bone_name": {"type": "string"}, "chain_id": {"type": "string"}, "source_edge_id": {"type": "string"}, "proposed_tail": {"$ref": "#/$defs/vec3"}, "final_use_connect": {"type": "boolean"}}},
+    "segmentSamplingHint": {"type": "object", "additionalProperties": false, "required": ["edge_id", "length_ratio", "suggested_virtual_subdivisions"], "properties": {"edge_id": {"type": "string"}, "length_ratio": {"type": "number"}, "suggested_virtual_subdivisions": {"type": "integer", "minimum": 0}}},
+    "issue": {"type": "object", "additionalProperties": false, "required": ["severity", "code", "message_key", "message"], "properties": {"severity": {"enum": ["INFO", "WARNING", "BLOCKER"]}, "code": {"type": "string", "pattern": "^UECP_[A-Z0-9_]+$"}, "message_key": {"type": "string"}, "message": {"type": "string"}}}
+  }
+}
