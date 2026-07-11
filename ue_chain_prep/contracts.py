@@ -6,7 +6,7 @@ from enum import Enum
 
 
 ADDON_ID = "ue_chain_prep"
-ADDON_VERSION = "0.1.2"
+ADDON_VERSION = "0.1.3"
 SCHEMA_VERSION = "3.1.0"
 ALGORITHM_VERSION = "uecp-physics-graph-v3-interaction-hardening"
 
