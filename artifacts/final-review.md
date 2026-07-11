@@ -16,10 +16,10 @@ Implemented With External Manual Validation Pending.
 | 22–30 | Names/parents/heads/groups/weights/base mesh/modifiers/neutral mesh/Profile connect invariants | Pass in automated and real smoke |
 | 31–33 | Diagnostic-only long sampling, deterministic Plan/Graph/Candidates, stale settings/algorithm detection | Pass |
 | 34–37 | Automatic rollback, Snapshot Restore, conflict refusal, registration/handler cleanup | Pass |
-| 38 | Headless tests | Pass: 58/58 |
+| 38 | Headless tests | Pass: 61/61 |
 | 39 | Installable ZIP | Pass in fresh isolated repository |
 | 40 | Documentation | Pass |
-| 41 | BoneX/Wiggle/ARP interactive smoke | External Manual Pending; installed versions identified, no result fabricated |
+| 41 | BoneX/Wiggle/ARP interactive smoke | BoneX UI draw hotfix Pass; physics/Bake plus Wiggle/ARP Manual Pending; no result fabricated |
 | 42 | Unknown/unverified facts are explicit | Pass |
 
 ## Real validation metrics

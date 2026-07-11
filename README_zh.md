@@ -36,4 +36,8 @@ Active Action/NLA/Driver、非单位 Pose、相关 Constraint、Bone-parented ob
 
 v0.1.0 是 Physics Preparation 工具，不是 UE 动画 Basis 重定向工具。转换后继续直接导入 UE 动画可能需要 Basis Rebase。
 
+## Blender 5.2 下的 BoneX 1.2.6
+
+BoneX 1.2.6 的 Soft Connection 面板可能在 `draw()` 中初始化 `Object["bonex_data"]`，Blender 5.2 会拒绝这种 UI 绘制期写入。该问题不加载 UE Chain Prep 也能独立复现。项目提供了带版本校验、备份和恢复能力的本地修复工具，详见 [BoneX 1.2.6 draw-context 修复说明](docs/bonex-1.2.6-draw-context-hotfix.md)。应用或恢复后需重启 Blender。
+
 详见 [架构](docs/architecture.md)、[算法](docs/algorithms.md)、[安全合同](docs/safety.md) 与 [BoneX/Wiggle 手工验收表](docs/manual-test-bonex-wiggle.md)。

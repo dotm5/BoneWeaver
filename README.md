@@ -26,4 +26,8 @@ The default roll mode is Minimal Twist. Parallel Transport is opt-in. Virtual ti
 
 Version 0.1.0 is a physics-preparation tool, not a UE animation-basis retargeter. Active Actions, NLA, drivers, non-identity pose, related constraints, ambiguous branches, connected external children, and low-confidence terminal solutions block Apply.
 
+## BoneX 1.2.6 on Blender 5.2
+
+BoneX 1.2.6 may try to initialize `Object["bonex_data"]` while its Soft Connection panel is drawing, which Blender 5.2 rejects. This is a BoneX UI-context bug and reproduces without UE Chain Prep. A version-guarded, reversible local hotfix is documented in [BoneX 1.2.6 draw-context hotfix](docs/bonex-1.2.6-draw-context-hotfix.md). Restart Blender after applying or restoring it.
+
 See [architecture](docs/architecture.md), [algorithms](docs/algorithms.md), [safety](docs/safety.md), and the [manual BoneX/Wiggle checklist](docs/manual-test-bonex-wiggle.md).

@@ -7,7 +7,10 @@ Date: 2026-07-11
 | Layer | Command | Result |
 |---|---|---|
 | Python syntax | `python -m compileall -q ue_chain_prep tests tools` | Pass |
-| L0/L1/L2 | Blender 5.2 RC `--background --factory-startup --python tests/run_blender_tests.py` | 58 run, 0 failures, 0 errors, 0 skipped |
+| L0/L1/L2 | Blender 5.2 RC `--background --factory-startup --python tests/run_blender_tests.py` | 61 run, 0 failures, 0 errors, 0 skipped |
+| BoneX original UI draw repro | Factory-startup real window, audited BoneX 1.2.6 getter in Header draw | Expected failure reproduced with the user's exact AttributeError class/message |
+| BoneX patched UI draw repro | Same real-window probe against isolated and installed copies | Pass; getter returned empty data without writing an ID property |
+| BoneX read/write separation | Background Armature: getter, setter, getter | Pass; read path remained pure and operator/setter path persisted one connection |
 | Extension build | Blender `--factory-startup --command extension build --source-dir ue_chain_prep --output-dir dist` | Pass |
 | Isolated ZIP install | `tests/test_install_zip.py` in fresh `BLENDER_USER_RESOURCES` | Pass; install plus three register/unregister cycles |
 | UEFormat isolated import | `tools/probe_ueformat.py` on `SK_HuiXing_Lobby_S111.uemodel` | Pass; 1 Armature / 157 bones / 1 Mesh |
@@ -25,6 +28,7 @@ Date: 2026-07-11
 - Virtual Tip non-persistence, graph projection, Profiles, Minimal Twist, Parallel Transport, Radial and Swing math.
 - Stale Plan rejection, persistent snapshot, atomic Apply, forced-failure rollback, Restore conflict protection.
 - Weight/Base Mesh/Modifier digests, graph projection, evaluated neutral mesh, report export and Plan JSON round-trip.
+- BoneX 1.2.6 exact-source transformation, version guard, idempotent backup/restore workflow, CLI output and true Blender draw-context regression.
 
 ## Final package
 
