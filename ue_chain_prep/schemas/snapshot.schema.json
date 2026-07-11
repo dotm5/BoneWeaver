@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "uecp://schema/snapshot/3.1.0",
+  "title": "UE Chain Prep Snapshot",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["kind", "schema_version", "algorithm_version", "snapshot_id", "plan_id", "physics_graph_id", "created_at", "armature", "pre_bones", "expected_post_bones", "mesh_digests", "modifier_digests", "object_counts", "status"],
+  "properties": {
+    "kind": {"const": "uecp.snapshot"},
+    "schema_version": {"type": "string", "pattern": "^3\\.[0-9]+\\.[0-9]+$"},
+    "algorithm_version": {"type": "string"},
+    "snapshot_id": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "plan_id": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "physics_graph_id": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "created_at": {"type": "string"},
+    "armature": {"type": "object"},
+    "pre_bones": {"type": "object"},
+    "expected_post_bones": {"type": "object"},
+    "mesh_digests": {"type": "object"},
+    "modifier_digests": {"type": "object"},
+    "object_counts": {"type": "object"},
+    "status": {"enum": ["CREATED", "APPLIED", "ROLLED_BACK", "RESTORED"]},
+    "mutation_records": {"type": "array"},
+    "topology_ledger": {"type": "object"},
+    "post_validation": {"type": "object"}
+  }
+}

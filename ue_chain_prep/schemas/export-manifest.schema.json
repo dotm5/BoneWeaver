@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "uecp://schema/export-manifest/3.1.0",
+  "title": "UE Chain Prep Export Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "kind", "schema_version", "algorithm_version", "addon_version",
+    "source_file_sha256", "source_file_timestamp", "plan_id", "graph_id",
+    "tolerance_mode", "per_mesh_tolerance", "mutation_records",
+    "branch_resolutions", "topology_ledger", "packed_image_count", "export_time"
+  ],
+  "properties": {
+    "kind": {"const": "uecp.export_manifest"},
+    "schema_version": {"type": "string"},
+    "algorithm_version": {"type": "string"},
+    "addon_version": {"type": "string"},
+    "source_file_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "source_file_timestamp": {"type": "integer"},
+    "plan_id": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "graph_id": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "armature": {"type": "object"},
+    "bone_parents": {"type": "object"},
+    "physics_edges": {"type": "array"},
+    "snapshot_id": {"type": ["string", "null"]},
+    "tolerance_mode": {"enum": ["AUTO_PRODUCTION", "STRICT_TEST", "CUSTOM"]},
+    "per_mesh_tolerance": {"type": "array"},
+    "maximum_delta": {"type": "number"},
+    "rms_delta": {"type": "number"},
+    "target_bones": {"type": "array", "items": {"type": "string"}},
+    "mutation_records": {"type": "array", "minItems": 1},
+    "branch_resolutions": {"type": "array"},
+    "automatic_terminal_count": {"type": "integer", "minimum": 0},
+    "safe_fallback_terminal_count": {"type": "integer", "minimum": 0},
+    "manual_terminal_count": {"type": "integer", "minimum": 0},
+    "topology_ledger": {"type": "object"},
+    "weight_digests": {"type": "object"},
+    "base_mesh_digests": {"type": "object"},
+    "modifier_digests": {"type": "object"},
+    "packed_image_count": {"type": "integer", "minimum": 0},
+    "export_time": {"type": "string"}
+  }
+}

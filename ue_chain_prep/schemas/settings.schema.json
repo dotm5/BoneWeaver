@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "uecp://schema/settings/3.1.0",
+  "title": "UE Chain Prep Settings",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "kind", "schema_version", "algorithm_version", "scope_mode", "mesh_scope",
+    "physics_profile", "terminal_mode", "bone_forward_axis", "tip_length_mode",
+    "roll_mode", "minimum_candidate_score", "candidate_minimum_margin",
+    "minimum_confidence", "medium_confidence"
+  ],
+  "properties": {
+    "kind": {"const": "uecp.settings"},
+    "schema_version": {"type": "string", "pattern": "^3\\.[0-9]+\\.[0-9]+$"},
+    "algorithm_version": {"type": "string", "minLength": 1},
+    "scope_mode": {"enum": ["SELECTED_BONES", "SELECTED_ROOTS_AND_DESCENDANTS", "ACTIVE_BONE_COLLECTION"]},
+    "mesh_scope": {"enum": ["ACTIVE_ASSOCIATED_MESH", "CHECKED_ASSOCIATED_MESHES", "ALL_ASSOCIATED_MESHES"]},
+    "physics_profile": {"enum": ["BONEX_ROTATION_CHAIN", "BONEX_TRANSLATION_ALLOWED", "WIGGLE2_ROTATION_CHAIN", "WIGGLE2_STRETCH_CHAIN", "GEOMETRY_ONLY"]},
+    "branch_resolution_mode": {"enum": ["AUTO_MAIN_PATH", "LONGEST_PATH_ONLY", "DIRECTION_CONTINUITY", "MANUAL_ONLY", "KEEP_ORIGINAL"]},
+    "terminal_mode": {"enum": ["AUTO_HYBRID", "UNIQUE_CHILD_ONLY", "IMPORTED_FORWARD_AXIS_ONLY", "WEIGHT_CLOUD_ONLY", "PARENT_EXTRAPOLATION_ONLY", "ORIGINAL_AXIS_ONLY", "MANUAL_ONLY"]},
+    "bone_forward_axis": {"enum": ["AUTO", "X_POSITIVE", "X_NEGATIVE", "Y_POSITIVE", "Y_NEGATIVE", "Z_POSITIVE", "Z_NEGATIVE"]},
+    "tip_length_mode": {"enum": ["AUTO_EVIDENCE", "WEIGHT_PERCENTILE", "PREVIOUS_SEGMENT", "CHAIN_MEDIAN", "ABSOLUTE"]},
+    "roll_mode": {"enum": ["MINIMAL_TWIST", "PARALLEL_TRANSPORT", "RADIAL_REFERENCE", "KEEP_NUMERIC_ROLL"]},
+    "minimum_candidate_score": {"type": "number", "minimum": 0, "maximum": 1},
+    "candidate_minimum_margin": {"type": "number", "minimum": 0, "maximum": 1},
+    "candidate_direction_merge_angle_degrees": {"type": "number", "minimum": 0, "maximum": 45},
+    "validation_tolerance_mode": {"enum": ["AUTO_PRODUCTION", "STRICT_TEST", "CUSTOM"]},
+    "position_epsilon_factor": {"type": "number", "exclusiveMinimum": 0},
+    "minimum_confidence": {"type": "number", "minimum": 0, "maximum": 1},
+    "medium_confidence": {"type": "number", "minimum": 0, "maximum": 1}
+  }
+}

@@ -11,6 +11,7 @@ test-output/
 __pycache__/
 *.py[cod]
 .venv/
+.worktrees/
 
 # Build staging (the final release ZIP is intentionally tracked)
 build/

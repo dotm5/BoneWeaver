@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "uecp://schema/diagnostic-report/3.1.0",
+  "title": "UE Chain Prep Diagnostic Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["kind", "schema_version", "algorithm_version", "addon_version", "environment", "plan_id", "physics_graph_id", "snapshot_id", "issues", "chains", "terminal_candidates", "weight_statistics", "segment_sampling_hints", "branch_resolutions", "topology_ledger", "validation", "performance", "side_effect_audit"],
+  "properties": {
+    "kind": {"const": "uecp.diagnostic_report"},
+    "schema_version": {"type": "string", "pattern": "^3\\.[0-9]+\\.[0-9]+$"},
+    "algorithm_version": {"type": "string"},
+    "addon_version": {"type": "string"},
+    "environment": {"type": "object"},
+    "plan_id": {"type": ["string", "null"]},
+    "physics_graph_id": {"type": ["string", "null"]},
+    "snapshot_id": {"type": ["string", "null"]},
+    "issues": {"type": "array"},
+    "chains": {"type": "array"},
+    "terminal_candidates": {"type": "array"},
+    "weight_statistics": {"type": "array"},
+    "segment_sampling_hints": {"type": "array"},
+    "branch_resolutions": {"type": "array"},
+    "topology_ledger": {"type": ["object", "null"]},
+    "validation": {"type": "object"},
+    "performance": {"type": "object"},
+    "side_effect_audit": {"type": "object"}
+  }
+}
