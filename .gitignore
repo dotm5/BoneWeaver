@@ -1,0 +1,23 @@
+# Local/private real-asset fixtures
+test/*.uemodel
+
+# Generated Blender and test outputs
+artifacts/runtime/
+test-output/
+*.blend
+*.blend1
+
+# Python caches and local environments
+__pycache__/
+*.py[cod]
+.venv/
+
+# Build staging (the final release ZIP is intentionally tracked)
+build/
+dist/*.tmp
+
+# Editor and OS residue
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
