@@ -4,8 +4,8 @@ import dataclasses
 import unittest
 
 from tests.test_physics_graph import state
-from ue_chain_prep.contracts import BranchResolutionMode
-from ue_chain_prep.core.branch_resolution import resolve_branch
+from boneweaver.contracts import BranchResolutionMode
+from boneweaver.core.branch_resolution import resolve_branch
 
 
 def bag_fixture():
@@ -35,24 +35,26 @@ class BranchResolutionTests(unittest.TestCase):
 
     def test_short_immediate_edge_can_win_with_longer_downstream_path(self) -> None:
         bones = (
-            state("P", None, ("A", "B"), (0, 0, 0)),
-            state("A", "P", ("A2",), (0, 0.2, 0)),
-            state("A2", "A", ("A3",), (0, 2.2, 0)),
-            state("A3", "A2", (), (0, 4.2, 0)),
-            state("B", "P", (), (2, 0, 0)),
+            state("hair_branch", None, ("hair_a", "hair_b"), (0, 0, 0)),
+            state("hair_a", "hair_branch", ("hair_a2",), (0, 0.2, 0)),
+            state("hair_a2", "hair_a", ("hair_a3",), (0, 2.2, 0)),
+            state("hair_a3", "hair_a2", (), (0, 4.2, 0)),
+            state("hair_b", "hair_branch", (), (2, 0, 0)),
         )
-        resolution = resolve_branch("P", bones)
-        self.assertEqual(resolution.selected_child_name, "A")
+        resolution = resolve_branch("hair_branch", bones)
+        self.assertEqual(resolution.selected_child_name, "hair_a")
 
     def test_weighted_short_branch_can_beat_unweighted_decorative_branch(self) -> None:
         bones = (
-            state("P", None, ("Long", "Weighted"), (0, 0, 0)),
-            state("Long", "P", ("Long2",), (0, 1.4, 0)),
-            state("Long2", "Long", (), (0, 2.8, 0)),
-            state("Weighted", "P", (), (1.0, 0.7, 0)),
+            state("hair_branch", None, ("hair_long", "hair_weighted"), (0, 0, 0)),
+            state("hair_long", "hair_branch", ("hair_long2",), (0, 1.4, 0)),
+            state("hair_long2", "hair_long", (), (0, 2.8, 0)),
+            state("hair_weighted", "hair_branch", (), (1.0, 0.7, 0)),
         )
-        resolution = resolve_branch("P", bones, deform_weight_mass={"Weighted": 10.0})
-        self.assertEqual(resolution.selected_child_name, "Weighted")
+        resolution = resolve_branch(
+            "hair_branch", bones, deform_weight_mass={"hair_weighted": 10.0},
+        )
+        self.assertEqual(resolution.selected_child_name, "hair_weighted")
 
     def test_symmetric_equal_branch_remains_ambiguous(self) -> None:
         bones = (
@@ -63,21 +65,32 @@ class BranchResolutionTests(unittest.TestCase):
         resolution = resolve_branch("Skirt", bones)
         self.assertEqual(resolution.result, "AMBIGUOUS")
         self.assertIsNone(resolution.selected_child_name)
-        self.assertIn("UECP_BRANCH_AMBIGUOUS", resolution.issue_codes)
+        self.assertIn("BONEWEAVER_BRANCH_AMBIGUOUS", resolution.issue_codes)
 
     def test_three_way_branch_is_deterministic(self) -> None:
         bones = (
-            state("P", None, ("A", "B", "C"), (0, 0, 0)),
-            state("A", "P", (), (-1, 1, 0)),
-            state("B", "P", ("B2",), (0, 1, 0)),
-            state("B2", "B", ("B3",), (0, 2, 0)),
-            state("B3", "B2", (), (0, 3, 0)),
-            state("C", "P", (), (1, 1, 0)),
+            state("hair_branch", None, ("hair_a", "hair_b", "hair_c"), (0, 0, 0)),
+            state("hair_a", "hair_branch", (), (-1, 1, 0)),
+            state("hair_b", "hair_branch", ("hair_b2",), (0, 1, 0)),
+            state("hair_b2", "hair_b", ("hair_b3",), (0, 2, 0)),
+            state("hair_b3", "hair_b2", (), (0, 3, 0)),
+            state("hair_c", "hair_branch", (), (1, 1, 0)),
         )
-        first = resolve_branch("P", bones)
-        second = resolve_branch("P", tuple(reversed(bones)))
+        first = resolve_branch("hair_branch", bones)
+        second = resolve_branch("hair_branch", tuple(reversed(bones)))
         self.assertEqual(first, second)
-        self.assertEqual(first.selected_child_name, "B")
+        self.assertEqual(first.selected_child_name, "hair_b")
+
+    def test_main_skeleton_branch_is_never_auto_selected(self) -> None:
+        bones = (
+            state("spine_01", None, ("spine_02", "clavicle_l"), (0, 0, 0)),
+            state("spine_02", "spine_01", (), (0, 2, 0)),
+            state("clavicle_l", "spine_01", (), (1, 1, 0)),
+        )
+        resolution = resolve_branch("spine_01", bones)
+        self.assertIsNone(resolution.selected_child_name)
+        self.assertEqual(resolution.result, "BLOCKED")
+        self.assertIn("BONEWEAVER_BRANCH_AUTO_MAIN_SKELETON_FORBIDDEN", resolution.issue_codes)
 
     def test_socket_branch_is_penalized(self) -> None:
         bones = list(bag_fixture())

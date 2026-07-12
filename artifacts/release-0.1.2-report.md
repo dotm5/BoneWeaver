@@ -1,4 +1,4 @@
-# UE Chain Prep 0.1.2 Release Verification
+# BoneWeaver 0.1.2 Release Verification
 
 Date: 2026-07-12 (Asia/Shanghai)
 
@@ -6,7 +6,7 @@ Date: 2026-07-12 (Asia/Shanghai)
 
 - Add-on version: `0.1.2`
 - Schema version: `3.1.0`
-- Algorithm version: `uecp-physics-graph-v3-interaction-hardening`
+- Algorithm version: `boneweaver-physics-graph-v3-interaction-hardening`
 - Blender: 5.2.0 LTS Release Candidate, hash `710df102694f`
 
 ## Automated verification
@@ -23,8 +23,8 @@ The read-only source `C:\Users\70560\Documents\Blender项目\x1.blend` completed
 
 ## Package verification
 
-- Archive: `dist/ue_chain_prep-0.1.2.zip`
+- Archive: `dist/boneweaver-0.1.2.zip`
 - Size: 97,807 bytes
 - SHA-256: `968FE9885E11D6C5E47CCF89E48D916D513DF733CFF6E365E82D501BF7B326AA`
 - Isolated Blender extension install: passed.
-- Three register/unregister cycles after installation: passed with no leaked `Scene.uecp_settings` RNA property.
+- Three register/unregister cycles after installation: passed with no leaked `Scene.boneweaver_settings` RNA property.

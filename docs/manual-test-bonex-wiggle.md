@@ -29,7 +29,7 @@ Result / evidence: ____________________
 
 ## ARP
 
-- [ ] UECP conversion occurred before ARP generation/matching.
+- [ ] BONEWEAVER conversion occurred before ARP generation/matching.
 - [ ] Main controls work and secondary chains are not constrained twice.
 - [ ] BoneX/Wiggle acts only on intended deform chains; no dependency cycle.
 

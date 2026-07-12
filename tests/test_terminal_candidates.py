@@ -5,9 +5,9 @@ import math
 import dataclasses
 
 from tests.test_physics_graph import state
-from ue_chain_prep.core.models import TerminalCandidate, TerminalCandidateScore
-from ue_chain_prep.core.terminal_candidates import authoritative_solution, generate_candidates, select_candidate
-from ue_chain_prep.core.weight_cloud import analyze_weight_cloud
+from boneweaver.core.models import TerminalCandidate, TerminalCandidateScore
+from boneweaver.core.terminal_candidates import authoritative_solution, generate_candidates, select_candidate
+from boneweaver.core.weight_cloud import analyze_weight_cloud
 
 
 class TerminalCandidateTests(unittest.TestCase):
@@ -40,7 +40,7 @@ class TerminalCandidateTests(unittest.TestCase):
         )
         solution = select_candidate("Leaf", candidates, minimum_score=0.4, minimum_margin=0.08)
         self.assertTrue(solution.requires_confirmation)
-        self.assertIn("UECP_TERMINAL_CANDIDATE_AMBIGUOUS", solution.evidence)
+        self.assertIn("BONEWEAVER_TERMINAL_CANDIDATE_AMBIGUOUS", solution.evidence)
 
     def test_no_weight_cloud_can_fall_back_to_parent_tangent(self) -> None:
         bone = state("Leaf", "Parent", (), (0,0,0), tail=(0,1,0))
@@ -102,7 +102,7 @@ class TerminalCandidateTests(unittest.TestCase):
         )
         self.assertEqual(len(solution.candidate_clusters), 2)
         self.assertTrue(solution.requires_confirmation)
-        self.assertIn("UECP_TERMINAL_CANDIDATE_AMBIGUOUS", solution.evidence)
+        self.assertIn("BONEWEAVER_TERMINAL_CANDIDATE_AMBIGUOUS", solution.evidence)
 
     def test_cluster_order_is_deterministic(self) -> None:
         candidates = (

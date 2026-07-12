@@ -7,24 +7,27 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-PACKAGE = ROOT / "ue_chain_prep"
+PACKAGE = ROOT / "boneweaver"
 
 
 class SchemaAndManifestTests(unittest.TestCase):
     def test_manifest_identity(self) -> None:
         manifest = tomllib.loads((PACKAGE / "blender_manifest.toml").read_text(encoding="utf-8"))
-        self.assertEqual(manifest["id"], "ue_chain_prep")
-        self.assertEqual(manifest["version"], "0.1.3")
+        self.assertEqual(manifest["id"], "boneweaver")
+        self.assertEqual(manifest["version"], "0.2.0")
         self.assertEqual(manifest["blender_version_min"], "4.2.0")
         self.assertEqual(manifest["type"], "add-on")
 
     def test_all_schema_documents_parse_and_are_closed(self) -> None:
         expected = {
-            "settings.schema.json": "uecp://schema/settings/3.1.0",
-            "conversion-plan.schema.json": "uecp://schema/conversion-plan/3.1.0",
-            "snapshot.schema.json": "uecp://schema/snapshot/3.1.0",
-            "diagnostic-report.schema.json": "uecp://schema/diagnostic-report/3.1.0",
-            "export-manifest.schema.json": "uecp://schema/export-manifest/3.1.0",
+            "settings.schema.json": "boneweaver://schema/settings/4.0.0",
+            "conversion-plan.schema.json": "boneweaver://schema/conversion-plan/4.0.0",
+            "snapshot.schema.json": "boneweaver://schema/snapshot/4.0.0",
+            "diagnostic-report.schema.json": "boneweaver://schema/diagnostic-report/4.0.0",
+            "export-manifest.schema.json": "boneweaver://schema/export-manifest/4.0.0",
+            "hierarchy-inspection.schema.json": "boneweaver://schema/hierarchy-inspection/1.0.0",
+            "semantic-rule-set.schema.json": "boneweaver://schemas/semantic-rule-set.schema.json",
+            "semantic-discovery-plan.schema.json": "boneweaver://schemas/semantic-discovery-plan/2.0.0",
         }
         for filename, schema_id in expected.items():
             with self.subTest(filename=filename):
@@ -41,7 +44,7 @@ class SchemaAndManifestTests(unittest.TestCase):
 
     def test_conversion_plan_schema_contains_physics_graph_contract(self) -> None:
         payload = json.loads((PACKAGE / "schemas" / "conversion-plan.schema.json").read_text(encoding="utf-8"))
-        self.assertEqual(payload["properties"]["kind"], {"const": "uecp.conversion_plan"})
+        self.assertEqual(payload["properties"]["kind"], {"const": "boneweaver.conversion_plan"})
         self.assertIn("physics_graph", payload["required"])
         self.assertIn("physicsNode", payload["$defs"])
         self.assertIn("physicsEdge", payload["$defs"])

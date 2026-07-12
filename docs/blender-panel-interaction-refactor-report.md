@@ -1,12 +1,12 @@
-# UE Chain Prep：Blender 面板与交互逻辑现状报告
+# BoneWeaver：Blender 面板与交互逻辑现状报告
 
-> 审计范围：`ue_chain_prep` 当前源码中的注册、RNA 属性、3D View 侧栏面板、UI 列表、操作器与其直接调用的编排/事务模块。
+> 审计范围：`boneweaver` 当前源码中的注册、RNA 属性、3D View 侧栏面板、UI 列表、操作器与其直接调用的编排/事务模块。
 >
 > 审计目的：为下一轮 UI 与交互重构建立现状基线；本报告不改变插件行为，也不包含 Blender 运行时验证结论。
 
 ## 1. 结论摘要
 
-当前插件只有一个可见面板：`View3D > Sidebar > UE Chain Prep`。它把配置编辑、分析结果浏览、预览、应用、校验、恢复和导出集中在一个纵向面板中。操作流程本质上是：
+当前插件只有一个可见面板：`View3D > Sidebar > BoneWeaver`。它把配置编辑、分析结果浏览、预览、应用、校验、恢复和导出集中在一个纵向面板中。操作流程本质上是：
 
 ```text
 Scene Settings + Blender Context
@@ -31,24 +31,24 @@ Scene Settings + Blender Context
 
 | 层级 | 现状 | 生命周期 | 重构含义 |
 | --- | --- | --- | --- |
-| 扩展入口 | `ue_chain_prep/__init__.py` 声明位置为 View3D Sidebar；`registration.py` 统一注册 | 加载/卸载插件 | 保留集中注册入口；后续可将 UI 注册与运行时清理拆成独立生命周期服务。 |
-| Scene 设置 | `Scene.uecp_settings`，含范围、终端推断、权重、滚转、预览和校验参数 | 随 `.blend` 持久化 | 适合保存用户意图，但应按“基础/高级/显示”拆组。 |
-| WindowManager 运行状态 | `WindowManager.uecp_runtime` 与三个 Collection | 当前 Blender 会话 | 适合 UI 选择与状态，但需定义重开文件、重载插件后的降级语义。 |
+| 扩展入口 | `boneweaver/__init__.py` 声明位置为 View3D Sidebar；`registration.py` 统一注册 | 加载/卸载插件 | 保留集中注册入口；后续可将 UI 注册与运行时清理拆成独立生命周期服务。 |
+| Scene 设置 | `Scene.boneweaver_settings`，含范围、终端推断、权重、滚转、预览和校验参数 | 随 `.blend` 持久化 | 适合保存用户意图，但应按“基础/高级/显示”拆组。 |
+| WindowManager 运行状态 | `WindowManager.boneweaver_runtime` 与三个 Collection | 当前 Blender 会话 | 适合 UI 选择与状态，但需定义重开文件、重载插件后的降级语义。 |
 | 模块级运行时仓库 | `Plan`、预览缓存、报告、性能指标 | Python 进程内；重载即丢失 | 当前最大边界风险。不要仅保存 `plan_id`，应有可检测的“计划不可用”状态。 |
-| Blender Text 快照 | `UECP_SNAPSHOT::<id>` | `.blend` 内持久化 | 是当前唯一跨会话的回滚依据；可发展为可浏览的历史记录。 |
+| Blender Text 快照 | `BONEWEAVER_SNAPSHOT::<id>` | `.blend` 内持久化 | 是当前唯一跨会话的回滚依据；可发展为可浏览的历史记录。 |
 | Viewport Draw Handler | 模块全局 `_HANDLER`、`_CACHE` | 当前 UI 会话 | 应由单一 PreviewController 所有，避免状态码与 handler 实际状态分叉。 |
 
 关键实现位置：
 
-- 注册与卸载：`ue_chain_prep/registration.py:16-43`
-- Scene/WindowManager 属性：`ue_chain_prep/properties.py:42-165`
-- 内存仓库：`ue_chain_prep/core/runtime_store.py:8-57`
-- 预览 handler：`ue_chain_prep/ui/draw.py:8-48`
-- 快照事务：`ue_chain_prep/core/apply_transaction.py:62-167`
+- 注册与卸载：`boneweaver/registration.py:16-43`
+- Scene/WindowManager 属性：`boneweaver/properties.py:42-165`
+- 内存仓库：`boneweaver/core/runtime_store.py:8-57`
+- 预览 handler：`boneweaver/ui/draw.py:8-48`
+- 快照事务：`boneweaver/core/apply_transaction.py:62-167`
 
 ## 3. 当前面板结构
 
-主面板为 `UECP_PT_main`，位于 `VIEW_3D / UI / UE Chain Prep`。没有子面板、折叠分组或向导页。
+主面板为 `BONEWEAVER_PT_main`，位于 `VIEW_3D / UI / BoneWeaver`。没有子面板、折叠分组或向导页。
 
 | 面板区域 | 显示内容 | 直接绑定状态 | 条件显示 |
 | --- | --- | --- | --- |
@@ -57,26 +57,26 @@ Scene Settings + Blender Context
 | Inference | 终端模式、骨骼轴、末端长度、置信度、Roll | 多个 `settings` 字段 | `ABSOLUTE` 显示绝对长度；不同 Roll 显示对应参考参数 |
 | Weight Evidence | 权重阈值、指数、面积权重、排他模式、百分位 | `settings` | 无 |
 | Preview & Diagnostics | 采样提示、长骨段阈值、位置 epsilon、问题计数 | `settings`、`runtime.issue_count_*` | 无 |
-| Chain List | 根骨到叶骨 | `WindowManager.uecp_chain_items` | 有条目时 |
-| Proposal List | 骨骼、角色、置信度 | `WindowManager.uecp_proposal_items` | 有条目时 |
-| Issue List | 严重性、代码、消息 | `WindowManager.uecp_issue_items` | 有条目时 |
+| Chain List | 根骨到叶骨 | `WindowManager.boneweaver_chain_items` | 有条目时 |
+| Proposal List | 骨骼、角色、置信度 | `WindowManager.boneweaver_proposal_items` | 有条目时 |
+| Issue List | 严重性、代码、消息 | `WindowManager.boneweaver_issue_items` | 有条目时 |
 | Action 区 | Analyze、Preview、Apply、Validate、Restore、Export、Clear | 操作器 | 始终绘制 |
 
-实现：`ue_chain_prep/ui/panel.py:8-77`；三个列表的渲染：`ue_chain_prep/ui/lists.py:6-22`。
+实现：`boneweaver/ui/panel.py:8-77`；三个列表的渲染：`boneweaver/ui/lists.py:6-22`。
 
 ## 4. 操作器与交互逻辑
 
 | UI 操作 | 操作器 | 前置条件 | 状态/数据写入 | 副作用与结果 |
 | --- | --- | --- | --- | --- |
-| Analyze | `uecp.analyze` | 运行时存在且不忙 | 重建三个 UI Collection；写入 plan、性能、预览缓存；更新问题计数、`plan_id`、指纹、状态、generation | 调用分析管线，关闭已有预览，最终为 `ANALYZED`；无活动骨架则取消。 |
-| Toggle Preview | `uecp.preview_toggle` | 执行时仅允许 `ANALYZED` / `RESTORABLE` | `runtime.preview_enabled` | 添加/移除 3D 视图绘制 handler；只渲染已缓存线段，不重新分析。 |
-| Apply | `uecp.apply` | `ANALYZED`、无 blocker、存在内存计划、源与设置指纹未变 | `state`、`snapshot_id`、`snapshot_text_name`、`last_error` | Edit Mode 原子修改 tail/roll/connect；写入 Text 快照；内置后校验失败则回滚。成功状态为 `RESTORABLE`。 |
-| Validate | `uecp.validate` | 执行时要求当前内存计划仍存在 | 写入进程内报告，必要时写 `last_error` | 采集当前中性网格并运行后校验；不改变流程状态。 |
-| Restore | `uecp.restore_snapshot` | 无 `poll`；快照名、骨架、权重、修改器和当前骨骼后态必须匹配 | 成功时 `state = RESTORED` | 仅恢复 tail、roll、use_connect，并更新 Text 快照状态。 |
-| Export | `uecp.export_report` | 进程内报告存在 | `settings.last_export_directory` | 打开文件选择器后写 JSON。 |
-| Clear | `uecp.clear_runtime` | 无 | 清内存计划/报告/预览缓存，部分重置 runtime | 移除绘制 handler，状态回 `IDLE`；不修改场景骨架数据。 |
+| Analyze | `boneweaver.analyze` | 运行时存在且不忙 | 重建三个 UI Collection；写入 plan、性能、预览缓存；更新问题计数、`plan_id`、指纹、状态、generation | 调用分析管线，关闭已有预览，最终为 `ANALYZED`；无活动骨架则取消。 |
+| Toggle Preview | `boneweaver.preview_toggle` | 执行时仅允许 `ANALYZED` / `RESTORABLE` | `runtime.preview_enabled` | 添加/移除 3D 视图绘制 handler；只渲染已缓存线段，不重新分析。 |
+| Apply | `boneweaver.apply` | `ANALYZED`、无 blocker、存在内存计划、源与设置指纹未变 | `state`、`snapshot_id`、`snapshot_text_name`、`last_error` | Edit Mode 原子修改 tail/roll/connect；写入 Text 快照；内置后校验失败则回滚。成功状态为 `RESTORABLE`。 |
+| Validate | `boneweaver.validate` | 执行时要求当前内存计划仍存在 | 写入进程内报告，必要时写 `last_error` | 采集当前中性网格并运行后校验；不改变流程状态。 |
+| Restore | `boneweaver.restore_snapshot` | 无 `poll`；快照名、骨架、权重、修改器和当前骨骼后态必须匹配 | 成功时 `state = RESTORED` | 仅恢复 tail、roll、use_connect，并更新 Text 快照状态。 |
+| Export | `boneweaver.export_report` | 进程内报告存在 | `settings.last_export_directory` | 打开文件选择器后写 JSON。 |
+| Clear | `boneweaver.clear_runtime` | 无 | 清内存计划/报告/预览缓存，部分重置 runtime | 移除绘制 handler，状态回 `IDLE`；不修改场景骨架数据。 |
 
-操作器实现：`ue_chain_prep/operators/*.py`。其中分析编排见 `core/planner.py:94-241`，应用事务见 `core/apply_transaction.py:62-167`，恢复见 `core/restore.py:19-77`，验证见 `core/validation.py:57-133`。
+操作器实现：`boneweaver/operators/*.py`。其中分析编排见 `core/planner.py:94-241`，应用事务见 `core/apply_transaction.py:62-167`，恢复见 `core/restore.py:19-77`，验证见 `core/validation.py:57-133`。
 
 ## 5. 状态机与关键失效路径
 
@@ -96,15 +96,15 @@ APPLYING --(事务成功)--> RESTORABLE
   +--(回滚失败)---------> ERROR
 ```
 
-`PlanState` 还定义了 `APPLIED` 与 `VALIDATION_FAILED`，但当前操作器没有写入这两个状态（`ue_chain_prep/contracts.py:119-128`）。`Validate` 也不会改变状态。因此状态枚举表达的产品流程比实际 UI 流程更完整，二者已经开始漂移。
+`PlanState` 还定义了 `APPLIED` 与 `VALIDATION_FAILED`，但当前操作器没有写入这两个状态（`boneweaver/contracts.py:119-128`）。`Validate` 也不会改变状态。因此状态枚举表达的产品流程比实际 UI 流程更完整，二者已经开始漂移。
 
 ### 5.2 指纹保护
 
-Apply 会比较当前骨架/网格指纹与分析时指纹，并单独比较设置指纹；任一变化都会使计划进入 `STALE`（`ue_chain_prep/operators/apply.py:30-57`）。预览显示相关设置被刻意排除在设置指纹之外（`core/fingerprint.py:52-69`），这是合理方向，但目前这些显示设置没有被完整消费。
+Apply 会比较当前骨架/网格指纹与分析时指纹，并单独比较设置指纹；任一变化都会使计划进入 `STALE`（`boneweaver/operators/apply.py:30-57`）。预览显示相关设置被刻意排除在设置指纹之外（`core/fingerprint.py:52-69`），这是合理方向，但目前这些显示设置没有被完整消费。
 
 ### 5.3 预览逻辑
 
-分析阶段将 Physics Graph 转成不可变线缓存；预览按钮只切换 handler（`ue_chain_prep/ui/draw.py:28-56`）。因此预览和分析解耦是正确的，但 handler 实际开启状态与 `runtime.preview_enabled` 是两套状态，需要由同一个控制器统一。
+分析阶段将 Physics Graph 转成不可变线缓存；预览按钮只切换 handler（`boneweaver/ui/draw.py:28-56`）。因此预览和分析解耦是正确的，但 handler 实际开启状态与 `runtime.preview_enabled` 是两套状态，需要由同一个控制器统一。
 
 ## 6. 已发现的交互与重构风险
 
@@ -209,9 +209,9 @@ core/                  # 维持纯算法、事务与验证
 
 | 主题 | 文件 |
 | --- | --- |
-| 插件入口与注册 | `ue_chain_prep/__init__.py`、`ue_chain_prep/registration.py` |
-| 属性与运行时状态 | `ue_chain_prep/properties.py` |
-| 面板、列表、预览绘制 | `ue_chain_prep/ui/panel.py`、`ue_chain_prep/ui/lists.py`、`ue_chain_prep/ui/draw.py` |
-| 用户操作 | `ue_chain_prep/operators/analyze.py`、`apply.py`、`preview.py`、`validate.py`、`restore.py`、`export_report.py`、`clear_runtime.py` |
-| 分析、指纹、事务、恢复、校验 | `ue_chain_prep/core/planner.py`、`fingerprint.py`、`apply_transaction.py`、`restore.py`、`validation.py` |
-| 状态与稳定 ID | `ue_chain_prep/contracts.py` |
+| 插件入口与注册 | `boneweaver/__init__.py`、`boneweaver/registration.py` |
+| 属性与运行时状态 | `boneweaver/properties.py` |
+| 面板、列表、预览绘制 | `boneweaver/ui/panel.py`、`boneweaver/ui/lists.py`、`boneweaver/ui/draw.py` |
+| 用户操作 | `boneweaver/operators/analyze.py`、`apply.py`、`preview.py`、`validate.py`、`restore.py`、`export_report.py`、`clear_runtime.py` |
+| 分析、指纹、事务、恢复、校验 | `boneweaver/core/planner.py`、`fingerprint.py`、`apply_transaction.py`、`restore.py`、`validation.py` |
+| 状态与稳定 ID | `boneweaver/contracts.py` |

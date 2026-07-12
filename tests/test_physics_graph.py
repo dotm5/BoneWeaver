@@ -3,8 +3,8 @@ from __future__ import annotations
 import dataclasses
 import unittest
 
-from ue_chain_prep.core.models import BoneState
-from ue_chain_prep.core.physics_graph import build_physics_graph
+from boneweaver.core.models import BoneState
+from boneweaver.core.physics_graph import build_physics_graph
 
 
 def state(name, parent, children, head, tail=(99.0, 99.0, 99.0)):
@@ -52,7 +52,7 @@ class PhysicsGraphTests(unittest.TestCase):
         self.assertEqual(len(graph.edges), 2)
         self.assertEqual({edge.rest_vector for edge in graph.edges}, {(-1.0, 1.0, 0.0), (1.0, 1.0, 0.0)})
         self.assertEqual([chain.real_bone_names for chain in graph.chains], [("Root",), ("Left",), ("Right",)])
-        self.assertIn("UECP_BRANCH_AMBIGUOUS", graph.issue_codes)
+        self.assertIn("BONEWEAVER_BRANCH_AMBIGUOUS", graph.issue_codes)
         self.assertTrue(all(chain.node_ids for chain in graph.chains))
 
     def test_coincident_edge_is_blocked_and_not_emitted(self) -> None:
@@ -62,7 +62,7 @@ class PhysicsGraphTests(unittest.TestCase):
         )
         graph = build_physics_graph(bones)
         self.assertEqual(graph.edges, ())
-        self.assertIn("UECP_COINCIDENT_HELPER", graph.issue_codes)
+        self.assertIn("BONEWEAVER_COINCIDENT_HELPER", graph.issue_codes)
 
 
 if __name__ == "__main__":

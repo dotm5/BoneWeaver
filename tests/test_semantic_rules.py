@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 import unittest
 
-from ue_chain_prep.core.semantic_models import (
+from boneweaver.core.semantic_models import (
     DiscoveredChain,
     GeometryProjectionNeed,
     SecondaryBoneCategory,
@@ -13,7 +13,7 @@ from ue_chain_prep.core.semantic_models import (
     SemanticDiscoveryClass,
     SemanticDiscoveryPlan,
 )
-from ue_chain_prep.core.semantic_rule_loader import (
+from boneweaver.core.semantic_rule_loader import (
     load_default_rule_set,
     merge_rule_sets,
     parse_rule_set,
@@ -54,7 +54,8 @@ class SemanticRuleTests(unittest.TestCase):
             {item.value for item in SecondaryBoneCategory},
             {
                 "HAIR", "RIBBON", "SKIRT", "CLOAK", "CAPE", "TAIL",
-                "EARRING", "ACCESSORY", "BAG_OR_STRAP", "BELT", "CLOTH",
+                "EARRING", "STRAP", "ACCESSORY", "BAG", "BAG_OR_STRAP",
+                "BELT", "SCARF", "TASSEL", "CLOTH",
                 "CHEST_SECONDARY", "PHYSICS_EXPLICIT", "UNKNOWN_SECONDARY",
                 "MAIN_SKELETON", "SOCKET", "IK_CONTROL", "TWIST_DEFORM", "FACIAL",
             },
@@ -64,15 +65,15 @@ class SemanticRuleTests(unittest.TestCase):
         evidence = SemanticBoneEvidence(
             "hair_l_01", "hair_l_01", "hair", "HAIR", ("hair",), "LEFT", 1,
             1.0, 1.0, 1.0, 0.5, 1.0, 0.0, 0.0,
-            ("UECP_SEMANTIC_STRONG_INCLUDE_TOKEN",), "REQUIRED",
+            ("BONEWEAVER_SEMANTIC_STRONG_INCLUDE_TOKEN",), "REQUIRED",
         )
         chain = DiscoveredChain(
             "chain-id", "hair_l_01", ("hair_l_01",), "HAIR", "AUTO_INCLUDE",
-            0.9, 1, 0, (), ("hair_l_01",), ("UECP_SEMANTIC_STRONG_INCLUDE_TOKEN",),
+            0.9, 1, 0, (), ("hair_l_01",), ("BONEWEAVER_SEMANTIC_STRONG_INCLUDE_TOKEN",),
         )
         plan = SemanticDiscoveryPlan(
-            "SEMANTIC_DISCOVERY_PLAN", "1.0.0", "semantic-discovery-v0.1.1",
-            "Rig", "fingerprint", ("default-ue-secondary@0.1.1",),
+            "SEMANTIC_DISCOVERY_PLAN", "2.0.0", "semantic-discovery-v0.2.0",
+            "Rig", "fingerprint", ("default-ue-secondary@0.2.0",),
             (chain,), (evidence,), (), (),
         )
         with self.assertRaises(dataclasses.FrozenInstanceError):
@@ -84,13 +85,13 @@ class SemanticRuleTests(unittest.TestCase):
         rules = load_default_rule_set()
         self.assertEqual(rules.schema_version, "1.0.0")
         self.assertEqual(rules.rule_set_id, "default-ue-secondary")
-        self.assertEqual(rules.rule_set_version, "0.1.1")
+        self.assertEqual(rules.rule_set_version, "0.2.0")
         self.assertIn("hair", rules.include_tokens["strong"])
-        self.assertIn("part", rules.include_tokens["generic"])
+        self.assertIn("part", rules.include_tokens["medium"])
         self.assertIn("socket", rules.exclude_tokens["socket"])
         self.assertEqual(rules.metadata_rules["is_socket"], "SOCKET")
 
-        root = Path(__file__).resolve().parents[1] / "ue_chain_prep"
+        root = Path(__file__).resolve().parents[1] / "boneweaver"
         schema = json.loads((root / "schemas" / "semantic-rule-set.schema.json").read_text("utf-8"))
         discovery_schema = json.loads((root / "schemas" / "semantic-discovery-plan.schema.json").read_text("utf-8"))
         self.assertFalse(schema["additionalProperties"])

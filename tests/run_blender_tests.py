@@ -26,7 +26,7 @@ def main() -> None:
     )
     result = unittest.TextTestRunner(verbosity=2 if args.verbose else 1).run(suite)
     print(
-        "UECP_TEST_RESULT",
+        "BONEWEAVER_TEST_RESULT",
         f"run={result.testsRun}",
         f"failures={len(result.failures)}",
         f"errors={len(result.errors)}",

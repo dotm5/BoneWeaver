@@ -14,7 +14,7 @@
 
 **Files:**
 - Modify: `tests/test_preview.py`
-- Modify: `ue_chain_prep/ui/draw.py`
+- Modify: `boneweaver/ui/draw.py`
 
 - [ ] **Step 1: Write the failing viewport-uniform test**
 
@@ -41,14 +41,14 @@ Run the same focused command and expect all `test_preview.py` tests to pass.
 ### Task 2: Present affected bones and friendly issue reasons
 
 **Files:**
-- Create: `ue_chain_prep/ui/issue_presenter.py`
-- Modify: `ue_chain_prep/ui/lists.py`
-- Modify: `ue_chain_prep/ui/panels/details.py`
+- Create: `boneweaver/ui/issue_presenter.py`
+- Modify: `boneweaver/ui/lists.py`
+- Modify: `boneweaver/ui/panels/details.py`
 - Modify: `tests/test_ui_refactor.py`
 
 - [ ] **Step 1: Write failing issue-presentation tests**
 
-Exercise `UECP_UL_issues.draw_item` with an item containing bone `hair_ribbon_l_06`, code/message `UECP_TERMINAL_CANDIDATE_AMBIGUOUS`, and assert the visible label is `hair_ribbon_l_06 · 末端方向存在歧义`. Also assert the details panel source supplies `text=f"定位：{view.selected_issue_bone}"` to the locate operator.
+Exercise `BONEWEAVER_UL_issues.draw_item` with an item containing bone `hair_ribbon_l_06`, code/message `BONEWEAVER_TERMINAL_CANDIDATE_AMBIGUOUS`, and assert the visible label is `hair_ribbon_l_06 · 末端方向存在歧义`. Also assert the details panel source supplies `text=f"定位：{view.selected_issue_bone}"` to the locate operator.
 
 - [ ] **Step 2: Verify RED**
 
@@ -67,13 +67,13 @@ Re-run `test_ui_refactor.py` and expect all tests to pass.
 **Files:**
 - Modify: `tests/test_contracts.py`
 - Modify: `tests/test_schema_roundtrip.py`
-- Modify: `ue_chain_prep/contracts.py`
-- Modify: `ue_chain_prep/blender_manifest.toml`
+- Modify: `boneweaver/contracts.py`
+- Modify: `boneweaver/blender_manifest.toml`
 - Modify: `CHANGELOG.md`
 - Modify: `README.md`
 - Modify: `README_zh.md`
 - Create: `artifacts/preview-issue-visibility-0.1.3-report.md`
-- Create: `dist/ue_chain_prep-0.1.3.zip`
+- Create: `dist/boneweaver-0.1.3.zip`
 
 - [ ] **Step 1: Update version tests first and verify RED**
 

@@ -13,7 +13,7 @@
 ### Task 1: Name semantics
 
 **Files:**
-- Create: `ue_chain_prep/core/semantic_names.py`
+- Create: `boneweaver/core/semantic_names.py`
 - Create: `tests/test_semantic_names.py`
 
 - [ ] Write failing tests for namespace stripping, delimiter/case normalization,
@@ -27,11 +27,11 @@
 ### Task 2: Versioned rules and immutable models
 
 **Files:**
-- Create: `ue_chain_prep/core/semantic_models.py`
-- Create: `ue_chain_prep/core/semantic_rule_loader.py`
-- Create: `ue_chain_prep/rules/default-ue-secondary.json`
-- Create: `ue_chain_prep/schemas/semantic-rule-set.schema.json`
-- Create: `ue_chain_prep/schemas/semantic-discovery-plan.schema.json`
+- Create: `boneweaver/core/semantic_models.py`
+- Create: `boneweaver/core/semantic_rule_loader.py`
+- Create: `boneweaver/rules/default-ue-secondary.json`
+- Create: `boneweaver/schemas/semantic-rule-set.schema.json`
+- Create: `boneweaver/schemas/semantic-discovery-plan.schema.json`
 - Create: `tests/test_semantic_rules.py`
 
 - [ ] Write failing tests for required fields, stable enums, built-in loading,
@@ -46,7 +46,7 @@
 
 **Files:**
 - Create: `tests/test_semantic_geometry_mismatch.py`
-- Modify: `ue_chain_prep/core/semantic_discovery.py` (created in this task)
+- Modify: `boneweaver/core/semantic_discovery.py` (created in this task)
 
 - [ ] Write failing pure tests for continuous, fixed-short, reversed, short-aligned,
   slight-error, leaf, and branch geometry plus uniform display-length detection.
@@ -59,7 +59,7 @@
 
 **Files:**
 - Create: `tests/test_semantic_discovery.py`
-- Modify: `ue_chain_prep/core/semantic_discovery.py`
+- Modify: `boneweaver/core/semantic_discovery.py`
 - Modify: `tests/fixture_builders.py` only for new reusable Blender fixtures.
 
 - [ ] Write failing fixtures/tests for the required include/exclude names, isolated
@@ -75,12 +75,12 @@
 ### Task 5: Scope bridge and operators
 
 **Files:**
-- Create: `ue_chain_prep/operators/discover_secondary_chains.py`
-- Create: `ue_chain_prep/operators/select_discovered_chains.py`
-- Create: `ue_chain_prep/operators/export_discovery_report.py`
-- Modify: `ue_chain_prep/core/runtime_store.py`
-- Modify: `ue_chain_prep/operators/__init__.py`
-- Modify: `ue_chain_prep/contracts.py`
+- Create: `boneweaver/operators/discover_secondary_chains.py`
+- Create: `boneweaver/operators/select_discovered_chains.py`
+- Create: `boneweaver/operators/export_discovery_report.py`
+- Modify: `boneweaver/core/runtime_store.py`
+- Modify: `boneweaver/operators/__init__.py`
+- Modify: `boneweaver/contracts.py`
 - Modify: `tests/test_registration.py`
 - Create: `tests/test_semantic_operators.py`
 

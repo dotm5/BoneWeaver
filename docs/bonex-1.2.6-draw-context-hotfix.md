@@ -8,7 +8,7 @@ BoneX 1.2.6 calls `get_armature_soft_connections()` from its Soft Connection pan
 AttributeError: Writing to ID classes in this context is not allowed
 ```
 
-The failure reproduces with a factory-startup Armature and BoneX alone, without loading UE Chain Prep. The same write succeeds outside draw context, so the imported object is not read-only and UECP mode/transaction restoration is not the cause.
+The failure reproduces with a factory-startup Armature and BoneX alone, without loading BoneWeaver. The same write succeeds outside draw context, so the imported object is not read-only and BONEWEAVER mode/transaction restoration is not the cause.
 
 ## Fix design
 
@@ -16,9 +16,9 @@ The supported local hotfix makes the getter read-only:
 
 - Missing `bonex_data` or `soft_connections` returns an empty list.
 - BoneX operator/setter code remains responsible for creating persistent data.
-- UECP runtime does not import, monkey-patch, or initialize BoneX state.
+- BONEWEAVER runtime does not import, monkey-patch, or initialize BoneX state.
 - `tools/patch_bonex_1_2_6.py` refuses versions other than the audited `id=bonex`, `version=1.2.6` source shape.
-- Apply creates `utils.py.uecp-bonex-1.2.6.bak`; restore refuses to overwrite a source that diverged after patching.
+- Apply creates `utils.py.boneweaver-bonex-1.2.6.bak`; restore refuses to overwrite a source that diverged after patching.
 
 ## Commands
 

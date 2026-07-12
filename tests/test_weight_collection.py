@@ -3,7 +3,7 @@ from __future__ import annotations
 import unittest
 
 from tests.fixture_builders import clear_scene, make_bound_mesh, make_chain
-from ue_chain_prep.core.weight_cloud import collect_weight_evidence
+from boneweaver.core.weight_cloud import collect_weight_evidence
 
 
 class WeightCollectionTests(unittest.TestCase):

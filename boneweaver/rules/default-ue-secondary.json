@@ -1,0 +1,38 @@
+{
+  "schema_version": "1.0.0",
+  "rule_set_id": "default-ue-secondary",
+  "rule_set_version": "0.2.0",
+  "display_name": "Default UE Secondary Bone Semantics",
+  "include_tokens": {
+    "strong": ["hair", "ponytail", "twin", "ribbon", "skirt", "cloth", "cloak", "cape", "tail", "earring", "strap", "belt", "scarf", "tassel", "chain", "pendant", "jiggle", "spring", "dynamic", "physics"],
+    "medium": ["bag", "accessory", "part", "ornament", "decor", "sleeve", "breast", "chest", "bust"],
+    "generic": ["bone", "joint", "extra"]
+  },
+  "exclude_tokens": {
+    "main_skeleton": ["root", "pelvis", "hips", "spine", "neck", "head", "clavicle", "arm", "upperarm", "lowerarm", "forearm", "hand", "leg", "thigh", "calf", "shin", "foot", "toe", "finger", "thumb"],
+    "socket": ["socket", "attach", "weapon", "muzzle", "camera", "virtual", "helper"],
+    "ik_control": ["ik", "fk", "ctrl", "control"],
+    "twist_deform": ["twist", "roll", "corrective"],
+    "facial": ["eye", "eyelid", "eyelash", "jaw", "tongue", "face", "facial"]
+  },
+  "category_rules": {
+    "HAIR": {"tokens": ["hair", "ponytail", "twin"], "maximum_class": "AUTO_INCLUDE"},
+    "RIBBON": {"tokens": ["ribbon"], "maximum_class": "AUTO_INCLUDE"},
+    "SKIRT": {"tokens": ["skirt"], "maximum_class": "AUTO_INCLUDE"},
+    "CLOAK": {"tokens": ["cloak"], "maximum_class": "AUTO_INCLUDE"},
+    "CAPE": {"tokens": ["cape"], "maximum_class": "AUTO_INCLUDE"},
+    "TAIL": {"tokens": ["tail"], "maximum_class": "AUTO_INCLUDE"},
+    "EARRING": {"tokens": ["earring"], "maximum_class": "AUTO_INCLUDE"},
+    "STRAP": {"tokens": ["strap"], "maximum_class": "AUTO_INCLUDE"},
+    "BELT": {"tokens": ["belt"], "maximum_class": "AUTO_INCLUDE"},
+    "SCARF": {"tokens": ["scarf"], "maximum_class": "AUTO_INCLUDE"},
+    "TASSEL": {"tokens": ["tassel"], "maximum_class": "AUTO_INCLUDE"},
+    "ACCESSORY": {"tokens": ["accessory", "ornament", "decor", "pendant", "sleeve", "cloth"], "maximum_class": "SUGGEST_INCLUDE"},
+    "BAG": {"tokens": ["bag"], "maximum_class": "SUGGEST_INCLUDE"},
+    "CHEST_SECONDARY": {"tokens": ["breast", "chest", "bust"], "maximum_class": "SUGGEST_INCLUDE"},
+    "UNKNOWN_SECONDARY": {"tokens": ["jiggle", "spring", "dynamic", "physics"], "maximum_class": "AUTO_INCLUDE"}
+  },
+  "sequence_patterns": ["^[0-9]+$", "^[0-9]+[a-z]$"],
+  "main_skeleton_patterns": ["^bip[0-9]*_(root|pelvis|spine|neck|head)", "^root$"],
+  "metadata_rules": {"is_socket": "SOCKET"}
+}

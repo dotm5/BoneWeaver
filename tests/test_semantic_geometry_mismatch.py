@@ -3,11 +3,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 import unittest
 
-from ue_chain_prep.core.semantic_discovery import (
+from boneweaver.core.semantic_discovery import (
     assess_geometry_projection,
     detect_uniform_imported_display_length,
 )
-from ue_chain_prep.core.semantic_models import GeometryProjectionNeed
+from boneweaver.core.semantic_models import GeometryProjectionNeed
 
 
 @dataclass(frozen=True)
@@ -29,7 +29,7 @@ class SemanticGeometryMismatchTests(unittest.TestCase):
     def test_tail_at_child_head_is_not_required(self) -> None:
         result = _assessment((0.0, 1.0, 0.0))
         self.assertEqual(result.need, GeometryProjectionNeed.NOT_REQUIRED.value)
-        self.assertEqual(result.reason_codes, ("UECP_SEMANTIC_ALREADY_CONTINUOUS",))
+        self.assertEqual(result.reason_codes, ("BONEWEAVER_SEMANTIC_ALREADY_CONTINUOUS",))
 
     def test_fixed_short_tail_is_required_with_uniform_import_signal(self) -> None:
         bones = []
@@ -44,8 +44,8 @@ class SemanticGeometryMismatchTests(unittest.TestCase):
         self.assertTrue(uniform.detected)
         result = assess_geometry_projection(bones[2], {bone.name: bone for bone in bones}, uniform)
         self.assertEqual(result.need, GeometryProjectionNeed.REQUIRED.value)
-        self.assertIn("UECP_SEMANTIC_UNIFORM_DISPLAY_LENGTH", result.reason_codes)
-        self.assertIn("UECP_SEMANTIC_TAIL_CHILD_MISMATCH", result.reason_codes)
+        self.assertIn("BONEWEAVER_SEMANTIC_UNIFORM_DISPLAY_LENGTH", result.reason_codes)
+        self.assertIn("BONEWEAVER_SEMANTIC_TAIL_CHILD_MISMATCH", result.reason_codes)
 
     def test_reversed_direction_is_required(self) -> None:
         result = _assessment((0.0, -0.5, 0.0))
@@ -74,7 +74,7 @@ class SemanticGeometryMismatchTests(unittest.TestCase):
         b = StubBone("b", branch.name, (), (1.0, 0.0, 0.0), (1.1, 0.0, 0.0))
         result = assess_geometry_projection(branch, {bone.name: bone for bone in (branch, a, b)})
         self.assertEqual(result.need, GeometryProjectionNeed.UNRESOLVED.value)
-        self.assertEqual(result.reason_codes, ("UECP_SEMANTIC_BRANCH_DETECTED",))
+        self.assertEqual(result.reason_codes, ("BONEWEAVER_SEMANTIC_BRANCH_DETECTED",))
 
     def test_uniform_lengths_without_variable_hierarchy_distances_are_not_import_signal(self) -> None:
         bones = tuple(

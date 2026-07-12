@@ -3,10 +3,10 @@ from __future__ import annotations
 import unittest
 
 import bpy
-import ue_chain_prep
+import boneweaver
 
 from tests.fixture_builders import clear_scene, make_bound_mesh, make_chain
-from ue_chain_prep.core.preflight import run_preflight
+from boneweaver.core.preflight import run_preflight
 
 
 class PreflightTests(unittest.TestCase):
@@ -14,19 +14,19 @@ class PreflightTests(unittest.TestCase):
         clear_scene()
 
     def tearDown(self) -> None:
-        ue_chain_prep.unregister()
+        boneweaver.unregister()
         clear_scene()
 
     def codes(self):
         return {issue.code for issue in run_preflight(bpy.context).issues}
 
     def test_no_active_armature_blocks(self) -> None:
-        self.assertIn("UECP_NO_ACTIVE_ARMATURE", self.codes())
+        self.assertIn("BONEWEAVER_NO_ACTIVE_ARMATURE", self.codes())
 
     def test_empty_selection_blocks(self) -> None:
         rig = make_chain(selected=())
         make_bound_mesh(rig)
-        self.assertIn("UECP_EMPTY_SELECTION", self.codes())
+        self.assertIn("BONEWEAVER_EMPTY_SELECTION", self.codes())
 
     def test_valid_chain_captures_frozen_heads_and_axes(self) -> None:
         rig = make_chain()
@@ -50,7 +50,7 @@ class PreflightTests(unittest.TestCase):
         make_bound_mesh(rig)
         other = bpy.data.objects.new("RigInstance", rig.data)
         bpy.context.scene.collection.objects.link(other)
-        self.assertIn("UECP_SHARED_ARMATURE_DATA", self.codes())
+        self.assertIn("BONEWEAVER_SHARED_ARMATURE_DATA", self.codes())
 
     def test_external_connected_child_blocks(self) -> None:
         rig = make_chain(selected=("Bone_0",))
@@ -63,7 +63,7 @@ class PreflightTests(unittest.TestCase):
         bpy.ops.object.mode_set(mode="OBJECT")
         rig.pose.bones["Bone_0"].select = True
         rig.pose.bones["Bone_1"].select = False
-        self.assertIn("UECP_EXTERNAL_CONNECTED_CHILD", self.codes())
+        self.assertIn("BONEWEAVER_EXTERNAL_CONNECTED_CHILD", self.codes())
 
     def test_animation_constraint_driver_envelope_and_bbone_block(self) -> None:
         rig = make_chain()
@@ -76,8 +76,8 @@ class PreflightTests(unittest.TestCase):
         codes = self.codes()
         self.assertTrue(
             {
-                "UECP_RELATED_ACTION", "UECP_RELATED_DRIVER", "UECP_RELATED_CONSTRAINT",
-                "UECP_ENVELOPE_DEFORMATION", "UECP_BBONE_UNSUPPORTED",
+                "BONEWEAVER_RELATED_ACTION", "BONEWEAVER_RELATED_DRIVER", "BONEWEAVER_RELATED_CONSTRAINT",
+                "BONEWEAVER_ENVELOPE_DEFORMATION", "BONEWEAVER_BBONE_UNSUPPORTED",
             }.issubset(codes),
             codes,
         )
@@ -85,14 +85,14 @@ class PreflightTests(unittest.TestCase):
     def test_analyze_operator_runs_preflight_without_scene_side_effects(self) -> None:
         rig = make_chain()
         mesh, _ = make_bound_mesh(rig)
-        ue_chain_prep.register()
+        boneweaver.register()
         before = {
             "objects": tuple(sorted(bpy.data.objects.keys())),
             "bones": tuple((bone.name, tuple(bone.head_local), tuple(bone.tail_local)) for bone in rig.data.bones),
             "vertices": tuple(tuple(vertex.co) for vertex in mesh.data.vertices),
             "modifiers": tuple((modifier.name, modifier.type) for modifier in mesh.modifiers),
         }
-        result = bpy.ops.uecp.analyze()
+        result = bpy.ops.boneweaver.analyze()
         after = {
             "objects": tuple(sorted(bpy.data.objects.keys())),
             "bones": tuple((bone.name, tuple(bone.head_local), tuple(bone.tail_local)) for bone in rig.data.bones),
@@ -105,12 +105,12 @@ class PreflightTests(unittest.TestCase):
     def test_selected_roots_scope_includes_all_descendants(self) -> None:
         rig = make_chain(selected=("Bone_0",))
         make_bound_mesh(rig)
-        ue_chain_prep.register()
-        bpy.context.scene.uecp_settings.scope_mode = "SELECTED_ROOTS_AND_DESCENDANTS"
+        boneweaver.register()
+        bpy.context.scene.boneweaver_settings.scope_mode = "SELECTED_ROOTS_AND_DESCENDANTS"
         result = run_preflight(bpy.context)
-        bpy.context.scene.uecp_settings.scope_mode = "SELECTED_BONES"
+        bpy.context.scene.boneweaver_settings.scope_mode = "SELECTED_BONES"
         self.assertEqual(tuple(state.name for state in result.bone_states), ("Bone_0", "Bone_1", "Bone_2"))
-        self.assertNotIn("UECP_EXTERNAL_CONNECTED_CHILD", {issue.code for issue in result.issues})
+        self.assertNotIn("BONEWEAVER_EXTERNAL_CONNECTED_CHILD", {issue.code for issue in result.issues})
 
 
 if __name__ == "__main__":

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from ue_chain_prep.core.semantic_names import (
+from boneweaver.core.semantic_names import (
     extract_semantic_stem,
     extract_sequence_index,
     extract_side_marker,

@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "boneweaver://schema/hierarchy-inspection/1.0.0",
+  "title": "BoneWeaver Hierarchy Inspection Plan",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "kind", "schema_version", "algorithm_version", "inspection_id",
+    "armature_object_name", "armature_fingerprint", "active_bone_name",
+    "parent_context_name", "selection_mode", "selected_bone_names",
+    "branch_bone_names", "side_branch_root_names", "tip_helper_names",
+    "excluded_helper_names", "semantic_categories", "issue_codes"
+  ],
+  "properties": {
+    "kind": {"const": "HIERARCHY_INSPECTION_PLAN"},
+    "schema_version": {"const": "1.0.0"},
+    "algorithm_version": {"const": "hierarchy-inspection-v1"},
+    "inspection_id": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "armature_object_name": {"type": "string", "minLength": 1},
+    "armature_fingerprint": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "active_bone_name": {"type": "string", "minLength": 1},
+    "parent_context_name": {"type": ["string", "null"]},
+    "selection_mode": {
+      "enum": [
+        "LINEAR_CHAIN", "FULL_SUBTREE", "SAME_STEM_CHAIN",
+        "MAIN_PATH_TO_LEAF", "SELECTED_ROOTS_AND_DESCENDANTS"
+      ]
+    },
+    "selected_bone_names": {"$ref": "#/$defs/stringArray"},
+    "branch_bone_names": {"$ref": "#/$defs/stringArray"},
+    "side_branch_root_names": {"$ref": "#/$defs/stringArray"},
+    "tip_helper_names": {"$ref": "#/$defs/stringArray"},
+    "excluded_helper_names": {"$ref": "#/$defs/stringArray"},
+    "semantic_categories": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/stringPair"}
+    },
+    "issue_codes": {"$ref": "#/$defs/stringArray"}
+  },
+  "$defs": {
+    "stringArray": {
+      "type": "array",
+      "items": {"type": "string"},
+      "uniqueItems": true
+    },
+    "stringPair": {
+      "type": "array",
+      "prefixItems": [{"type": "string"}, {"type": "string"}],
+      "items": false
+    }
+  }
+}

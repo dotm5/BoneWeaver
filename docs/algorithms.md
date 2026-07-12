@@ -38,12 +38,19 @@ For each direct child, the resolver calculates the maximum cumulative head-to-he
 0.50 path + 0.20 weight + 0.15 direction + 0.10 depth + 0.05 naming - penalties
 ```
 
-High requires score/margin `0.65/0.15`; Medium requires `0.55/0.08`. Lower or symmetric evidence blocks. Names cannot override contradictory geometry.
+High requires score/margin `0.65/0.15`; Medium requires `0.55/0.08`. Lower or symmetric evidence blocks. Before either result can select a child, automatic modes require positive secondary-physics semantics and reject main-skeleton, control/IK, Socket, Twist, facial, and non-deform evidence. Names cannot override contradictory geometry, and uncertain semantics require a scoped manual override.
 
 ## Weight islands and scanning
 
-Weight evidence is first separated by Mesh, then split into connected components on the induced base-mesh subgraph. A component is accepted only when its statistical-weight ratio is at least `0.70`. Cross-mesh clouds combine only when directions are compatible; otherwise a single 70% dominant Mesh may win, or the evidence falls back safely.
+Weight evidence is first separated by Mesh, then split into connected components on the induced base-mesh subgraph. `WeightIslandPolicy` is a fingerprinted stable setting: `DOMINANT_COMPONENT` is the safe default and accepts only a component carrying at least `0.70` of the Mesh weight; `REQUIRE_SINGLE_COMPONENT` rejects every multi-island Mesh; `ALL_COMPATIBLE_COMPONENTS` merges islands only when their directions are mutually compatible. Cross-mesh clouds combine only when directions are compatible; otherwise a single 70% dominant Mesh may win, or the evidence falls back safely. Multiple significant islands are never merged implicitly.
 
-`MeshScanCache` performs one full vertex and one membership pass per Mesh for an Analyze operation. It streams digests and stores temporary indices/coordinates/weights in standard-library `array` buffers. No NumPy is used.
+The one-operation Mesh scan builds a compact shared CSR adjacency index once per
+Mesh. Per-bone island resolution traverses only the weighted induced subgraph;
+it never rescans the complete edge list for every target Bone. The reported
+temporary-memory estimate includes all concurrent weight builders and the CSR
+construction workspace, while Analyze also records the process-level
+`tracemalloc_peak`.
+
+`MeshScanCache` performs one full vertex and one membership pass per Mesh for an Analyze operation. It streams digests and stores temporary indices/coordinates/weights in standard-library `array` buffers. Component discovery reuses the per-Bone index map rather than repeatedly materializing compact vertex and edge iterators. No NumPy is used.
 
 Imported-axis evidence receives the normal prior only when importer metadata (`orig_loc`, `orig_quat`, or `post_quat`) is present. Without metadata the prior is reduced and contradictory geometry/weight evidence adds a penalty. Neutral validation baselines use flat `array('d')` buffers and streaming delta statistics.

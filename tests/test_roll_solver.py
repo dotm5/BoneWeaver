@@ -5,8 +5,8 @@ import unittest
 
 from mathutils import Vector
 
-from ue_chain_prep.core.roll_solver import minimal_twist_reference, parallel_transport_reference, radial_reference
-from ue_chain_prep.core.swing_math import swing_rotation
+from boneweaver.core.roll_solver import minimal_twist_reference, parallel_transport_reference, radial_reference
+from boneweaver.core.swing_math import swing_rotation
 
 
 class RollSolverTests(unittest.TestCase):

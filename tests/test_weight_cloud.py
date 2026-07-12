@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from ue_chain_prep.core.weight_cloud import analyze_weight_cloud, weighted_percentile
+from boneweaver.core.weight_cloud import analyze_weight_cloud, weighted_percentile
 
 
 class WeightCloudTests(unittest.TestCase):

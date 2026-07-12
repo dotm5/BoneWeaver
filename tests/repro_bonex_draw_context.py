@@ -28,7 +28,7 @@ def _draw_probe(_header, _context) -> None:
     global _result
     if _result is not None:
         return
-    armature_obj = bpy.data.objects["UECP_BoneX_Draw_Probe"]
+    armature_obj = bpy.data.objects["BONEWEAVER_BoneX_Draw_Probe"]
     try:
         utils.get_armature_soft_connections(armature_obj)
     except Exception as exc:  # The exact Blender context exception is the signal.
@@ -37,7 +37,7 @@ def _draw_probe(_header, _context) -> None:
         payload = armature_obj.get(const.rigidbody_data_name)
         serialized = payload.to_dict() if hasattr(payload, "to_dict") else payload
         _result = f"PASS bonex_data={serialized!r}"
-    print("UECP_BONEX_DRAW_RESULT", _result, flush=True)
+    print("BONEWEAVER_BONEX_DRAW_RESULT", _result, flush=True)
 
 
 def _finish() -> float | None:
@@ -48,8 +48,8 @@ def _finish() -> float | None:
     return None
 
 
-armature_data = bpy.data.armatures.new("UECP_BoneX_Draw_Probe_Data")
-armature_obj = bpy.data.objects.new("UECP_BoneX_Draw_Probe", armature_data)
+armature_data = bpy.data.armatures.new("BONEWEAVER_BoneX_Draw_Probe_Data")
+armature_obj = bpy.data.objects.new("BONEWEAVER_BoneX_Draw_Probe", armature_data)
 bpy.context.scene.collection.objects.link(armature_obj)
 bpy.context.view_layer.objects.active = armature_obj
 armature_obj.select_set(True)

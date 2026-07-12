@@ -12,7 +12,7 @@
 
 `C:\Users\70560\Documents\Blender项目\x1.blend` 在 `--factory-startup` 下完成 85 Bone Analyze → Apply → Export → 独立 Blender 重开验证：0 blocker、82 warning、85 proposal、85 mutation，状态 `RESTORABLE`，源文件 SHA-256 与时间戳不变。
 
-首次使用用户配置的后台运行在进入算法前被已安装旧版 UECP 和后台不兼容第三方插件阻断；隔离运行通过，证明该失败属于用户配置污染而不是本轮代码回归。
+首次使用用户配置的后台运行在进入算法前被已安装旧版 BONEWEAVER 和后台不兼容第三方插件阻断；隔离运行通过，证明该失败属于用户配置污染而不是本轮代码回归。
 
 ## 仍需人工验证
 
@@ -22,4 +22,4 @@
 
 ## 发布包
 
-Blender extension build 与隔离安装/三次注册循环通过。`dist/ue_chain_prep-0.1.0.zip` 为 97,803 bytes，SHA-256 `610D67CCED9E33BFEED372253CBE7507C79618A7C64131CFE90CC1F5FE1CFFAD`。
+Blender extension build 与隔离安装/三次注册循环通过。`dist/boneweaver-0.1.0.zip` 为 97,803 bytes，SHA-256 `610D67CCED9E33BFEED372253CBE7507C79618A7C64131CFE90CC1F5FE1CFFAD`。

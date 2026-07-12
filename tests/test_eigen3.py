@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from ue_chain_prep.core.eigen3 import jacobi_eigen_symmetric_3x3
+from boneweaver.core.eigen3 import jacobi_eigen_symmetric_3x3
 
 
 class Eigen3Tests(unittest.TestCase):

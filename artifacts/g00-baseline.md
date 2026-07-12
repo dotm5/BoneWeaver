@@ -6,7 +6,7 @@ Date: 2026-07-11 (Asia/Shanghai)
 
 - Repository initialized locally at `D:\项目复现\BoneWeaver`.
 - Baseline branch: `main`.
-- Development branch: `feature/ue-chain-prep-v0.1.0`.
+- Development branch: `feature/boneweaver-v0.1.0`.
 - Baseline commit: `4808465 chore: establish project baseline`.
 - No remote is configured or required.
 - Real `.uemodel` fixtures and generated `.blend`/runtime output are ignored.
@@ -46,7 +46,7 @@ Date: 2026-07-11 (Asia/Shanghai)
 - Blender SpaceView3D draw handler API: <https://docs.blender.org/api/current/bpy.types.SpaceView3D.html>.
 - Blender extension getting started: <https://docs.blender.org/manual/en/latest/advanced/extensions/getting_started.html>.
 
-Kawaii Physics is architectural reference material only. No C++ runtime solver, collision code, XPBD/Verlet loop, or third-party API is copied into UE Chain Prep.
+Kawaii Physics is architectural reference material only. No C++ runtime solver, collision code, XPBD/Verlet loop, or third-party API is copied into BoneWeaver.
 
 ## Local Fixture Inventory
 
@@ -74,7 +74,7 @@ Kawaii Physics is architectural reference material only. No C++ runtime solver, 
 | Imported rigs may contain branches, coincident helpers, animation, constraints, drivers, or unsupported modifiers | Strict Preflight blocks rather than guesses or rewrites relationships. |
 | Rest geometry changes may alter evaluated neutral mesh | Capture pre/post evaluated world-space vertices and roll back on threshold failure. |
 | Candidate evidence may be ambiguous | Stable scoring, minimum score/margin/confidence, and explicit blockers prevent silent selection. |
-| BoneX/Wiggle/ARP may create dependency graph side effects | UECP never imports their APIs; preflight blocks existing generated dependencies and G09 uses explicit smoke records. |
+| BoneX/Wiggle/ARP may create dependency graph side effects | BONEWEAVER never imports their APIs; preflight blocks existing generated dependencies and G09 uses explicit smoke records. |
 | Project manifest license has no prior repository decision | Use the contract's GPL-3.0-or-later placeholder and flag maintainer/license confirmation in the final report. |
 
 ## G00 Gate Result

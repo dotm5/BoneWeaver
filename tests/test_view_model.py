@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import unittest
 
-from ue_chain_prep.contracts import PlanAvailability, PlanState, WorkflowStage
-from ue_chain_prep.ui.view_model import (
+from boneweaver.contracts import PlanAvailability, PlanState, WorkflowStage
+from boneweaver.ui.view_model import (
     BlenderContextSummary,
     RuntimeSummary,
     SnapshotSummary,
@@ -32,7 +32,7 @@ class PanelViewModelTests(unittest.TestCase):
     def test_idle_context_is_ready_to_analyze(self):
         view = self._derive()
         self.assertEqual(WorkflowStage.READY_TO_ANALYZE.value, view.workflow_stage)
-        self.assertEqual("uecp.check_and_preview", view.primary_action.operator_id)
+        self.assertEqual("boneweaver.check_and_preview", view.primary_action.operator_id)
         self.assertEqual("检查并预览", view.primary_action.label)
         self.assertTrue(view.primary_action.enabled)
 
@@ -50,11 +50,11 @@ class PanelViewModelTests(unittest.TestCase):
             settings_signature="settings-a", bone_count=6, chain_count=1, blocker_count=2,
         ), availability=PlanAvailability.AVAILABLE)
         self.assertEqual(WorkflowStage.READY_TO_APPLY.value, ready.workflow_stage)
-        self.assertEqual("uecp.apply", ready.primary_action.operator_id)
+        self.assertEqual("boneweaver.apply", ready.primary_action.operator_id)
         self.assertEqual(WorkflowStage.NEEDS_ATTENTION.value, warning.workflow_stage)
-        self.assertEqual("uecp.apply", warning.primary_action.operator_id)
+        self.assertEqual("boneweaver.apply", warning.primary_action.operator_id)
         self.assertEqual(WorkflowStage.BLOCKED.value, blocked.workflow_stage)
-        self.assertNotEqual("uecp.apply", blocked.primary_action.operator_id)
+        self.assertNotEqual("boneweaver.apply", blocked.primary_action.operator_id)
         self.assertIn("不能转换", blocked.result.title)
 
     def test_stale_settings_selection_and_lost_plan_have_recheck_action(self):
@@ -67,28 +67,28 @@ class PanelViewModelTests(unittest.TestCase):
         lost = self._derive(runtime=RuntimeSummary(**base), availability=PlanAvailability.MISSING)
         lost_after_apply = self._derive(runtime=RuntimeSummary(
             **{**base, "state": PlanState.RESTORABLE.value}
-        ), availability=PlanAvailability.MISSING, snapshot=SnapshotSummary(True, "UECP_SNAPSHOT::1", 6))
+        ), availability=PlanAvailability.MISSING, snapshot=SnapshotSummary(True, "BONEWEAVER_SNAPSHOT::1", 6))
         self.assertEqual(WorkflowStage.STALE_SETTINGS.value, stale_settings.workflow_stage)
         self.assertEqual(WorkflowStage.STALE_SELECTION.value, stale_selection.workflow_stage)
         self.assertEqual(WorkflowStage.PLAN_LOST.value, lost.workflow_stage)
         self.assertEqual(WorkflowStage.PLAN_LOST.value, lost_after_apply.workflow_stage)
         for view in (stale_settings, stale_selection, lost, lost_after_apply):
-            self.assertEqual("uecp.check_and_preview", view.primary_action.operator_id)
+            self.assertEqual("boneweaver.check_and_preview", view.primary_action.operator_id)
             self.assertEqual("重新检查", view.primary_action.label)
 
         stale_source = self._derive(runtime=RuntimeSummary(
-            **{**base, "state": PlanState.STALE.value}, last_error="UECP_STATE_CHANGED_AFTER_ANALYZE"
+            **{**base, "state": PlanState.STALE.value}, last_error="BONEWEAVER_STATE_CHANGED_AFTER_ANALYZE"
         ), availability=PlanAvailability.AVAILABLE)
         self.assertEqual(WorkflowStage.STALE_SELECTION.value, stale_source.workflow_stage)
-        self.assertEqual("uecp.check_and_preview", stale_source.primary_action.operator_id)
+        self.assertEqual("boneweaver.check_and_preview", stale_source.primary_action.operator_id)
 
     def test_busy_applied_rollback_and_error_states_are_explainable(self):
         analyzing = self._derive(runtime=RuntimeSummary(state=PlanState.IDLE.value, is_busy=True))
         applying = self._derive(runtime=RuntimeSummary(state=PlanState.APPLYING.value, is_busy=True))
         applied = self._derive(runtime=RuntimeSummary(state=PlanState.RESTORABLE.value, bone_count=6),
-                               snapshot=SnapshotSummary(True, "UECP_SNAPSHOT::1", 6))
-        rollback = self._derive(runtime=RuntimeSummary(state=PlanState.ERROR.value, last_error="UECP_ROLLBACK_FAILED"))
-        error = self._derive(runtime=RuntimeSummary(state=PlanState.ERROR.value, last_error="UECP_INTERNAL_ERROR"))
+                               snapshot=SnapshotSummary(True, "BONEWEAVER_SNAPSHOT::1", 6))
+        rollback = self._derive(runtime=RuntimeSummary(state=PlanState.ERROR.value, last_error="BONEWEAVER_ROLLBACK_FAILED"))
+        error = self._derive(runtime=RuntimeSummary(state=PlanState.ERROR.value, last_error="BONEWEAVER_INTERNAL_ERROR"))
         self.assertEqual(WorkflowStage.ANALYZING.value, analyzing.workflow_stage)
         self.assertFalse(analyzing.primary_action.enabled)
         self.assertEqual(WorkflowStage.APPLYING.value, applying.workflow_stage)

@@ -3,7 +3,7 @@ from __future__ import annotations
 import unittest
 
 import bpy
-import ue_chain_prep
+import boneweaver
 
 from tests.fixture_builders import clear_scene, make_bound_mesh, make_chain
 
@@ -11,25 +11,25 @@ from tests.fixture_builders import clear_scene, make_bound_mesh, make_chain
 class RestoreTests(unittest.TestCase):
     def setUp(self) -> None:
         clear_scene()
-        ue_chain_prep.register()
+        boneweaver.register()
         self.rig = make_chain()
         self.mesh, _ = make_bound_mesh(self.rig)
         for name in ("Bone_1", "Bone_2"):
             group = self.mesh.vertex_groups.new(name=name)
             group.add([0, 1, 2], 1.0, "REPLACE")
-        settings = bpy.context.scene.uecp_settings
+        settings = bpy.context.scene.boneweaver_settings
         settings.minimum_candidate_score = 0.40
         settings.candidate_minimum_margin = 0.001
         settings.minimum_confidence = 0.40
 
     def tearDown(self) -> None:
-        settings = bpy.context.scene.uecp_settings
+        settings = bpy.context.scene.boneweaver_settings
         settings.minimum_candidate_score = 0.62
         settings.candidate_minimum_margin = 0.08
         settings.minimum_confidence = 0.70
-        ue_chain_prep.unregister()
+        boneweaver.unregister()
         for text in tuple(bpy.data.texts):
-            if text.name.startswith("UECP_SNAPSHOT::"):
+            if text.name.startswith("BONEWEAVER_SNAPSHOT::"):
                 bpy.data.texts.remove(text)
         clear_scene()
 
@@ -37,16 +37,16 @@ class RestoreTests(unittest.TestCase):
         return tuple((bone.name, tuple(bone.head_local), tuple(bone.tail_local), bone.use_connect) for bone in self.rig.data.bones)
 
     def apply(self):
-        bpy.ops.uecp.analyze()
-        runtime = bpy.context.window_manager.uecp_runtime
-        self.assertEqual(bpy.ops.uecp.apply(plan_id=runtime.plan_id), {"FINISHED"})
+        bpy.ops.boneweaver.analyze()
+        runtime = bpy.context.window_manager.boneweaver_runtime
+        self.assertEqual(bpy.ops.boneweaver.apply(plan_id=runtime.plan_id), {"FINISHED"})
         return runtime
 
     def test_restore_returns_exact_pre_state(self) -> None:
         before = self.geometry()
         runtime = self.apply()
         self.assertNotEqual(self.geometry(), before)
-        self.assertEqual(bpy.ops.uecp.restore_snapshot(snapshot_text_name=runtime.snapshot_text_name), {"FINISHED"})
+        self.assertEqual(bpy.ops.boneweaver.restore_snapshot(snapshot_text_name=runtime.snapshot_text_name), {"FINISHED"})
         self.assertEqual(self.geometry(), before)
         self.assertEqual(runtime.state, "RESTORED")
 
@@ -57,13 +57,13 @@ class RestoreTests(unittest.TestCase):
         self.rig.data.edit_bones["Bone_0"].tail.x += 0.125
         bpy.ops.object.mode_set(mode="OBJECT")
         changed = self.geometry()
-        self.assertEqual(bpy.ops.uecp.restore_snapshot(snapshot_text_name=runtime.snapshot_text_name), {"CANCELLED"})
+        self.assertEqual(bpy.ops.boneweaver.restore_snapshot(snapshot_text_name=runtime.snapshot_text_name), {"CANCELLED"})
         self.assertEqual(self.geometry(), changed)
-        self.assertEqual(runtime.last_error, "UECP_RESTORE_CONFLICT")
+        self.assertEqual(runtime.last_error, "BONEWEAVER_RESTORE_CONFLICT")
 
     def test_snapshot_availability_rejects_weight_digest_change(self) -> None:
         runtime = self.apply()
-        from ue_chain_prep.core.snapshot_availability import snapshot_text_is_restorable
+        from boneweaver.core.snapshot_availability import snapshot_text_is_restorable
         self.assertTrue(snapshot_text_is_restorable(runtime.snapshot_text_name))
         self.mesh.vertex_groups["Bone_0"].add([0], 0.5, "REPLACE")
         self.assertFalse(snapshot_text_is_restorable(runtime.snapshot_text_name))

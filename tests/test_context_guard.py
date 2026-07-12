@@ -5,7 +5,7 @@ import unittest
 import bpy
 
 from tests.fixture_builders import clear_scene, make_chain
-from ue_chain_prep.core.context_guard import ContextStateGuard
+from boneweaver.core.context_guard import ContextStateGuard
 
 
 class ContextGuardTests(unittest.TestCase):

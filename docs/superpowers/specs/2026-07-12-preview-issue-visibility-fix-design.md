@@ -7,7 +7,7 @@ The 0.1.2 viewport preview is unreadable in Blender 5.2: every two-pixel graph l
 The screenshot and code inspection establish two independent causes:
 
 - `POLYLINE_UNIFORM_COLOR` receives a hard-coded `viewportSize=(1, 1)` instead of the active GPU viewport dimensions.
-- `UECP_UL_issues` renders only `item.message`; ambiguous terminal issues use the raw error code as their message even though `item.bone_name` is already populated.
+- `BONEWEAVER_UL_issues` renders only `item.message`; ambiguous terminal issues use the raw error code as their message even though `item.bone_name` is already populated.
 
 The real `x1.blend` armature has an identity world matrix, so local/world coordinate conversion is not the cause of the reported screenshot.
 
@@ -30,7 +30,7 @@ Do not rewrite the immutable `v0.1.2` tag. Update add-on and manifest version to
 ## Validation
 
 - Regression-test the exact shader uniform call with a fake 1920x1080 viewport.
-- Regression-test list rendering for `hair_ribbon_l_06` plus `UECP_TERMINAL_CANDIDATE_AMBIGUOUS`.
+- Regression-test list rendering for `hair_ribbon_l_06` plus `BONEWEAVER_TERMINAL_CANDIDATE_AMBIGUOUS`.
 - Regression-test the bone-specific locate label and 0.1.3 version contracts.
 - Run the complete Blender-hosted unittest suite.
 - Run the 85-bone `x1.blend` Analyze, Apply, Export, and independent reopen pipeline.

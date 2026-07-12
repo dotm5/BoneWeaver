@@ -3,8 +3,8 @@ from __future__ import annotations
 import unittest
 
 from tests.test_physics_graph import state
-from ue_chain_prep.core.physics_graph import build_physics_graph
-from ue_chain_prep.core.segment_sampling import build_sampling_hints
+from boneweaver.core.physics_graph import build_physics_graph
+from boneweaver.core.segment_sampling import build_sampling_hints
 
 
 class SegmentSamplingTests(unittest.TestCase):

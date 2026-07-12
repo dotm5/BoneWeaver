@@ -7,34 +7,61 @@ import types
 import unittest
 
 import bpy
-import ue_chain_prep
+import boneweaver
 
 from tests.fixture_builders import clear_scene, make_bound_mesh, make_chain
-from ue_chain_prep.core.export_contract import (
+from boneweaver.core.export_contract import (
     ExportReadinessError,
     build_export_manifest,
     evaluate_export_readiness,
 )
-from ue_chain_prep.core.models import TopologyProjectionLedger
-from ue_chain_prep.core.runtime_store import get_plan
+from boneweaver.core.models import TopologyProjectionLedger
+from boneweaver.core.runtime_store import get_plan
 
 
 def valid_fixture():
-    topology = TopologyProjectionLedger(3, 2, 2, 0, 0, 0, 0, 0, 1, 3, 3, 0)
+    topology = TopologyProjectionLedger(
+        selected_bone_count=3,
+        selected_hierarchy_edge_count=2,
+        linear_edge_count=2,
+        branch_node_count=0,
+        branch_edge_count=0,
+        resolved_branch_count=0,
+        unresolved_branch_count=0,
+        external_child_edge_count=0,
+        virtual_tip_count=1,
+        proposal_count=3,
+        mutation_record_count=3,
+        skipped_by_design_count=0,
+        mutation_target_count=3,
+        reference_only_tip_helper_count=0,
+    )
+    proposals = tuple(
+        types.SimpleNamespace(bone_name=f"B{index}") for index in range(3)
+    )
     plan = types.SimpleNamespace(
         plan_id="a" * 64,
         algorithm_version="algorithm-v2",
-        schema_version="3.1.0",
+        schema_version="4.0.0",
         addon_version="0.1.0",
+        profile="BONEX_ROTATION_CHAIN",
+        tip_helper_usage="REFERENCE_ONLY",
         physics_graph=types.SimpleNamespace(graph_id="b" * 64),
+        bone_states=(),
         issues=(),
-        proposals=(object(), object(), object()),
+        proposals=proposals,
+        tip_helpers=(),
         branch_resolutions=(),
-        topology_ledger=dataclasses_replace(topology, mutation_record_count=0),
+        topology_ledger=topology,
     )
     snapshot = {
         "status": "APPLIED",
         "plan_id": plan.plan_id,
+        "profile": plan.profile,
+        "tip_helper_usage": plan.tip_helper_usage,
+        "mutation_targets": tuple(proposal.bone_name for proposal in proposals),
+        "reference_only_tip_helpers": (),
+        "tip_helpers": (),
         "mutation_records": [
             {"bone_name": f"B{index}", "proposal_id": str(index), "tail_changed": True}
             for index in range(3)
@@ -73,16 +100,24 @@ class ExportContractPureTests(unittest.TestCase):
 
     def test_each_critical_missing_condition_rejects_export(self) -> None:
         plan, snapshot = valid_fixture()
+        blocked_plan = copy.copy(plan)
+        blocked_plan.issues = (types.SimpleNamespace(severity="BLOCKER"),)
         cases = {
-            "no_plan": {"plan": None},
-            "stale": {"plan_stale": True},
-            "not_applied": {"runtime_state": "ANALYZED"},
-            "no_snapshot": {"snapshot_present": False},
-            "rolled_back": {"snapshot": {**snapshot, "status": "ROLLED_BACK"}},
-            "no_mutation": {"snapshot": {**snapshot, "mutation_records": []}},
-            "digest_failure": {"snapshot": {**snapshot, "post_validation": {**snapshot["post_validation"], "weight_digest_changes": 1}}},
-            "neutral_failure": {"snapshot": {**snapshot, "post_validation": {**snapshot["post_validation"], "mesh_validation_results": [{"result": "FAIL_AND_ROLLBACK"}]}}},
-            "unresolved_branch": {"snapshot": {**snapshot, "topology_ledger": {**snapshot["topology_ledger"], "unresolved_branch_count": 1}}},
+            "no_plan": {"plan": None, "expected": "BONEWEAVER_EXPORT_PLAN_MISSING"},
+            "stale": {"plan_stale": True, "expected": "BONEWEAVER_EXPORT_PLAN_STALE"},
+            "not_applied": {"runtime_state": "ANALYZED", "expected": "BONEWEAVER_EXPORT_APPLY_NOT_SUCCESSFUL"},
+            "no_snapshot": {"snapshot_present": False, "expected": "BONEWEAVER_EXPORT_SNAPSHOT_MISSING"},
+            "rolled_back": {"snapshot": {**snapshot, "status": "ROLLED_BACK"}, "expected": "BONEWEAVER_EXPORT_APPLY_NOT_SUCCESSFUL"},
+            "no_mutation": {"snapshot": {**snapshot, "mutation_records": []}, "expected": "BONEWEAVER_EXPORT_NO_ACTUAL_MUTATION"},
+            "weight_digest_failure": {"snapshot": {**snapshot, "post_validation": {**snapshot["post_validation"], "weight_digest_changes": 1}}, "expected": "BONEWEAVER_WEIGHT_DIGEST_CHANGED"},
+            "base_digest_failure": {"snapshot": {**snapshot, "post_validation": {**snapshot["post_validation"], "base_mesh_digest_changes": 1}}, "expected": "BONEWEAVER_BASE_MESH_CHANGED"},
+            "modifier_digest_failure": {"snapshot": {**snapshot, "post_validation": {**snapshot["post_validation"], "modifier_digest_changes": 1}}, "expected": "BONEWEAVER_MODIFIER_DIGEST_CHANGED"},
+            "non_target_failure": {"snapshot": {**snapshot, "post_validation": {**snapshot["post_validation"], "non_target_bone_changes": 1}}, "expected": "BONEWEAVER_NON_TARGET_BONE_CHANGED"},
+            "neutral_failure": {"snapshot": {**snapshot, "post_validation": {**snapshot["post_validation"], "mesh_validation_results": [{"result": "FAIL_AND_ROLLBACK"}]}}, "expected": "BONEWEAVER_NEUTRAL_MESH_CHANGED"},
+            "unresolved_branch": {"snapshot": {**snapshot, "topology_ledger": {**snapshot["topology_ledger"], "unresolved_branch_count": 1}}, "expected": "BONEWEAVER_BRANCH_AMBIGUOUS"},
+            "ledger_conservation": {"snapshot": {**snapshot, "topology_ledger": {**snapshot["topology_ledger"], "selected_bone_count": 4}}, "expected": "BONEWEAVER_EXPORT_TOPOLOGY_LEDGER_INCOMPLETE"},
+            "tip_helper_mismatch": {"snapshot": {**snapshot, "reference_only_tip_helpers": ("unexpected",)}, "expected": "BONEWEAVER_EXPORT_TIP_HELPER_MISMATCH"},
+            "plan_blocker": {"plan": blocked_plan, "expected": "BONEWEAVER_EXPORT_UNRESOLVED_BLOCKER"},
         }
         for label, changes in cases.items():
             with self.subTest(label=label):
@@ -96,19 +131,19 @@ class ExportContractPureTests(unittest.TestCase):
                     plan_stale=changes.get("plan_stale", False),
                 )
                 self.assertFalse(report.ready)
-                self.assertTrue(report.reasons)
+                self.assertIn(changes["expected"], report.reasons)
 
 
 class ExportContractBlenderTests(unittest.TestCase):
     def setUp(self) -> None:
         clear_scene()
-        ue_chain_prep.register()
+        boneweaver.register()
         self.rig = make_chain()
         self.mesh, _ = make_bound_mesh(self.rig)
         for name in ("Bone_1", "Bone_2"):
             group = self.mesh.vertex_groups.new(name=name)
             group.add([0, 1, 2], 1.0, "REPLACE")
-        settings = bpy.context.scene.uecp_settings
+        settings = bpy.context.scene.boneweaver_settings
         settings.minimum_candidate_score = 0.40
         settings.candidate_minimum_margin = 0.001
         settings.minimum_confidence = 0.40
@@ -116,15 +151,15 @@ class ExportContractBlenderTests(unittest.TestCase):
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
     def tearDown(self) -> None:
-        ue_chain_prep.unregister()
+        boneweaver.unregister()
         clear_scene()
 
     def test_unapplied_plan_cannot_save_conversion_copy(self) -> None:
-        bpy.ops.uecp.analyze()
+        bpy.ops.boneweaver.analyze()
         output = self.output_dir / "must-not-exist.blend"
         if output.exists():
             output.unlink()
-        result = bpy.ops.uecp.export_conversion(filepath=str(output))
+        result = bpy.ops.boneweaver.export_conversion(filepath=str(output))
         self.assertEqual(result, {"CANCELLED"})
         self.assertFalse(output.exists())
 
@@ -137,11 +172,11 @@ class ExportContractBlenderTests(unittest.TestCase):
         bpy.ops.wm.save_as_mainfile(filepath=str(source))
         source_hash_before = __import__("hashlib").sha256(source.read_bytes()).hexdigest()
         source_time_before = source.stat().st_mtime_ns
-        bpy.ops.uecp.analyze()
-        runtime = bpy.context.window_manager.uecp_runtime
-        self.assertEqual(bpy.ops.uecp.apply(plan_id=runtime.plan_id), {"FINISHED"})
+        bpy.ops.boneweaver.analyze()
+        runtime = bpy.context.window_manager.boneweaver_runtime
+        self.assertEqual(bpy.ops.boneweaver.apply(plan_id=runtime.plan_id), {"FINISHED"})
         plan = get_plan(runtime.plan_id)
-        result = bpy.ops.uecp.export_conversion(filepath=str(output))
+        result = bpy.ops.boneweaver.export_conversion(filepath=str(output))
         self.assertEqual(result, {"FINISHED"})
         self.assertTrue(output.exists())
         audit_path = self.output_dir / "conversion-audit.json"
@@ -151,7 +186,7 @@ class ExportContractBlenderTests(unittest.TestCase):
         self.assertIn("topology_ledger", payload)
         self.assertEqual(__import__("hashlib").sha256(source.read_bytes()).hexdigest(), source_hash_before)
         self.assertEqual(source.stat().st_mtime_ns, source_time_before)
-        self.assertIn("UECP_EXPORT_MANIFEST", bpy.data.texts)
+        self.assertIn("BONEWEAVER_EXPORT_MANIFEST", bpy.data.texts)
 
 
 if __name__ == "__main__":

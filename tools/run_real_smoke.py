@@ -31,10 +31,10 @@ def main() -> int:
 
     ueformat = importlib.import_module("io_scene_ueformat")
     ueformat.register()
-    import ue_chain_prep
-    from ue_chain_prep.core.runtime_store import get_plan, get_report
+    import boneweaver
+    from boneweaver.core.runtime_store import get_plan, get_report
 
-    ue_chain_prep.register()
+    boneweaver.register()
     try:
         before_names = frozenset(bpy.data.objects.keys())
         result = bpy.ops.uf.import_uemodel(
@@ -56,18 +56,18 @@ def main() -> int:
         for pose_bone in armature.pose.bones:
             pose_bone.select = pose_bone.name in requested
         if args.epsilon_factor is not None:
-            bpy.context.scene.uecp_settings.position_epsilon_factor = args.epsilon_factor
+            bpy.context.scene.boneweaver_settings.position_epsilon_factor = args.epsilon_factor
 
         object_count = len(bpy.data.objects)
         bone_count = len(armature.data.bones)
-        analyze_result = bpy.ops.uecp.analyze()
-        runtime = bpy.context.window_manager.uecp_runtime
+        analyze_result = bpy.ops.boneweaver.analyze()
+        runtime = bpy.context.window_manager.boneweaver_runtime
         plan = get_plan(runtime.plan_id)
         payload = {
             "source": str(source),
             "blender_version": bpy.app.version_string,
             "chain": requested,
-            "position_epsilon_factor": bpy.context.scene.uecp_settings.position_epsilon_factor,
+            "position_epsilon_factor": bpy.context.scene.boneweaver_settings.position_epsilon_factor,
             "analyze_result": sorted(analyze_result),
             "plan_id": plan.plan_id,
             "graph_id": plan.physics_graph.graph_id,
@@ -82,24 +82,24 @@ def main() -> int:
             "restore_result": "NOT_RUN",
         }
         if not payload["blockers"]:
-            apply_result = bpy.ops.uecp.apply(plan_id=runtime.plan_id)
+            apply_result = bpy.ops.boneweaver.apply(plan_id=runtime.plan_id)
             payload["apply_result"] = sorted(apply_result)
             payload["apply_error"] = runtime.last_error
             payload["snapshot_text_name"] = runtime.snapshot_text_name
             if runtime.snapshot_text_name in bpy.data.texts:
                 payload["snapshot"] = json.loads(bpy.data.texts[runtime.snapshot_text_name].as_string())
             if "FINISHED" in apply_result:
-                bpy.ops.uecp.validate()
+                bpy.ops.boneweaver.validate()
                 payload["diagnostic"] = get_report()
-                restore_result = bpy.ops.uecp.restore_snapshot(snapshot_text_name=runtime.snapshot_text_name)
+                restore_result = bpy.ops.boneweaver.restore_snapshot(snapshot_text_name=runtime.snapshot_text_name)
                 payload["restore_result"] = sorted(restore_result)
                 payload["object_count_unchanged_after_restore"] = len(bpy.data.objects) == object_count
                 payload["bone_count_unchanged_after_restore"] = len(armature.data.bones) == bone_count
         output.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-        print("UECP_REAL_SMOKE_OK", json.dumps({"output": str(output), "blockers": payload["blockers"], "apply": payload["apply_result"]}, ensure_ascii=True))
+        print("BONEWEAVER_REAL_SMOKE_OK", json.dumps({"output": str(output), "blockers": payload["blockers"], "apply": payload["apply_result"]}, ensure_ascii=True))
         return 0
     finally:
-        ue_chain_prep.unregister()
+        boneweaver.unregister()
         ueformat.unregister()
 
 

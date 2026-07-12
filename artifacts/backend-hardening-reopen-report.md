@@ -1,8 +1,8 @@
-# UE Chain Prep Independent Reopen Report
+# BoneWeaver Independent Reopen Report
 
 - Output loaded: PASS
 - Snapshot Text present and applied: PASS
-- `UECP_EXPORT_MANIFEST` present: PASS
+- `BONEWEAVER_EXPORT_MANIFEST` present: PASS
 - Checked target rest bones: 85
 - Snapshot/Manifest mutation records: 85/85
 - Checked branch resolutions: 2
