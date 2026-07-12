@@ -7,6 +7,8 @@ import re
 from dataclasses import dataclass
 
 from .models import BranchCandidate, BranchResolution
+from .semantic_names import normalize_bone_name, tokenize_bone_name
+from .semantic_rule_loader import load_default_rule_set, merge_rule_sets
 
 
 @dataclass(frozen=True, slots=True)
@@ -28,6 +30,49 @@ class BranchResolutionDefaults:
 
 
 BRANCH_RESOLUTION_DEFAULTS = BranchResolutionDefaults()
+_SECONDARY_RULES = merge_rule_sets((load_default_rule_set(),))
+_SECONDARY_INCLUDE_TOKENS = (
+    _SECONDARY_RULES.strong_include_tokens | _SECONDARY_RULES.medium_include_tokens
+)
+_MAIN_SKELETON_PATTERNS = tuple(
+    re.compile(pattern) for pattern in _SECONDARY_RULES.main_skeleton_patterns
+)
+_AUTOMATIC_BRANCH_MODES = frozenset({
+    "AUTO_MAIN_PATH", "LONGEST_PATH_ONLY", "DIRECTION_CONTINUITY",
+})
+
+
+def branch_auto_eligibility_issue_codes(branch_bone_name, child_names, by_name):
+    """Return stable blockers unless the branch is explicitly secondary physics."""
+    states = tuple(
+        by_name[name]
+        for name in (branch_bone_name, *child_names)
+        if name in by_name
+    )
+    issue_codes = set()
+    has_secondary_evidence = False
+    for state in states:
+        tokens = frozenset(tokenize_bone_name(state.name))
+        normalized_name = normalize_bone_name(state.name)
+        flags = {str(flag).upper() for flag in state.importer_metadata_flags}
+        if state.is_socket or tokens.intersection(_SECONDARY_RULES.socket_tokens) or "SOCKET" in flags:
+            issue_codes.add("UECP_BRANCH_AUTO_SOCKET_FORBIDDEN")
+        if tokens.intersection(_SECONDARY_RULES.ik_control_tokens) or flags.intersection({"IK", "CONTROL"}):
+            issue_codes.add("UECP_BRANCH_AUTO_CONTROL_FORBIDDEN")
+        if tokens.intersection(_SECONDARY_RULES.twist_deform_tokens):
+            issue_codes.add("UECP_BRANCH_AUTO_TWIST_FORBIDDEN")
+        if (
+            tokens.intersection(_SECONDARY_RULES.main_skeleton_tokens)
+            or any(pattern.search(normalized_name) for pattern in _MAIN_SKELETON_PATTERNS)
+        ):
+            issue_codes.add("UECP_BRANCH_AUTO_MAIN_SKELETON_FORBIDDEN")
+        if tokens.intersection(_SECONDARY_RULES.facial_tokens) or not state.use_deform:
+            issue_codes.add("UECP_BRANCH_AUTO_SECONDARY_SEMANTICS_REQUIRED")
+        if tokens.intersection(_SECONDARY_INCLUDE_TOKENS):
+            has_secondary_evidence = True
+    if not has_secondary_evidence:
+        issue_codes.add("UECP_BRANCH_AUTO_SECONDARY_SEMANTICS_REQUIRED")
+    return tuple(sorted(issue_codes))
 
 
 def _distance(first, second):
@@ -170,6 +215,15 @@ def resolve_branch(
     winner = ranked[0]
     runner_up = ranked[1]
     margin = max(0.0, winner.score - runner_up.score)
+    if mode in _AUTOMATIC_BRANCH_MODES:
+        eligibility_issues = branch_auto_eligibility_issue_codes(
+            branch_bone_name, child_names, by_name,
+        )
+        if eligibility_issues:
+            return BranchResolution(
+                branch_bone_name, mode, ranked, None, child_names,
+                winner.score, margin, "BLOCKED", True, eligibility_issues,
+            )
     if winner.score >= defaults.high_score and margin >= defaults.high_margin:
         result = "HIGH"
         requires_confirmation = False

@@ -5,24 +5,82 @@ from __future__ import annotations
 import time
 import tracemalloc
 
+import bpy
+
 from ..contracts import PlanState, TerminalResolutionClass
 from ..core.apply_transaction import apply_plan
 from ..core.fingerprint import current_source_fingerprint, settings_fingerprint
 from ..core.planner import build_plan, last_build_metrics
 from ..core.restore import restore_snapshot
 from ..core.runtime_store import (
-    get_performance, get_plan, has_plan, put_performance, put_plan,
+    FrozenSemanticScope,
+    bind_analysis_scope, get_analysis_scope, get_performance, get_plan, has_plan,
+    put_performance, put_plan,
     put_preview_cache, put_report,
 )
 from ..core.serialization import build_diagnostic_report
 from ..core.validation import capture_neutral_meshes, validate_post_apply
+from ..core.context_guard import ContextStateGuard
 from ..ui.draw import build_plan_cache
 from .preview import PreviewController
 from .selection import SelectionController
 from .session import SessionController
+from .hierarchy_inspection import (
+    HierarchyInspectionController,
+    HierarchyInspectionRuntimeError,
+)
+from .semantic_discovery import (
+    SemanticDiscoveryController,
+    SemanticDiscoveryRuntimeError,
+)
 
 
 class WorkflowController:
+    @staticmethod
+    def _build_analyze_plan(context):
+        with ContextStateGuard(context):
+            if context.object is not None and context.object.mode != "OBJECT":
+                bpy.ops.object.mode_set(mode="OBJECT")
+            context.view_layer.update()
+            scope = WorkflowController._analysis_scope(context)
+            if scope is not None:
+                WorkflowController._validate_scope(context, scope)
+            plan = build_plan(
+                context,
+                scope_names=scope.bone_names if scope is not None else None,
+                scoped_branch_continuations=(
+                    getattr(scope, "manual_branch_continuations", ())
+                    if scope is not None else ()
+                ),
+                required_reference_tip_helper_names=(
+                    getattr(scope, "reference_only_tip_helper_names", ())
+                    if scope is not None else ()
+                ),
+            )
+            return scope, plan
+
+    @staticmethod
+    def _analysis_scope(context):
+        hierarchy_scope = HierarchyInspectionController.analysis_scope(context)
+        semantic_scope = SemanticDiscoveryController.analysis_scope(context)
+        if hierarchy_scope is not None and semantic_scope is not None:
+            raise SemanticDiscoveryRuntimeError("UECP_SCOPE_SOURCE_CONFLICT")
+        return semantic_scope or hierarchy_scope
+
+    @staticmethod
+    def _validate_scope(context, scope) -> None:
+        if isinstance(scope, FrozenSemanticScope):
+            expected_armature = SemanticDiscoveryController.validate_frozen_scope(context, scope)
+        else:
+            expected_armature = HierarchyInspectionController.validate_frozen_scope(context, scope)
+        active_armature, _source = SelectionController.armature_from_context(context)
+        if (
+            active_armature is None
+            or active_armature.name != expected_armature.name
+            or active_armature.data.name != expected_armature.data.name
+        ):
+            raise HierarchyInspectionRuntimeError("UECP_HIERARCHY_ARMATURE_CHANGED")
+
     @staticmethod
     def can_analyze(context) -> bool:
         runtime = getattr(context.window_manager, "uecp_runtime", None)
@@ -31,10 +89,21 @@ class WorkflowController:
     @staticmethod
     def can_apply(context) -> bool:
         runtime = getattr(context.window_manager, "uecp_runtime", None)
-        return bool(runtime and not runtime.is_busy and runtime.state == PlanState.ANALYZED.value
+        if not bool(runtime and not runtime.is_busy and runtime.state == PlanState.ANALYZED.value
                     and runtime.issue_count_blocker == 0 and runtime.plan_id
-                    and has_plan(runtime.plan_id)
-                    and runtime.selection_signature == SelectionController.signature(context))
+                    and has_plan(runtime.plan_id)):
+            return False
+        scope = get_analysis_scope(runtime.plan_id)
+        try:
+            if scope is not None:
+                WorkflowController._validate_scope(context, scope)
+            signature = SelectionController.signature(
+                context,
+                bone_names=scope.bone_names if scope is not None else None,
+            )
+        except (HierarchyInspectionRuntimeError, SemanticDiscoveryRuntimeError):
+            return False
+        return runtime.selection_signature == signature
 
     @staticmethod
     def analyze(context, *, auto_preview: bool) -> set[str]:
@@ -47,7 +116,7 @@ class WorkflowController:
         PreviewController.disable(context)
         try:
             context.window_manager.progress_update(10)
-            plan = build_plan(context)
+            inspection_scope, plan = WorkflowController._build_analyze_plan(context)
             if plan is None:
                 runtime.last_error = "UECP_NO_ACTIVE_ARMATURE"
                 runtime.state = PlanState.IDLE.value
@@ -66,6 +135,7 @@ class WorkflowController:
             cache = build_plan_cache(plan, context.scene.uecp_settings)
             preview_build_time = time.perf_counter() - preview_started
             put_plan(plan)
+            bind_analysis_scope(plan.plan_id, inspection_scope)
             metrics = last_build_metrics()
             metrics.update(
                 tracemalloc_peak=tracemalloc_peak,
@@ -85,7 +155,14 @@ class WorkflowController:
             runtime.plan_summary = f"{len(plan.bone_states)} bones, {len(plan.physics_graph.chains)} chains, {len(plan.issues)} issues"
             runtime.plan_id = plan.plan_id
             runtime.plan_fingerprint = plan.source_fingerprint
-            runtime.selection_signature = SelectionController.signature(context)
+            runtime.selection_signature = SelectionController.signature(
+                context,
+                bone_names=(
+                    inspection_scope.bone_names
+                    if inspection_scope is not None
+                    else None
+                ),
+            )
             runtime.settings_signature = plan.settings_fingerprint
             runtime.state = PlanState.ANALYZED.value
             runtime.generation += 1
@@ -96,6 +173,10 @@ class WorkflowController:
                 PreviewController.enable(context, cache)
             context.window_manager.progress_update(100)
             return {"FINISHED"}
+        except (HierarchyInspectionRuntimeError, SemanticDiscoveryRuntimeError) as exc:
+            runtime.state = PlanState.STALE.value
+            runtime.last_error = str(exc)
+            return {"CANCELLED"}
         except Exception as exc:
             runtime.state = PlanState.ERROR.value
             runtime.last_error = str(exc) or "UECP_INTERNAL_ERROR"
@@ -114,7 +195,24 @@ class WorkflowController:
             runtime.state = PlanState.STALE.value
             runtime.last_error = "UECP_STATE_CHANGED_AFTER_ANALYZE"
             return {"CANCELLED"}
-        if runtime.selection_signature != SelectionController.signature(context):
+        analysis_scope = get_analysis_scope(requested)
+        try:
+            if analysis_scope is not None:
+                WorkflowController._validate_scope(context, analysis_scope)
+            current_selection_signature = SelectionController.signature(
+                context,
+                bone_names=(
+                    analysis_scope.bone_names
+                    if analysis_scope is not None
+                    else None
+                ),
+            )
+        except (HierarchyInspectionRuntimeError, SemanticDiscoveryRuntimeError) as exc:
+            runtime.state = PlanState.STALE.value
+            runtime.last_error = str(exc)
+            PreviewController.disable(context)
+            return {"CANCELLED"}
+        if runtime.selection_signature != current_selection_signature:
             runtime.state = PlanState.STALE.value
             runtime.last_error = "UECP_STATE_CHANGED_AFTER_ANALYZE"
             PreviewController.disable(context)
@@ -140,6 +238,8 @@ class WorkflowController:
             runtime.snapshot_text_name = result.snapshot_text_name
             runtime.snapshot_available = bool(result.success and result.snapshot_text_name)
             if result.success:
+                HierarchyInspectionController.clear(context)
+                SemanticDiscoveryController.clear(context)
                 runtime.state = PlanState.RESTORABLE.value
                 runtime.last_error = ""
                 return {"FINISHED"}

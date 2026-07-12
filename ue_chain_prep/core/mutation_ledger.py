@@ -85,6 +85,19 @@ def build_topology_projection_ledger(
     mutation_record_count,
 ):
     selected_names = {state.name for state in bone_states}
+    selected_real_nodes = tuple(
+        node
+        for node in graph.nodes
+        if node.kind == "REAL_BONE" and node.bone_name in selected_names
+    )
+    mutation_target_names = {
+        node.bone_name for node in selected_real_nodes if node.mutation_target
+    }
+    reference_only_tip_helper_names = {
+        node.bone_name
+        for node in selected_real_nodes
+        if node.reference_only and node.semantic_role == "EXISTING_TIP_HELPER"
+    }
     hierarchy_edges = tuple(edge for edge in graph.edges if edge.kind == "HIERARCHY_SEGMENT")
     counts = {}
     for edge in hierarchy_edges:
@@ -99,7 +112,11 @@ def build_topology_projection_ledger(
         for state in bone_states
         for child_name in state.child_names
     )
-    proposed_names = {proposal.bone_name for proposal in proposals}
+    proposed_mutation_target_names = {
+        proposal.bone_name
+        for proposal in proposals
+        if proposal.bone_name in mutation_target_names
+    }
     return TopologyProjectionLedger(
         selected_bone_count=len(selected_names),
         selected_hierarchy_edge_count=len(hierarchy_edges),
@@ -112,7 +129,11 @@ def build_topology_projection_ledger(
         virtual_tip_count=sum(node.kind == "VIRTUAL_TIP" for node in graph.nodes),
         proposal_count=len(proposals),
         mutation_record_count=int(mutation_record_count),
-        skipped_by_design_count=len(selected_names - proposed_names),
+        skipped_by_design_count=len(
+            selected_names - mutation_target_names - reference_only_tip_helper_names
+        ),
+        mutation_target_count=len(mutation_target_names),
+        reference_only_tip_helper_count=len(reference_only_tip_helper_names),
     )
 
 

@@ -5,10 +5,13 @@ from __future__ import annotations
 import hashlib
 import struct
 
+import bpy
+
 from .armature_reader import read_bone_states
 from .canonical import sha256
 from ..contracts import ALGORITHM_VERSION
 from .mesh_scan_cache import mesh_digest_pair
+from .context_guard import ContextStateGuard
 
 
 def weight_digest(mesh_obj):
@@ -36,7 +39,13 @@ def modifier_digest(mesh_obj):
 
 
 def settings_payload(settings):
-    excluded = {"rna_type", "last_export_directory", "preview_show_joint_graph", "preview_show_virtual_tips", "preview_show_candidate_axes", "preview_show_old_axes", "preview_show_new_axes", "preview_show_weight_centroid", "preview_axis_scale"}
+    excluded = {
+        "rna_type", "last_export_directory", "create_role_collections",
+        "preview_show_joint_graph", "preview_show_virtual_tips",
+        "preview_show_candidate_axes", "preview_show_old_axes",
+        "preview_show_new_axes", "preview_show_weight_centroid",
+        "preview_axis_scale",
+    }
     values = {}
     for prop in settings.bl_rna.properties:
         if prop.identifier in excluded or prop.identifier in {"terminal_overrides", "branch_overrides"} or prop.type == "POINTER":
@@ -80,13 +89,21 @@ def settings_fingerprint(settings):
 def source_fingerprint_from_states(armature, bone_states, mesh_states):
     matrix = tuple(float(armature.matrix_world[row][column]) for row in range(4) for column in range(4))
     meshes = tuple(
-        (state.object_name, state.vertex_group_digest, state.base_mesh_digest, state.modifier_digest)
+        (
+            state.object_name,
+            state.data_name,
+            state.vertex_group_digest,
+            state.base_mesh_digest,
+            state.modifier_digest,
+            state.object_matrix_world,
+            state.mesh_to_armature_matrix,
+        )
         for state in mesh_states
     )
     return sha256((ALGORITHM_VERSION, armature.name, armature.data.name, matrix, bone_states, meshes))
 
 
-def current_source_fingerprint(context, plan):
+def _current_source_fingerprint_object_mode(context, plan):
     armature = context.scene.objects.get(plan.armature_object_name)
     if armature is None or armature.data.name != plan.armature_data_name:
         return ""
@@ -97,6 +114,35 @@ def current_source_fingerprint(context, plan):
         if mesh is None:
             return ""
         current_weight_digest, current_base_mesh_digest = mesh_digest_pair(mesh)
-        meshes.append((mesh.name, current_weight_digest, current_base_mesh_digest, modifier_digest(mesh)))
+        mesh_matrix = tuple(
+            float(mesh.matrix_world[row][column])
+            for row in range(4)
+            for column in range(4)
+        )
+        mesh_to_armature = armature.matrix_world.inverted_safe() @ mesh.matrix_world
+        mesh_to_armature_matrix = tuple(
+            float(mesh_to_armature[row][column])
+            for row in range(4)
+            for column in range(4)
+        )
+        meshes.append(
+            (
+                mesh.name,
+                mesh.data.name,
+                current_weight_digest,
+                current_base_mesh_digest,
+                modifier_digest(mesh),
+                mesh_matrix,
+                mesh_to_armature_matrix,
+            )
+        )
     matrix = tuple(float(armature.matrix_world[row][column]) for row in range(4) for column in range(4))
     return sha256((ALGORITHM_VERSION, armature.name, armature.data.name, matrix, states, tuple(meshes)))
+
+
+def current_source_fingerprint(context, plan):
+    with ContextStateGuard(context):
+        if context.object is not None and context.object.mode != "OBJECT":
+            bpy.ops.object.mode_set(mode="OBJECT")
+        context.view_layer.update()
+        return _current_source_fingerprint_object_mode(context, plan)

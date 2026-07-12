@@ -47,9 +47,13 @@ class MeshScanCacheTests(unittest.TestCase):
         self.assertIsInstance(compact.coordinates, array)
         self.assertIsInstance(compact.weights, array)
         self.assertIsInstance(compact.edges, array)
+        self.assertIsInstance(compact.adjacency_offsets, array)
+        self.assertIsInstance(compact.adjacency_neighbors, array)
         self.assertEqual(compact.indices.typecode, "I")
         self.assertEqual(compact.coordinates.typecode, "d")
         self.assertEqual(compact.weights.typecode, "d")
+        self.assertEqual(len(compact.adjacency_offsets), len(self.mesh.data.vertices) + 1)
+        self.assertGreater(cache.peak_temporary_memory, 0)
 
     def test_analyze_uses_one_vertex_and_membership_pass_per_mesh(self) -> None:
         self.assertEqual(bpy.ops.uecp.analyze(), {"FINISHED"})

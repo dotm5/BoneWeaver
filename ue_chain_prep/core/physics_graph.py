@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 import math
 
 from mathutils import Matrix
@@ -32,8 +33,21 @@ def _rotation(state: BoneState):
     return tuple(float(value) for value in quaternion)
 
 
-def build_physics_graph(bone_states: tuple[BoneState, ...], epsilon: float = 1.0e-7) -> PhysicsGraph:
+def build_physics_graph(
+    bone_states: tuple[BoneState, ...],
+    epsilon: float = 1.0e-7,
+    *,
+    tip_helpers=(),
+    helper_names=(),
+) -> PhysicsGraph:
     by_name = {state.name: state for state in bone_states}
+    classifications = {classification.bone_name: classification for classification in tip_helpers}
+    classified_helper_names = set(classifications).union(str(name) for name in helper_names)
+    excluded_helper_child_names = {
+        child_name
+        for classification in classifications.values()
+        for child_name in classification.excluded_child_names
+    }
     names = tuple(sorted(by_name))
     children = {
         name: tuple(sorted(child for child in by_name[name].child_names if child in by_name))
@@ -76,18 +90,34 @@ def build_physics_graph(bone_states: tuple[BoneState, ...], epsilon: float = 1.0
                 PhysicsEdge(edge_id, "HIERARCHY_SEGMENT", _node_id(parent_name), _node_id(child_name), vector, length, "JOINT_HEAD_HIERARCHY")
             )
 
-    nodes = tuple(
-        PhysicsNode(
-            node_id=_node_id(name), kind="REAL_BONE", bone_name=name,
-            joint_position=tuple(float(value) for value in by_name[name].head),
-            rest_rotation=_rotation(by_name[name]), local_x=by_name[name].local_x,
-            local_y=by_name[name].local_y, local_z=by_name[name].local_z,
-            parent_node_id=_node_id(by_name[name].parent_name) if by_name[name].parent_name in by_name else None,
-            child_node_ids=tuple(_node_id(child) for child in children[name]),
-            is_kinematic=name in root_set, source="BONE_HEAD",
+    nodes_list = []
+    for name in names:
+        classification = classifications.get(name)
+        is_tip_helper = name in classified_helper_names
+        is_excluded_helper_child = name in excluded_helper_child_names
+        is_reference_only = is_tip_helper or is_excluded_helper_child
+        nodes_list.append(
+            PhysicsNode(
+                node_id=_node_id(name), kind="REAL_BONE", bone_name=name,
+                joint_position=tuple(float(value) for value in by_name[name].head),
+                rest_rotation=_rotation(by_name[name]), local_x=by_name[name].local_x,
+                local_y=by_name[name].local_y, local_z=by_name[name].local_z,
+                parent_node_id=_node_id(by_name[name].parent_name) if by_name[name].parent_name in by_name else None,
+                child_node_ids=tuple(_node_id(child) for child in children[name]),
+                is_kinematic=name in root_set,
+                source="EXISTING_TIP_HELPER_HEAD" if is_tip_helper else "BONE_HEAD",
+                semantic_role=(
+                    classification.role if classification is not None
+                    else "EXISTING_TIP_HELPER" if is_tip_helper
+                    else "UNKNOWN_HELPER" if is_excluded_helper_child
+                    else "DEFORM_SEGMENT"
+                ),
+                reference_only=(classification.reference_only if classification is not None else is_reference_only),
+                mutation_target=(classification.mutation_target if classification is not None else not is_reference_only),
+                requires_own_tail=(classification.requires_own_tail if classification is not None else not is_reference_only),
+            )
         )
-        for name in names
-    )
+    nodes = tuple(nodes_list)
 
     chains = []
     for root in roots:
@@ -139,11 +169,27 @@ def with_virtual_tips(graph: PhysicsGraph, solutions) -> PhysicsGraph:
         virtual_id = f"virtual:{bone_name}:{solution.selected_candidate_id}"
         edge_id = f"virtual-tip:{bone_name}:{solution.selected_candidate_id}"
         parent = nodes[node_index[real_id]]
-        virtual = PhysicsNode(virtual_id, "VIRTUAL_TIP", None, solution.tail, None, None, None, None, real_id, (), False, solution.source)
-        nodes[node_index[real_id]] = PhysicsNode(
-            parent.node_id, parent.kind, parent.bone_name, parent.joint_position, parent.rest_rotation,
-            parent.local_x, parent.local_y, parent.local_z, parent.parent_node_id,
-            tuple(sorted(parent.child_node_ids + (virtual_id,))), parent.is_kinematic, parent.source,
+        virtual = PhysicsNode(
+            node_id=virtual_id,
+            kind="VIRTUAL_TIP",
+            bone_name=None,
+            joint_position=solution.tail,
+            rest_rotation=None,
+            local_x=None,
+            local_y=None,
+            local_z=None,
+            parent_node_id=real_id,
+            child_node_ids=(),
+            is_kinematic=False,
+            source=solution.source,
+            semantic_role="UNKNOWN_HELPER",
+            reference_only=True,
+            mutation_target=False,
+            requires_own_tail=False,
+        )
+        nodes[node_index[real_id]] = dataclasses.replace(
+            parent,
+            child_node_ids=tuple(sorted(parent.child_node_ids + (virtual_id,))),
         )
         node_index[virtual_id] = len(nodes)
         nodes.append(virtual)
@@ -163,3 +209,37 @@ def with_virtual_tips(graph: PhysicsGraph, solutions) -> PhysicsGraph:
     payload = {"nodes": nodes_tuple, "edges": edges_tuple, "chains": chains_tuple, "issues": graph.issue_codes}
     graph_id = sha256(payload)
     return PhysicsGraph(graph_id, tuple(node.node_id for node in nodes_tuple), tuple(edge.edge_id for edge in edges_tuple), nodes_tuple, edges_tuple, chains_tuple, graph.issue_codes)
+
+
+def with_skipped_mutation_targets(graph: PhysicsGraph, bone_names) -> PhysicsGraph:
+    """Freeze explicitly KEEP_ORIGINAL bones as ledger-explained non-targets."""
+
+    skipped = {str(name) for name in bone_names}
+    if not skipped:
+        return graph
+    nodes = tuple(
+        dataclasses.replace(
+            node,
+            mutation_target=False,
+            requires_own_tail=False,
+        )
+        if node.kind == "REAL_BONE" and node.bone_name in skipped
+        else node
+        for node in graph.nodes
+    )
+    payload = {
+        "nodes": nodes,
+        "edges": graph.edges,
+        "chains": graph.chains,
+        "issues": graph.issue_codes,
+    }
+    graph_id = sha256(payload)
+    return PhysicsGraph(
+        graph_id,
+        tuple(node.node_id for node in nodes),
+        graph.edge_ids,
+        nodes,
+        graph.edges,
+        graph.chains,
+        graph.issue_codes,
+    )

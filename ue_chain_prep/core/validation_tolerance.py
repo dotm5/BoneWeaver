@@ -97,6 +97,20 @@ def _point_count(coordinates) -> int:
     return len(coordinates) // 3 if _is_flat_coordinates(coordinates) else len(coordinates)
 
 
+def _coordinates_are_finite(coordinates) -> bool:
+    """Return whether a coordinate buffer is structurally valid and finite."""
+    try:
+        if _is_flat_coordinates(coordinates) and len(coordinates) % 3:
+            return False
+        return all(
+            len(point) >= 3
+            and all(math.isfinite(float(point[index])) for index in range(3))
+            for point in _iter_points(coordinates)
+        )
+    except (TypeError, ValueError, OverflowError, IndexError):
+        return False
+
+
 def _bbox_diagonal(coordinates, minimum_scale_floor: float) -> float:
     if not coordinates:
         return float(minimum_scale_floor)
@@ -140,8 +154,29 @@ def evaluate_mesh_tolerance(
 ) -> MeshValidationResult:
     """Compare one mesh and return a complete, deterministic tolerance report."""
     mode_value = getattr(mode, "value", mode)
-    mesh_scale = _bbox_diagonal(before.local_coordinates, defaults.minimum_scale_floor)
-    magnitude = max((abs(float(value)) for point in _iter_points(before.local_coordinates) for value in point), default=0.0)
+    before_valid = _coordinates_are_finite(before.local_coordinates)
+    after_valid = _coordinates_are_finite(after.local_coordinates)
+    point_counts_match = _point_count(before.local_coordinates) == _point_count(after.local_coordinates)
+    baseline_valid = (
+        math.isfinite(float(baseline_max_delta))
+        and math.isfinite(float(baseline_rms_delta))
+        and float(baseline_max_delta) >= 0.0
+        and float(baseline_rms_delta) >= 0.0
+    )
+    measurement_valid = before_valid and after_valid and point_counts_match and baseline_valid
+    mesh_scale = (
+        _bbox_diagonal(before.local_coordinates, defaults.minimum_scale_floor)
+        if before_valid
+        else float(defaults.minimum_scale_floor)
+    )
+    magnitude = max(
+        (
+            abs(float(value))
+            for point in _iter_points(before.local_coordinates)
+            for value in point
+        ),
+        default=0.0,
+    ) if before_valid else 0.0
     ulp_budget = float32_ulp(magnitude) * defaults.float32_ulp_multiplier
     if mode_value == "STRICT_TEST":
         soft_limit = max(defaults.absolute_floor, mesh_scale * defaults.strict_relative_factor)
@@ -151,7 +186,10 @@ def evaluate_mesh_tolerance(
         soft_limit = max(
             defaults.absolute_floor,
             mesh_scale * defaults.auto_relative_factor,
-            float(baseline_max_delta) * defaults.baseline_noise_multiplier,
+            (
+                float(baseline_max_delta) * defaults.baseline_noise_multiplier
+                if baseline_valid else 0.0
+            ),
             ulp_budget,
         )
     else:
@@ -160,14 +198,27 @@ def evaluate_mesh_tolerance(
     maximum, mean, rms, soft_count, hard_count = coordinate_delta_metrics(
         before.local_coordinates, after.local_coordinates, soft_limit=soft_limit, hard_limit=hard_limit,
     )
-    world_maximum, _, _, _, _ = coordinate_delta_metrics(before.world_coordinates, after.world_coordinates)
+    if not all(math.isfinite(value) for value in (maximum, mean, rms)):
+        maximum = mean = rms = hard_limit * defaults.hard_limit_multiplier
+        soft_count = hard_count = max(_point_count(before.local_coordinates), 1)
+    world_valid = (
+        _coordinates_are_finite(before.world_coordinates)
+        and _coordinates_are_finite(after.world_coordinates)
+        and _point_count(before.world_coordinates) == _point_count(after.world_coordinates)
+    )
+    world_maximum = (
+        coordinate_delta_metrics(before.world_coordinates, after.world_coordinates)[0]
+        if world_valid else 0.0
+    )
     vertex_count = _point_count(before.local_coordinates)
     soft_ratio = soft_count / vertex_count if vertex_count else 0.0
     allowed_outliers = max(
         defaults.minimum_outlier_allowance,
         math.ceil(vertex_count * defaults.outlier_ratio_allowance),
     )
-    if maximum <= soft_limit:
+    if not measurement_valid:
+        result = "FAIL_AND_ROLLBACK"
+    elif maximum <= soft_limit:
         result = "PASS"
     elif (
         maximum <= hard_limit
@@ -185,8 +236,8 @@ def evaluate_mesh_tolerance(
         tolerance_mode=str(mode_value),
         soft_limit=soft_limit,
         hard_limit=hard_limit,
-        baseline_max_delta=float(baseline_max_delta),
-        baseline_rms_delta=float(baseline_rms_delta),
+        baseline_max_delta=(float(baseline_max_delta) if baseline_valid else 0.0),
+        baseline_rms_delta=(float(baseline_rms_delta) if baseline_valid else 0.0),
         float32_ulp_budget=ulp_budget,
         max_delta=maximum,
         mean_delta=mean,

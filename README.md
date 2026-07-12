@@ -8,7 +8,7 @@ The `REST_ONLY_STRICT` MVP changes only selected bones' `tail`, `roll`, and `use
 
 ## Install
 
-Install `dist/ue_chain_prep-0.1.3.zip` through Blender Preferences → Extensions → Install from Disk. The extension has no external Python dependencies.
+Install `dist/ue_chain_prep-0.2.0.zip` through Blender Preferences → Extensions → Install from Disk. The extension has no external Python dependencies.
 
 ## Recommended workflow
 
@@ -24,7 +24,7 @@ The default roll mode is Minimal Twist. Parallel Transport is opt-in. Virtual ti
 
 ## Important limitation
 
-Version 0.1.3 is a physics-preparation tool, not a UE animation-basis retargeter. Active Actions, NLA, drivers, non-identity pose, related constraints, ambiguous branches, connected external children, and low-confidence terminal solutions block Apply.
+Version 0.2.0 is a physics-preparation tool, not a UE animation-basis retargeter. Active Actions, NLA, drivers, non-identity pose, related constraints, ambiguous branches, connected external children, and low-confidence terminal solutions block Apply.
 
 ## BoneX 1.2.6 on Blender 5.2
 
@@ -34,4 +34,15 @@ See [architecture](docs/architecture.md), [algorithms](docs/algorithms.md), [saf
 
 ## Backend hardening
 
-The production default now uses per-mesh evaluated object-local neutral validation, safe parent-chain leaf fallback, clustered terminal evidence, scored branch continuation, topology-aware weight islands, scoped idempotent overrides, mutation/topology ledgers, a hard conversion-export gate, and independent reopen validation. These changes do not add normal-workflow buttons or change the panel layout. See [validation tolerance](docs/validation-tolerance.md), [branch resolution](docs/branch-resolution.md), and [export contract](docs/export-contract.md).
+The production default now uses per-mesh evaluated object-local neutral validation, safe parent-chain leaf fallback, clustered terminal evidence, scored branch continuation, topology-aware weight islands, scoped idempotent overrides, mutation/topology ledgers, a hard conversion-export gate, and independent reopen validation. See [validation tolerance](docs/validation-tolerance.md), [branch resolution](docs/branch-resolution.md), and [export contract](docs/export-contract.md).
+
+## Hierarchy and semantic selection (unreleased)
+
+The current development branch adds five hierarchy inspection modes, cached
+Parent/Root/Descendant overlays, explicit branch continuation, and confirmed
+semantic secondary-chain discovery. Inspection and discovery are read-only;
+selection changes only through their named Select actions, and a frozen scope is
+used only after an explicit Use action. The `VISUAL_CHAIN_CLEANUP` profile is
+also opt-in and never replaces the production default automatically. See
+[hierarchy selection](docs/hierarchy-selection.md), [semantic discovery](docs/semantic-chain-discovery.md),
+and [visual cleanup](docs/visual-chain-cleanup.md).

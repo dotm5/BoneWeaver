@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.2.0 - 2026-07-12
+
+- Upgraded conversion plans to schema 4.0.0 and the v4 Tip Helper / branch /
+  weight-island / visual-cleanup algorithm contract.
+- Added conservative Existing Tip Helper classification, reference-only default
+  semantics, explicit optional physics-terminal use, and frozen identity checks.
+- Added policy-driven per-Mesh weight-island handling backed by a shared compact
+  CSR topology index, plus Armature-scoped override retention.
+- Hardened Analyze, Apply, Restore, export, and reopen gates against Edit Mode
+  stale data, object/data transform drift, mirror-state loss, and whole-Armature
+  conflicts.
+- Added five hierarchy inspection modes, deterministic frozen scopes, manual
+  branch continuation, cached three-role viewport overlays, and lifecycle-safe
+  hierarchy selection operators.
+- Added confirmed semantic secondary-chain discovery with layered default →
+  Source Adapter → game → user rules, explicit unavailable-weight evidence, and
+  full Armature fingerprint invalidation.
+- Added the opt-in `VISUAL_CHAIN_CLEANUP` profile; no automatic migration or
+  silent profile switch is performed.
+
 ## 0.1.3 - 2026-07-12
 
 - Fixed preview-line visibility by passing the actual GPU viewport dimensions to the shader's `viewportSize` uniform.

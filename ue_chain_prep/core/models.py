@@ -40,6 +40,20 @@ class BoneState:
 
 
 @dataclass(frozen=True, slots=True)
+class TipHelperClassification:
+    bone_name: str
+    parent_bone_name: str
+    role: str
+    reference_only: bool
+    mutation_target: bool
+    requires_own_tail: bool
+    source: str
+    confidence: float
+    evidence: tuple[str, ...]
+    excluded_child_names: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
 class MeshBindingRef:
     object_name: str
     modifier_name: str
@@ -69,6 +83,10 @@ class PhysicsNode:
     child_node_ids: tuple[str, ...]
     is_kinematic: bool
     source: str
+    semantic_role: str = "DEFORM_SEGMENT"
+    reference_only: bool = False
+    mutation_target: bool = True
+    requires_own_tail: bool = True
 
 
 @dataclass(frozen=True, slots=True)
@@ -281,6 +299,8 @@ class TopologyProjectionLedger:
     proposal_count: int
     mutation_record_count: int
     skipped_by_design_count: int
+    mutation_target_count: int = 0
+    reference_only_tip_helper_count: int = 0
 
 
 @dataclass(frozen=True, slots=True)
@@ -333,6 +353,8 @@ class ConversionPlan:
     issues: tuple[ValidationIssue, ...]
     branch_resolutions: tuple[BranchResolution, ...] = ()
     topology_ledger: TopologyProjectionLedger | None = None
+    tip_helpers: tuple[TipHelperClassification, ...] = ()
+    tip_helper_usage: str = "REFERENCE_ONLY"
 
 
 @dataclass(frozen=True, slots=True)

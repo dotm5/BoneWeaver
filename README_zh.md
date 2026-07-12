@@ -4,7 +4,7 @@ UE Chain Prep 是 Blender 4.2+ 扩展。它把 UE 导入骨架的 Bone Head 与�
 
 ## 安装
 
-在 Blender“偏好设置 → 扩展 → 从磁盘安装”中选择 `dist/ue_chain_prep-0.1.3.zip`。插件不依赖 NumPy、pytest 或其他外部 Python 包。
+在 Blender“偏好设置 → 扩展 → 从磁盘安装”中选择 `dist/ue_chain_prep-0.2.0.zip`。插件不依赖 NumPy、pytest 或其他外部 Python 包。
 
 标准交互已简化为：选择骨骼链和目标用途 → “检查并预览” → “应用转换”。算法阈值位于高级设置，结果/恢复单独分层，Plan ID、Fingerprint 和原始 Issue Code 默认隐藏。完整说明见 [用户工作流](docs/user-workflow.md)。
 
@@ -36,7 +36,7 @@ Active Action/NLA/Driver、非单位 Pose、相关 Constraint、Bone-parented ob
 
 ## 动画警告
 
-v0.1.3 是 Physics Preparation 工具，不是 UE 动画 Basis 重定向工具。转换后继续直接导入 UE 动画可能需要 Basis Rebase。
+v0.2.0 是 Physics Preparation 工具，不是 UE 动画 Basis 重定向工具。转换后继续直接导入 UE 动画可能需要 Basis Rebase。
 
 ## Blender 5.2 下的 BoneX 1.2.6
 
@@ -46,4 +46,13 @@ BoneX 1.2.6 的 Soft Connection 面板可能在 `draw()` 中初始化 `Object["b
 
 ## 后端稳健性
 
-生产默认现已使用逐 Mesh 的 evaluated object-local 中性验证、父链安全 Leaf 回退、候选方向聚类、分叉主延续评分、权重岛保护、带 Armature 指纹的幂等 Override、字段级 Mutation/Topology 账本、导出硬 Gate 与独立 Blender 重开验证。本轮不增加普通工作流按钮，也不改变主面板布局。详见 [容差合同](docs/validation-tolerance.md)、[分叉解析](docs/branch-resolution.md) 与 [导出合同](docs/export-contract.md)。
+生产默认现已使用逐 Mesh 的 evaluated object-local 中性验证、父链安全 Leaf 回退、候选方向聚类、分叉主延续评分、权重岛保护、带 Armature 指纹的幂等 Override、字段级 Mutation/Topology 账本、导出硬 Gate 与独立 Blender 重开验证。详见 [容差合同](docs/validation-tolerance.md)、[分叉解析](docs/branch-resolution.md) 与 [导出合同](docs/export-contract.md)。
+
+## 层级与语义选择（开发中）
+
+当前开发分支新增五种层级检查模式、缓存式 Parent/Root/Descendant
+Overlay、显式分叉延续选择，以及必须确认后才能使用的语义次级链发现。
+Inspection 与 Discovery 本身只读；只有具名的 Select 操作会改变选择，且
+必须再次执行 Use 才会冻结为 Analyze Scope。`VISUAL_CHAIN_CLEANUP` 也是
+显式选择项，不会自动替换生产默认 Profile。详见 [层级选择](docs/hierarchy-selection.md)、
+[语义发现](docs/semantic-chain-discovery.md) 与 [视觉整理](docs/visual-chain-cleanup.md)。

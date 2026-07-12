@@ -63,6 +63,40 @@ def mesh_digest_pair(mesh_obj):
     return weight_digest.hexdigest(), base_digest.hexdigest()
 
 
+def _compact_topology(mesh):
+    """Build a shared CSR adjacency index once for every bone on this mesh."""
+    vertex_total = len(mesh.vertices)
+    degrees = array("I", [0]) * vertex_total
+    edge_buffer = array("I")
+    for edge in mesh.edges:
+        first, second = (int(index) for index in edge.vertices)
+        if first > second:
+            first, second = second, first
+        edge_buffer.extend((first, second))
+        degrees[first] += 1
+        degrees[second] += 1
+
+    offsets = array("I", [0])
+    running = 0
+    for degree in degrees:
+        running += int(degree)
+        offsets.append(running)
+    neighbors = array("I", [0]) * running
+    cursors = array("I", offsets[:-1])
+    for offset in range(0, len(edge_buffer), 2):
+        first = int(edge_buffer[offset])
+        second = int(edge_buffer[offset + 1])
+        neighbors[cursors[first]] = second
+        cursors[first] += 1
+        neighbors[cursors[second]] = first
+        cursors[second] += 1
+    working_bytes = sum(
+        buffer.buffer_info()[1] * buffer.itemsize
+        for buffer in (edge_buffer, degrees, offsets, neighbors, cursors)
+    )
+    return edge_buffer, offsets, neighbors, working_bytes
+
+
 @dataclass(frozen=True, slots=True)
 class MeshScanResult:
     object_name: str
@@ -154,24 +188,35 @@ class MeshScanCache:
                     coordinates.extend(float(value) for value in position)
                     weights.append(statistical_weight)
             _finish_base_digest(base_hasher, mesh)
-            edge_buffer = array("I")
-            for edge in sorted(tuple(sorted(tuple(edge.vertices))) for edge in mesh.edges):
-                edge_buffer.extend(edge)
+            (
+                edge_buffer,
+                adjacency_offsets,
+                adjacency_neighbors,
+                topology_working_bytes,
+            ) = _compact_topology(mesh)
             for name, (indices, coordinates, weights) in builders.items():
                 if indices:
                     per_bone[name].append(
                         CompactPerMeshWeightedInput(
-                            mesh_obj.name, indices, coordinates, weights, edge_buffer,
+                            mesh_obj.name,
+                            indices,
+                            coordinates,
+                            weights,
+                            edge_buffer,
+                            adjacency_offsets,
+                            adjacency_neighbors,
                         )
                     )
-                    peak_memory = max(
-                        peak_memory,
-                        indices.buffer_info()[1] * indices.itemsize
-                        + coordinates.buffer_info()[1] * coordinates.itemsize
-                        + weights.buffer_info()[1] * weights.itemsize
-                        + edge_buffer.buffer_info()[1] * edge_buffer.itemsize
-                        + len(areas) * 8,
-                    )
+            builder_bytes = sum(
+                indices.buffer_info()[1] * indices.itemsize
+                + coordinates.buffer_info()[1] * coordinates.itemsize
+                + weights.buffer_info()[1] * weights.itemsize
+                for indices, coordinates, weights in builders.values()
+            )
+            peak_memory = max(
+                peak_memory,
+                builder_bytes + topology_working_bytes + len(areas) * 8,
+            )
             scans.append(
                 MeshScanResult(
                     mesh_obj.name,

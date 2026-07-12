@@ -27,9 +27,13 @@ class SecondaryBoneCategory(StableSemanticEnum):
     CAPE = "CAPE"
     TAIL = "TAIL"
     EARRING = "EARRING"
+    STRAP = "STRAP"
     ACCESSORY = "ACCESSORY"
+    BAG = "BAG"
     BAG_OR_STRAP = "BAG_OR_STRAP"
     BELT = "BELT"
+    SCARF = "SCARF"
+    TASSEL = "TASSEL"
     CLOTH = "CLOTH"
     CHEST_SECONDARY = "CHEST_SECONDARY"
     PHYSICS_EXPLICIT = "PHYSICS_EXPLICIT"
@@ -66,6 +70,8 @@ class SemanticBoneEvidence:
     exclusion_penalty: float
     reason_codes: tuple[str, ...]
     geometry_projection_need: str = GeometryProjectionNeed.UNRESOLVED.value
+    discovery_class: str = SemanticDiscoveryClass.AMBIGUOUS.value
+    discovery_score: float = 0.0
 
 
 @dataclass(frozen=True, slots=True)

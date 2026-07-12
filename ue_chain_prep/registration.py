@@ -12,6 +12,7 @@ from .translations import unregister as unregister_translations
 from .ui import UI_CLASSES
 from .controllers.session import SessionController
 from .controllers.preview import PreviewController
+from .controllers.hierarchy_overlay import HierarchyOverlayController
 
 
 CLASSES = PROPERTY_CLASSES + OPERATOR_CLASSES + UI_CLASSES
@@ -36,6 +37,7 @@ def register() -> None:
     except Exception:
         SessionController.unregister_handlers()
         PreviewController.disable(bpy.context)
+        HierarchyOverlayController.disable(bpy.context)
         clear_plans()
         if properties_attempted:
             unregister_properties()
@@ -53,10 +55,12 @@ def unregister() -> None:
     if not _registered:
         SessionController.unregister_handlers()
         PreviewController.disable(bpy.context)
+        HierarchyOverlayController.disable(bpy.context)
         clear_plans()
         return
     SessionController.unregister_handlers()
     PreviewController.disable(bpy.context)
+    HierarchyOverlayController.disable(bpy.context)
     clear_plans()
     unregister_properties()
     unregister_translations()

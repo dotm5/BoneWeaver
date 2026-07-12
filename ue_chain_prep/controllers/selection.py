@@ -44,9 +44,16 @@ class SelectionController:
             return False
         context.view_layer.objects.active = armature
         armature.select_set(True)
+        if context.mode == "POSE" and context.object == armature:
+            try:
+                import bpy
+                bpy.ops.pose.select_all(action="DESELECT")
+            except RuntimeError:
+                pass
         for pose_bone in armature.pose.bones:
             pose_bone.select = pose_bone.name == bone_name
         armature.data.bones.active = armature.data.bones[bone_name]
+        context.view_layer.update()
         area = getattr(context, "area", None)
         if area is not None and area.type == "VIEW_3D":
             region = next((item for item in area.regions if item.type == "WINDOW"), None)

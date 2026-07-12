@@ -178,7 +178,12 @@ def remove_stale_overrides(settings, *, armature_data_name, armature_structural_
             item_fingerprint = item.armature_structural_fingerprint
             if not item_data_name and not item_fingerprint:
                 continue
-            if item_data_name != armature_data_name or item_fingerprint != armature_structural_fingerprint:
+            # Overrides are scoped independently per Armature datablock.  A
+            # cleanup for RigA must never discard a still-valid RigB entry.
+            if (
+                item_data_name == armature_data_name
+                and item_fingerprint != armature_structural_fingerprint
+            ):
                 collection.remove(index)
                 removed += 1
     return removed

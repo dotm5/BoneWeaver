@@ -21,6 +21,14 @@ class UECP_PT_main(bpy.types.Panel):
         if view.target.source_kind == "ARMATURE_MODIFIER":
             box.label(text="来源：当前模型的骨架修改器")
         layout.prop(context.scene.uecp_settings, "physics_profile", text="目标用途")
+        if context.scene.uecp_settings.physics_profile == "VISUAL_CHAIN_CLEANUP":
+            layout.label(text="仅用于不保留原 UE 动画的显式视觉整理", icon="ERROR")
+            layout.prop(
+                context.scene.uecp_settings,
+                "tip_helper_usage",
+                text="末端提示骨",
+            )
+            layout.label(text="分叉只接受手动指定的主延续", icon="INFO")
         if view.result:
             result_box = layout.box()
             result_box.label(text=view.result.title, icon="CHECKMARK" if not view.result.blocker_count else "ERROR")

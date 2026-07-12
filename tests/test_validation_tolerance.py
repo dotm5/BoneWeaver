@@ -95,6 +95,38 @@ class ValidationToleranceTests(unittest.TestCase):
         self.assertEqual(result.baseline_rms_delta, 1.0e-7)
         self.assertEqual(before.local_coordinates[-1], (1.0, 0.0, 0.0))
 
+    def test_nonfinite_baseline_cannot_expand_auto_limit_to_infinity(self) -> None:
+        before = capture("Mesh", ((0, 0, 0), (1, 0, 0)))
+        after = capture("Mesh", ((0, 0, 0), (1001, 0, 0)))
+        result = evaluate_mesh_tolerance(
+            before,
+            after,
+            mode="AUTO_PRODUCTION",
+            baseline_max_delta=math.inf,
+            baseline_rms_delta=math.inf,
+        )
+        self.assertTrue(math.isfinite(result.soft_limit))
+        self.assertTrue(math.isfinite(result.hard_limit))
+        self.assertEqual(result.result, "FAIL_AND_ROLLBACK")
+
+    def test_point_count_mismatch_and_nonfinite_coordinates_fail_closed(self) -> None:
+        before = capture("Mesh", ((0, 0, 0), (1, 0, 0)))
+        count_mismatch = capture("Mesh", ((0, 0, 0),))
+        mismatch_result = evaluate_mesh_tolerance(
+            before, count_mismatch, mode="AUTO_PRODUCTION",
+        )
+        self.assertEqual(mismatch_result.result, "FAIL_AND_ROLLBACK")
+
+        nonfinite = MeshCoordinateCapture(
+            "Mesh",
+            ((0.0, 0.0, 0.0), (math.nan, 0.0, 0.0)),
+            ((0.0, 0.0, 0.0), (math.nan, 0.0, 0.0)),
+        )
+        nonfinite_result = evaluate_mesh_tolerance(
+            before, nonfinite, mode="AUTO_PRODUCTION",
+        )
+        self.assertEqual(nonfinite_result.result, "FAIL_AND_ROLLBACK")
+
     def test_world_space_is_diagnostic_and_does_not_change_local_result(self) -> None:
         before = capture("Mesh", ((0, 0, 0), (1, 0, 0)), world_scale=1000.0)
         local_after = ((0, 0, 0), (1.0000002, 0, 0))

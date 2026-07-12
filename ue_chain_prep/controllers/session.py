@@ -8,11 +8,41 @@ from bpy.app.handlers import persistent
 from ..contracts import PlanState
 from ..core.runtime_store import clear_plans
 from ..core.runtime_store import get_plan, has_plan
+from ..core.runtime_store import get_hierarchy_inspection, get_semantic_discovery
 from .preview import PreviewController
+from .hierarchy_overlay import HierarchyOverlayController
 from ..core.snapshot_availability import discover_latest_restorable_snapshot
 
 
 class SessionController:
+    @staticmethod
+    def _clear_semantic_runtime(runtime) -> None:
+        runtime.semantic_discovery_active = False
+        runtime.semantic_scope_used = False
+        runtime.semantic_discovery_plan_id = ""
+        runtime.semantic_armature_fingerprint = ""
+        runtime.semantic_source_filepath = ""
+        runtime.semantic_chain_count = 0
+        runtime.semantic_confirmed_count = 0
+        runtime.semantic_active_chain_index = 0
+
+    @staticmethod
+    def _clear_hierarchy_runtime(runtime) -> None:
+        runtime.hierarchy_inspection_active = False
+        runtime.hierarchy_scope_used = False
+        runtime.hierarchy_inspection_id = ""
+        runtime.hierarchy_active_bone_name = ""
+        runtime.hierarchy_parent_context_name = ""
+        runtime.hierarchy_armature_fingerprint = ""
+        runtime.hierarchy_source_filepath = ""
+        runtime.hierarchy_bone_count = 0
+        runtime.hierarchy_branch_count = 0
+        runtime.hierarchy_tip_helper_count = 0
+        runtime.hierarchy_excluded_helper_count = 0
+        runtime.hierarchy_overlay_enabled = False
+        runtime.hierarchy_branch_bone_name = ""
+        runtime.hierarchy_selected_child_name = ""
+
     @staticmethod
     def _clear_collections(context) -> None:
         wm = context.window_manager
@@ -22,10 +52,18 @@ class SessionController:
                 collection.clear()
 
     @staticmethod
+    def _clear_semantic_collection(context) -> None:
+        collection = getattr(context.window_manager, "uecp_semantic_chain_items", None)
+        if collection is not None:
+            collection.clear()
+
+    @staticmethod
     def clear_analysis(context) -> None:
         PreviewController.disable(context)
+        HierarchyOverlayController.disable(context)
         clear_plans()
         SessionController._clear_collections(context)
+        SessionController._clear_semantic_collection(context)
         runtime = context.window_manager.uecp_runtime
         runtime.state = PlanState.IDLE.value
         runtime.plan_id = ""
@@ -46,6 +84,8 @@ class SessionController:
         runtime.details_loaded = False
         runtime.last_error = ""
         runtime.is_busy = False
+        SessionController._clear_hierarchy_runtime(runtime)
+        SessionController._clear_semantic_runtime(runtime)
 
     @staticmethod
     def reset_session(context) -> None:
@@ -92,8 +132,10 @@ class SessionController:
     @staticmethod
     def invalidate_for_scene_change(context, reason: str) -> None:
         PreviewController.disable(context)
+        HierarchyOverlayController.disable(context)
         clear_plans()
         SessionController._clear_collections(context)
+        SessionController._clear_semantic_collection(context)
         runtime = getattr(context.window_manager, "uecp_runtime", None)
         if runtime is None:
             return
@@ -103,6 +145,8 @@ class SessionController:
         runtime.active_issue_index = 0
         runtime.last_error = "UECP_SCENE_CHANGED_RECHECK"
         runtime.is_busy = False
+        SessionController._clear_hierarchy_runtime(runtime)
+        SessionController._clear_semantic_runtime(runtime)
 
     @staticmethod
     @persistent
@@ -129,6 +173,36 @@ class SessionController:
         if hasattr(bpy.context.window_manager, "uecp_runtime"):
             SessionController.invalidate_for_scene_change(bpy.context, "undo_redo")
 
+    @staticmethod
+    @persistent
+    def on_depsgraph_update_post(_scene, depsgraph):
+        runtime = getattr(bpy.context.window_manager, "uecp_runtime", None)
+        hierarchy_session = get_hierarchy_inspection()
+        semantic_session = get_semantic_discovery()
+        if (
+            runtime is None
+            or runtime.is_busy
+            or (hierarchy_session is None and semantic_session is None)
+        ):
+            return
+        armature_names = {
+            session.plan.armature_object_name
+            for session in (hierarchy_session, semantic_session)
+            if session is not None
+        }
+        armatures = tuple(bpy.data.objects.get(name) for name in armature_names)
+        if any(armature is None for armature in armatures):
+            SessionController.invalidate_for_scene_change(bpy.context, "hierarchy_missing")
+            return
+        if any(
+            any(
+                getattr(update, "id", None) in (armature, armature.data)
+                for armature in armatures
+            )
+            for update in depsgraph.updates
+        ):
+            SessionController.invalidate_for_scene_change(bpy.context, "hierarchy_geometry")
+
     @classmethod
     def register_handlers(cls) -> None:
         for collection, callback in (
@@ -136,6 +210,7 @@ class SessionController:
             (bpy.app.handlers.load_post, cls.on_load_post),
             (bpy.app.handlers.undo_post, cls.on_undo_post),
             (bpy.app.handlers.redo_post, cls.on_redo_post),
+            (bpy.app.handlers.depsgraph_update_post, cls.on_depsgraph_update_post),
         ):
             if callback not in collection:
                 collection.append(callback)
@@ -147,6 +222,7 @@ class SessionController:
             (bpy.app.handlers.load_post, cls.on_load_post),
             (bpy.app.handlers.undo_post, cls.on_undo_post),
             (bpy.app.handlers.redo_post, cls.on_redo_post),
+            (bpy.app.handlers.depsgraph_update_post, cls.on_depsgraph_update_post),
         ):
             while callback in collection:
                 collection.remove(callback)

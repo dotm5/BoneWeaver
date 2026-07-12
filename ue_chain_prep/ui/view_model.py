@@ -237,6 +237,7 @@ _PROFILE_LABELS = {
     "WIGGLE2_ROTATION_CHAIN": "Wiggle · 稳定旋转链",
     "WIGGLE2_STRETCH_CHAIN": "Wiggle · 可伸缩链",
     "GEOMETRY_ONLY": "仅整理骨骼链",
+    "VISUAL_CHAIN_CLEANUP": "主体骨视觉整理",
 }
 
 

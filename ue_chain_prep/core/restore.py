@@ -4,16 +4,28 @@ from __future__ import annotations
 
 import json
 import math
+from contextlib import contextmanager
 
 import bpy
 from mathutils import Vector
 
 from .context_guard import ContextStateGuard
 from .fingerprint import modifier_digest, weight_digest
+from .validation import armature_state_matches
 
 
 def _roll_distance(first, second):
     return abs((first - second + math.pi) % (2.0 * math.pi) - math.pi)
+
+
+@contextmanager
+def _mirror_disabled(armature):
+    original = bool(armature.data.use_mirror_x)
+    armature.data.use_mirror_x = False
+    try:
+        yield
+    finally:
+        armature.data.use_mirror_x = original
 
 
 def restore_snapshot(context, text_name):
@@ -35,9 +47,13 @@ def restore_snapshot(context, text_name):
             return False, "UECP_RESTORE_CONFLICT"
     expected = payload["expected_post_bones"]
     pre = payload["pre_bones"]
-    with ContextStateGuard(context):
+    with ContextStateGuard(context), _mirror_disabled(armature):
         if context.object and context.object.mode != "OBJECT":
             bpy.ops.object.mode_set(mode="OBJECT")
+        context.view_layer.update()
+        whole_post_state = payload.get("whole_armature_post_state")
+        if whole_post_state and not armature_state_matches(armature, whole_post_state):
+            return False, "UECP_RESTORE_CONFLICT"
         bpy.ops.object.select_all(action="DESELECT")
         armature.select_set(True)
         context.view_layer.objects.active = armature

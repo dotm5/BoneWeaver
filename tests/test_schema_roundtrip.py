@@ -14,17 +14,20 @@ class SchemaAndManifestTests(unittest.TestCase):
     def test_manifest_identity(self) -> None:
         manifest = tomllib.loads((PACKAGE / "blender_manifest.toml").read_text(encoding="utf-8"))
         self.assertEqual(manifest["id"], "ue_chain_prep")
-        self.assertEqual(manifest["version"], "0.1.3")
+        self.assertEqual(manifest["version"], "0.2.0")
         self.assertEqual(manifest["blender_version_min"], "4.2.0")
         self.assertEqual(manifest["type"], "add-on")
 
     def test_all_schema_documents_parse_and_are_closed(self) -> None:
         expected = {
-            "settings.schema.json": "uecp://schema/settings/3.1.0",
-            "conversion-plan.schema.json": "uecp://schema/conversion-plan/3.1.0",
-            "snapshot.schema.json": "uecp://schema/snapshot/3.1.0",
-            "diagnostic-report.schema.json": "uecp://schema/diagnostic-report/3.1.0",
-            "export-manifest.schema.json": "uecp://schema/export-manifest/3.1.0",
+            "settings.schema.json": "uecp://schema/settings/4.0.0",
+            "conversion-plan.schema.json": "uecp://schema/conversion-plan/4.0.0",
+            "snapshot.schema.json": "uecp://schema/snapshot/4.0.0",
+            "diagnostic-report.schema.json": "uecp://schema/diagnostic-report/4.0.0",
+            "export-manifest.schema.json": "uecp://schema/export-manifest/4.0.0",
+            "hierarchy-inspection.schema.json": "uecp://schema/hierarchy-inspection/1.0.0",
+            "semantic-rule-set.schema.json": "uecp://schemas/semantic-rule-set.schema.json",
+            "semantic-discovery-plan.schema.json": "uecp://schemas/semantic-discovery-plan/2.0.0",
         }
         for filename, schema_id in expected.items():
             with self.subTest(filename=filename):

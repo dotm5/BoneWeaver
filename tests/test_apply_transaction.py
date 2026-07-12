@@ -10,6 +10,7 @@ from tests.fixture_builders import clear_scene, make_bag_branch, make_bound_mesh
 from ue_chain_prep.core.apply_transaction import apply_plan
 from ue_chain_prep.core.runtime_store import get_plan
 from ue_chain_prep.core.runtime_store import get_performance
+from ue_chain_prep.controllers.workflow import WorkflowController
 
 
 class ApplyTransactionTests(unittest.TestCase):
@@ -75,6 +76,24 @@ class ApplyTransactionTests(unittest.TestCase):
         self.assertEqual(bpy.ops.uecp.apply(plan_id=plan_id), {"CANCELLED"})
         self.assertEqual(runtime.state, "STALE")
 
+    def test_edit_mode_change_is_flushed_before_apply_stale_check(self) -> None:
+        bpy.ops.uecp.analyze()
+        runtime = bpy.context.window_manager.uecp_runtime
+        plan_id = runtime.plan_id
+        bpy.context.view_layer.objects.active = self.rig
+        bpy.ops.object.mode_set(mode="EDIT")
+        edit_bone = self.rig.data.edit_bones["Bone_0"]
+        edit_bone.tail.x += 0.375
+        changed_tail = tuple(edit_bone.tail)
+
+        self.assertEqual(
+            WorkflowController.apply(bpy.context, requested_plan_id=plan_id),
+            {"CANCELLED"},
+        )
+        self.assertEqual(runtime.state, "STALE")
+        self.assertEqual(bpy.context.mode, "EDIT_ARMATURE")
+        self.assertEqual(tuple(self.rig.data.edit_bones["Bone_0"].tail), changed_tail)
+
     def test_validation_failure_rolls_back_all_allowed_fields(self) -> None:
         bpy.ops.uecp.analyze()
         plan = get_plan(bpy.context.window_manager.uecp_runtime.plan_id)
@@ -84,12 +103,17 @@ class ApplyTransactionTests(unittest.TestCase):
         self.assertTrue(result.rolled_back)
         self.assertEqual(self._geometry(), before)
 
-    def test_optional_role_collections_are_created_only_when_frozen_in_plan(self) -> None:
+    def test_legacy_role_collection_setting_is_behaviorless(self) -> None:
         bpy.context.scene.uecp_settings.create_role_collections = True
         bpy.ops.uecp.analyze()
         runtime = bpy.context.window_manager.uecp_runtime
         self.assertEqual(bpy.ops.uecp.apply(plan_id=runtime.plan_id), {"FINISHED"})
-        self.assertTrue({"UECP_Anchors", "UECP_Dynamics", "UECP_BranchBoundaries", "UECP_LowConfidence"}.issubset(self.rig.data.collections.keys()))
+        self.assertFalse(
+            {
+                "UECP_Anchors", "UECP_Dynamics",
+                "UECP_BranchBoundaries", "UECP_LowConfidence",
+            }.intersection(self.rig.data.collections.keys())
+        )
 
     def test_branch_apply_preserves_child_heads_and_parents_with_one_main_connection(self) -> None:
         clear_scene()

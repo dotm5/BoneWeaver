@@ -9,6 +9,7 @@ import bpy
 from mathutils import Vector
 
 from .fingerprint import base_mesh_digest, modifier_digest, weight_digest
+from .canonical import sha256
 from .mesh_scan_cache import mesh_digest_pair
 from .validation_tolerance import MeshCoordinateCapture, MeshValidationResult, coordinate_delta_metrics, evaluate_mesh_tolerance
 
@@ -82,6 +83,7 @@ def capture_armature_state(armature):
             "parent": bone.parent.name if bone.parent else None,
             "head": tuple(float(value) for value in bone.head_local),
             "tail": tuple(float(value) for value in bone.tail_local),
+            "roll": float(bone.AxisRollFromMatrix(bone.matrix_local.to_3x3())[1]),
             "use_connect": bool(bone.use_connect),
             "use_deform": bool(bone.use_deform),
             "inherit_scale": str(bone.inherit_scale),
@@ -89,6 +91,56 @@ def capture_armature_state(armature):
         }
         for bone in armature.data.bones
     }
+
+
+def armature_state_digest(armature, epsilon=1.0e-6):
+    """Hash whole-armature rest state with reopen-safe float quantization."""
+
+    state = capture_armature_state(armature)
+    quantize = lambda value: int(round(float(value) / epsilon))
+    payload = tuple(
+        (
+            name,
+            values["parent"],
+            tuple(quantize(value) for value in values["head"]),
+            tuple(quantize(value) for value in values["tail"]),
+            quantize(values["roll"]),
+            values["use_connect"],
+            values["use_deform"],
+            values["inherit_scale"],
+            values["use_inherit_rotation"],
+        )
+        for name, values in sorted(state.items())
+    )
+    return sha256(payload)
+
+
+def armature_state_matches(armature, expected_state, epsilon=1.0e-6):
+    """Tolerance-aware whole-armature comparison for save/reopen gates."""
+
+    current = capture_armature_state(armature)
+    if set(current) != set(expected_state):
+        return False
+    for name, actual in current.items():
+        expected = expected_state[name]
+        if any(
+            actual[field] != expected.get(field)
+            for field in (
+                "parent", "use_connect", "use_deform", "inherit_scale",
+                "use_inherit_rotation",
+            )
+        ):
+            return False
+        for field in ("head", "tail"):
+            expected_vector = expected.get(field, ())
+            if len(expected_vector) != 3 or any(
+                abs(float(a) - float(b)) > epsilon
+                for a, b in zip(actual[field], expected_vector)
+            ):
+                return False
+        if abs(float(actual["roll"]) - float(expected.get("roll", actual["roll"]))) > epsilon:
+            return False
+    return True
 
 
 def validate_post_apply(context, plan, neutral_baseline, armature_baseline=None):
@@ -122,11 +174,18 @@ def validate_post_apply(context, plan, neutral_baseline, armature_baseline=None)
             issues.append("UECP_NON_TARGET_BONE_CHANGED")
     for proposal in plan.proposals:
         edge = edges.get(proposal.source_edge_id)
-        if edge is None or tuple(proposal.proposed_tail) != tuple(nodes[edge.child_node_id].joint_position):
+        if edge is None:
+            issues.append("UECP_GRAPH_PROJECTION_MISMATCH")
+            continue
+        graph_tail = tuple(nodes[edge.child_node_id].joint_position)
+        if (
+            proposal.terminal_source != "MANUAL_OVERRIDE"
+            and tuple(proposal.proposed_tail) != graph_tail
+        ):
             issues.append("UECP_GRAPH_PROJECTION_MISMATCH")
             continue
         bone = armature.data.bones[proposal.bone_name]
-        expected = Vector(nodes[edge.child_node_id].joint_position)
+        expected = Vector(proposal.proposed_tail)
         error = (bone.tail_local - expected).length
         max_projection = max(max_projection, error)
         if error > 1.0e-6:

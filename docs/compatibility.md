@@ -2,7 +2,7 @@
 
 | Target | Status |
 |---|---|
-| Blender 5.2.0 LTS RC `710df102694f` | Automated registration, unit, integration, transaction, restore, real-asset and ZIP smoke target |
+| Blender 5.2.0 LTS RC `710df102694f` | 0.1.3 baseline was validated; Schema-4/G02 development changes require a fresh automated, transaction, real-asset, viewport and ZIP run |
 | Blender 4.2 | Manifest minimum; executable unavailable locally, external validation pending |
 | Blender 5.1 | Executable unavailable locally, external validation pending |
 | UEFormat 1.0.0 | Factory-startup isolated-copy import verified |
@@ -14,4 +14,10 @@ Compatibility code uses feature detection for Action APIs and Blender 5.2's `Pos
 
 UECP runtime does not mutate BoneX state. The separately invoked support tool and rollback procedure are documented in [BoneX 1.2.6 draw-context hotfix](bonex-1.2.6-draw-context-hotfix.md).
 
-Schema 3.1 adds optional branch, tolerance, mutation, topology, and export records. Schema 3.0 readers may ignore these additions. Old snapshots remain restorable because restore continues to require only the original pre-state and digest fields; new readers use safe defaults when hardening fields are absent. Interaction hardening and metadata-aware Imported Axis behavior are versioned as `uecp-physics-graph-v3-interaction-hardening`, so settings or version changes stale older Plans.
+Schema 3.1 added optional branch, tolerance, mutation, topology, and export records. Schema 4.0 makes PhysicsNode semantic flags, Existing Tip Helper classifications, mutation-target/reference-only counts, and their export/reopen audit records required for newly generated artifacts. It also requires the stable Weight Island policy and Tip Helper usage in Settings. This is a Schema Major change; the corresponding algorithm version is `uecp-physics-graph-v4-tip-helper-branch-island-visual-cleanup`, so older Plans become stale.
+
+Old snapshots remain restorable. Restore and snapshot discovery continue to read the original pre-state and expected-post fields without rejecting a Snapshot solely because it predates Schema 4. New export and independent-reopen guarantees apply only to newly generated Schema 4 artifacts; legacy Snapshots do not fabricate Tip Helper classifications or ledger counts.
+
+Compatibility results recorded before the Schema-4/G02 changes are historical
+baselines, not proof for the current development tree. Fresh results must be
+recorded after testing is authorized.

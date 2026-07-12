@@ -81,11 +81,17 @@ def parse_rule_set(payload: dict) -> SemanticRuleSet:
     metadata = payload["metadata_rules"]
     if not isinstance(metadata, dict) or not all(isinstance(key, str) and isinstance(value, str) for key, value in metadata.items()):
         raise ValueError("metadata_rules must map strings to strings")
+    normalized_metadata = {
+        key.casefold(): value.upper() for key, value in metadata.items()
+    }
+    invalid_metadata_categories = sorted(set(normalized_metadata.values()) - valid_categories)
+    if invalid_metadata_categories:
+        raise ValueError(f"invalid metadata category: {invalid_metadata_categories[0]}")
     return SemanticRuleSet(
         payload["schema_version"], payload["rule_set_id"], payload["rule_set_version"],
         payload["display_name"], parsed_include, parsed_exclude,
         MappingProxyType(categories), sequences, skeleton_patterns,
-        MappingProxyType(dict(metadata)),
+        MappingProxyType(normalized_metadata),
     )
 
 

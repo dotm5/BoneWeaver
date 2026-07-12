@@ -21,7 +21,7 @@ def _is_identity(matrix, epsilon=1.0e-7):
     return all(abs(matrix[row][column] - identity[row][column]) <= epsilon for row in range(4) for column in range(4))
 
 
-def run_preflight(context) -> PreflightResult:
+def run_preflight(context, *, scope_names: tuple[str, ...] | None = None) -> PreflightResult:
     issues = []
     armature = resolve_active_armature(context)
     if armature is None:
@@ -43,7 +43,21 @@ def run_preflight(context) -> PreflightResult:
 
     settings = getattr(context.scene, "uecp_settings", None)
     scope_mode = settings.scope_mode if settings else "SELECTED_BONES"
-    selected = resolve_scope_names(context, armature, scope_mode)
+    selected = (
+        tuple(sorted(set(scope_names)))
+        if scope_names is not None
+        else resolve_scope_names(context, armature, scope_mode)
+    )
+    missing_scope_names = tuple(name for name in selected if name not in armature.data.bones)
+    if missing_scope_names:
+        issues.append(_issue(
+            "BLOCKER",
+            "UECP_HIERARCHY_ARMATURE_CHANGED",
+            "Frozen hierarchy scope contains missing bones",
+            bones=missing_scope_names,
+            objects=(armature.name,),
+        ))
+        selected = tuple(name for name in selected if name in armature.data.bones)
     if not selected:
         issues.append(_issue("BLOCKER", "UECP_EMPTY_SELECTION", "No target bones are selected", objects=(armature.name,)))
 

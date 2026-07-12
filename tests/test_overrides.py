@@ -9,6 +9,7 @@ from tests.fixture_builders import clear_scene, make_chain
 from ue_chain_prep.core.overrides import (
     armature_structural_fingerprint,
     find_terminal_override,
+    find_branch_override,
     remove_stale_overrides,
     upsert_branch_override,
     upsert_terminal_override,
@@ -133,6 +134,57 @@ class OverrideScopeTests(unittest.TestCase):
         )
         self.assertEqual(len(self.settings.branch_overrides), 1)
         self.assertEqual(self.settings.branch_overrides[0].selected_child_name, "ChildB")
+
+    def test_stale_cleanup_retains_other_armature_scopes(self) -> None:
+        upsert_terminal_override(
+            self.settings.terminal_overrides,
+            armature_data_name=self.rig.data.name,
+            armature_structural_fingerprint="stale-a",
+            bone_name="Bone_2",
+            chain_id="chain-a",
+            mode="EXPLICIT_DIRECTION_LENGTH",
+            length=1.0,
+        )
+        upsert_terminal_override(
+            self.settings.terminal_overrides,
+            armature_data_name="RigBData",
+            armature_structural_fingerprint="valid-b",
+            bone_name="Bone_2",
+            chain_id="chain-b",
+            mode="EXPLICIT_DIRECTION_LENGTH",
+            length=2.0,
+        )
+        upsert_branch_override(
+            self.settings.branch_overrides,
+            armature_data_name="RigBData",
+            armature_structural_fingerprint="valid-b",
+            branch_bone_name="Branch",
+            selected_child_name="Child",
+        )
+        removed = remove_stale_overrides(
+            self.settings,
+            armature_data_name=self.rig.data.name,
+            armature_structural_fingerprint=self.fingerprint,
+        )
+        self.assertEqual(removed, 1)
+        self.assertEqual(len(self.settings.terminal_overrides), 1)
+        other_terminal, legacy = find_terminal_override(
+            self.settings.terminal_overrides,
+            armature_data_name="RigBData",
+            armature_structural_fingerprint="valid-b",
+            bone_name="Bone_2",
+            chain_id="chain-b",
+        )
+        self.assertIsNotNone(other_terminal)
+        self.assertFalse(legacy)
+        other_branch, legacy = find_branch_override(
+            self.settings.branch_overrides,
+            armature_data_name="RigBData",
+            armature_structural_fingerprint="valid-b",
+            branch_bone_name="Branch",
+        )
+        self.assertIsNotNone(other_branch)
+        self.assertFalse(legacy)
 
 
 if __name__ == "__main__":

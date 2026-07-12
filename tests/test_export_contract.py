@@ -20,21 +20,48 @@ from ue_chain_prep.core.runtime_store import get_plan
 
 
 def valid_fixture():
-    topology = TopologyProjectionLedger(3, 2, 2, 0, 0, 0, 0, 0, 1, 3, 3, 0)
+    topology = TopologyProjectionLedger(
+        selected_bone_count=3,
+        selected_hierarchy_edge_count=2,
+        linear_edge_count=2,
+        branch_node_count=0,
+        branch_edge_count=0,
+        resolved_branch_count=0,
+        unresolved_branch_count=0,
+        external_child_edge_count=0,
+        virtual_tip_count=1,
+        proposal_count=3,
+        mutation_record_count=3,
+        skipped_by_design_count=0,
+        mutation_target_count=3,
+        reference_only_tip_helper_count=0,
+    )
+    proposals = tuple(
+        types.SimpleNamespace(bone_name=f"B{index}") for index in range(3)
+    )
     plan = types.SimpleNamespace(
         plan_id="a" * 64,
         algorithm_version="algorithm-v2",
-        schema_version="3.1.0",
+        schema_version="4.0.0",
         addon_version="0.1.0",
+        profile="BONEX_ROTATION_CHAIN",
+        tip_helper_usage="REFERENCE_ONLY",
         physics_graph=types.SimpleNamespace(graph_id="b" * 64),
+        bone_states=(),
         issues=(),
-        proposals=(object(), object(), object()),
+        proposals=proposals,
+        tip_helpers=(),
         branch_resolutions=(),
-        topology_ledger=dataclasses_replace(topology, mutation_record_count=0),
+        topology_ledger=topology,
     )
     snapshot = {
         "status": "APPLIED",
         "plan_id": plan.plan_id,
+        "profile": plan.profile,
+        "tip_helper_usage": plan.tip_helper_usage,
+        "mutation_targets": tuple(proposal.bone_name for proposal in proposals),
+        "reference_only_tip_helpers": (),
+        "tip_helpers": (),
         "mutation_records": [
             {"bone_name": f"B{index}", "proposal_id": str(index), "tail_changed": True}
             for index in range(3)
@@ -73,16 +100,24 @@ class ExportContractPureTests(unittest.TestCase):
 
     def test_each_critical_missing_condition_rejects_export(self) -> None:
         plan, snapshot = valid_fixture()
+        blocked_plan = copy.copy(plan)
+        blocked_plan.issues = (types.SimpleNamespace(severity="BLOCKER"),)
         cases = {
-            "no_plan": {"plan": None},
-            "stale": {"plan_stale": True},
-            "not_applied": {"runtime_state": "ANALYZED"},
-            "no_snapshot": {"snapshot_present": False},
-            "rolled_back": {"snapshot": {**snapshot, "status": "ROLLED_BACK"}},
-            "no_mutation": {"snapshot": {**snapshot, "mutation_records": []}},
-            "digest_failure": {"snapshot": {**snapshot, "post_validation": {**snapshot["post_validation"], "weight_digest_changes": 1}}},
-            "neutral_failure": {"snapshot": {**snapshot, "post_validation": {**snapshot["post_validation"], "mesh_validation_results": [{"result": "FAIL_AND_ROLLBACK"}]}}},
-            "unresolved_branch": {"snapshot": {**snapshot, "topology_ledger": {**snapshot["topology_ledger"], "unresolved_branch_count": 1}}},
+            "no_plan": {"plan": None, "expected": "UECP_EXPORT_PLAN_MISSING"},
+            "stale": {"plan_stale": True, "expected": "UECP_EXPORT_PLAN_STALE"},
+            "not_applied": {"runtime_state": "ANALYZED", "expected": "UECP_EXPORT_APPLY_NOT_SUCCESSFUL"},
+            "no_snapshot": {"snapshot_present": False, "expected": "UECP_EXPORT_SNAPSHOT_MISSING"},
+            "rolled_back": {"snapshot": {**snapshot, "status": "ROLLED_BACK"}, "expected": "UECP_EXPORT_APPLY_NOT_SUCCESSFUL"},
+            "no_mutation": {"snapshot": {**snapshot, "mutation_records": []}, "expected": "UECP_EXPORT_NO_ACTUAL_MUTATION"},
+            "weight_digest_failure": {"snapshot": {**snapshot, "post_validation": {**snapshot["post_validation"], "weight_digest_changes": 1}}, "expected": "UECP_WEIGHT_DIGEST_CHANGED"},
+            "base_digest_failure": {"snapshot": {**snapshot, "post_validation": {**snapshot["post_validation"], "base_mesh_digest_changes": 1}}, "expected": "UECP_BASE_MESH_CHANGED"},
+            "modifier_digest_failure": {"snapshot": {**snapshot, "post_validation": {**snapshot["post_validation"], "modifier_digest_changes": 1}}, "expected": "UECP_MODIFIER_DIGEST_CHANGED"},
+            "non_target_failure": {"snapshot": {**snapshot, "post_validation": {**snapshot["post_validation"], "non_target_bone_changes": 1}}, "expected": "UECP_NON_TARGET_BONE_CHANGED"},
+            "neutral_failure": {"snapshot": {**snapshot, "post_validation": {**snapshot["post_validation"], "mesh_validation_results": [{"result": "FAIL_AND_ROLLBACK"}]}}, "expected": "UECP_NEUTRAL_MESH_CHANGED"},
+            "unresolved_branch": {"snapshot": {**snapshot, "topology_ledger": {**snapshot["topology_ledger"], "unresolved_branch_count": 1}}, "expected": "UECP_BRANCH_AMBIGUOUS"},
+            "ledger_conservation": {"snapshot": {**snapshot, "topology_ledger": {**snapshot["topology_ledger"], "selected_bone_count": 4}}, "expected": "UECP_EXPORT_TOPOLOGY_LEDGER_INCOMPLETE"},
+            "tip_helper_mismatch": {"snapshot": {**snapshot, "reference_only_tip_helpers": ("unexpected",)}, "expected": "UECP_EXPORT_TIP_HELPER_MISMATCH"},
+            "plan_blocker": {"plan": blocked_plan, "expected": "UECP_EXPORT_UNRESOLVED_BLOCKER"},
         }
         for label, changes in cases.items():
             with self.subTest(label=label):
@@ -96,7 +131,7 @@ class ExportContractPureTests(unittest.TestCase):
                     plan_stale=changes.get("plan_stale", False),
                 )
                 self.assertFalse(report.ready)
-                self.assertTrue(report.reasons)
+                self.assertIn(changes["expected"], report.reasons)
 
 
 class ExportContractBlenderTests(unittest.TestCase):

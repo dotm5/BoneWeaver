@@ -18,7 +18,8 @@ from .mutation_ledger import (
     validate_mutation_records,
     with_mutation_count,
 )
-from .validation import capture_armature_state, capture_neutral_meshes, validate_post_apply
+from .serialization import build_tip_helper_records
+from .validation import armature_state_digest, capture_armature_state, capture_neutral_meshes, validate_post_apply
 
 
 def _activate_armature(context, armature):
@@ -77,9 +78,9 @@ def apply_plan(context, plan, *, validator=None):
     snapshot_id = ""
     text_name = ""
     pre_state = {}
-    created_role_collections = []
     mutation_records = ()
     topology_ledger = plan.topology_ledger
+    original_use_mirror_x = bool(armature.data.use_mirror_x)
     with ContextStateGuard(context):
         try:
             _activate_armature(context, armature)
@@ -93,8 +94,21 @@ def apply_plan(context, plan, *, validator=None):
                 "kind": "uecp.snapshot", "schema_version": plan.schema_version,
                 "algorithm_version": plan.algorithm_version, "snapshot_id": snapshot_id,
                 "plan_id": plan.plan_id, "physics_graph_id": plan.physics_graph.graph_id,
+                "profile": plan.profile,
+                "tip_helper_usage": plan.tip_helper_usage,
                 "created_at": created_at,
-                "armature": {"object_name": armature.name, "data_name": armature.data.name},
+                "armature": {
+                    "object_name": armature.name,
+                    "data_name": armature.data.name,
+                    "matrix_world": [
+                        float(armature.matrix_world[row][column])
+                        for row in range(4)
+                        for column in range(4)
+                    ],
+                },
+                "physics_nodes": [
+                    dataclasses.asdict(node) for node in plan.physics_graph.nodes
+                ],
                 "pre_bones": pre_state,
                 "expected_post_bones": {
                     proposal.bone_name: {
@@ -104,9 +118,25 @@ def apply_plan(context, plan, *, validator=None):
                     }
                     for proposal in plan.proposals
                 },
+                "mutation_targets": [proposal.bone_name for proposal in plan.proposals],
+                "reference_only_tip_helpers": [
+                    classification.bone_name
+                    for classification in plan.tip_helpers
+                    if classification.reference_only
+                ],
+                "tip_helpers": build_tip_helper_records(plan),
                 "mesh_digests": {state.object_name: state.vertex_group_digest for state in plan.mesh_states},
                 "modifier_digests": {state.object_name: state.modifier_digest for state in plan.mesh_states},
                 "object_counts": {"objects": len(bpy.data.objects), "bones": len(armature.data.bones)},
+                "mutation_records": [],
+                "topology_ledger": (
+                    dataclasses.asdict(topology_ledger)
+                    if dataclasses.is_dataclass(topology_ledger)
+                    else {}
+                ),
+                "post_validation": {},
+                "whole_armature_post_digest": None,
+                "whole_armature_post_state": {},
                 "status": "CREATED",
             }
             text = bpy.data.texts.new(text_name)
@@ -151,20 +181,8 @@ def apply_plan(context, plan, *, validator=None):
                 raise RuntimeError("post validation failed")
             else:
                 validation_time = time.perf_counter() - validation_started
-            if any("UECP_CREATE_ROLE_COLLECTIONS" in proposal.issue_codes for proposal in plan.proposals):
-                collection_names = (
-                    "UECP_Anchors", "UECP_Dynamics", "UECP_BranchBoundaries", "UECP_LowConfidence"
-                )
-                collections = {}
-                for name in collection_names:
-                    collection = armature.data.collections.get(name)
-                    if collection is None:
-                        collection = armature.data.collections.new(name)
-                        created_role_collections.append(collection)
-                    collections[name] = collection
-                for proposal in plan.proposals:
-                    target = collections["UECP_Anchors"] if proposal.role == "ANCHOR" else collections["UECP_Dynamics"]
-                    target.assign(armature.data.bones[proposal.bone_name])
+            payload["whole_armature_post_state"] = capture_armature_state(armature)
+            payload["whole_armature_post_digest"] = armature_state_digest(armature)
             payload["status"] = "APPLIED"
             text.clear()
             text.write(json.dumps(payload, ensure_ascii=False, sort_keys=True, indent=2))
@@ -180,9 +198,6 @@ def apply_plan(context, plan, *, validator=None):
                 bpy.ops.object.mode_set(mode="EDIT")
                 _write_fields(armature, pre_state)
                 bpy.ops.object.mode_set(mode="OBJECT")
-                for collection in reversed(created_role_collections):
-                    if armature.data.collections.get(collection.name):
-                        armature.data.collections.remove(collection)
                 context.view_layer.update()
                 if text_name and text_name in bpy.data.texts:
                     payload["status"] = "ROLLED_BACK"
@@ -201,3 +216,5 @@ def apply_plan(context, plan, *, validator=None):
                     mutation_records, topology_ledger,
                     time.perf_counter() - apply_started, validation_time,
                 )
+        finally:
+            armature.data.use_mirror_x = original_use_mirror_x

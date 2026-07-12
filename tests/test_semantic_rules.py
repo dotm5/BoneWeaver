@@ -54,7 +54,8 @@ class SemanticRuleTests(unittest.TestCase):
             {item.value for item in SecondaryBoneCategory},
             {
                 "HAIR", "RIBBON", "SKIRT", "CLOAK", "CAPE", "TAIL",
-                "EARRING", "ACCESSORY", "BAG_OR_STRAP", "BELT", "CLOTH",
+                "EARRING", "STRAP", "ACCESSORY", "BAG", "BAG_OR_STRAP",
+                "BELT", "SCARF", "TASSEL", "CLOTH",
                 "CHEST_SECONDARY", "PHYSICS_EXPLICIT", "UNKNOWN_SECONDARY",
                 "MAIN_SKELETON", "SOCKET", "IK_CONTROL", "TWIST_DEFORM", "FACIAL",
             },
@@ -71,8 +72,8 @@ class SemanticRuleTests(unittest.TestCase):
             0.9, 1, 0, (), ("hair_l_01",), ("UECP_SEMANTIC_STRONG_INCLUDE_TOKEN",),
         )
         plan = SemanticDiscoveryPlan(
-            "SEMANTIC_DISCOVERY_PLAN", "1.0.0", "semantic-discovery-v0.1.1",
-            "Rig", "fingerprint", ("default-ue-secondary@0.1.1",),
+            "SEMANTIC_DISCOVERY_PLAN", "2.0.0", "semantic-discovery-v0.2.0",
+            "Rig", "fingerprint", ("default-ue-secondary@0.2.0",),
             (chain,), (evidence,), (), (),
         )
         with self.assertRaises(dataclasses.FrozenInstanceError):
@@ -84,9 +85,9 @@ class SemanticRuleTests(unittest.TestCase):
         rules = load_default_rule_set()
         self.assertEqual(rules.schema_version, "1.0.0")
         self.assertEqual(rules.rule_set_id, "default-ue-secondary")
-        self.assertEqual(rules.rule_set_version, "0.1.1")
+        self.assertEqual(rules.rule_set_version, "0.2.0")
         self.assertIn("hair", rules.include_tokens["strong"])
-        self.assertIn("part", rules.include_tokens["generic"])
+        self.assertIn("part", rules.include_tokens["medium"])
         self.assertIn("socket", rules.exclude_tokens["socket"])
         self.assertEqual(rules.metadata_rules["is_socket"], "SOCKET")
 
