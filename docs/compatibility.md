@@ -16,7 +16,11 @@ BONEWEAVER runtime does not mutate BoneX state. The separately invoked support t
 
 Schema 3.1 added optional branch, tolerance, mutation, topology, and export records. Schema 4.0 makes PhysicsNode semantic flags, Existing Tip Helper classifications, mutation-target/reference-only counts, and their export/reopen audit records required for newly generated artifacts. It also requires the stable Weight Island policy and Tip Helper usage in Settings. This is a Schema Major change; the corresponding algorithm version is `boneweaver-physics-graph-v4-tip-helper-branch-island-visual-cleanup`, so older Plans become stale.
 
-Old snapshots remain restorable. Restore and snapshot discovery continue to read the original pre-state and expected-post fields without rejecting a Snapshot solely because it predates Schema 4. New export and independent-reopen guarantees apply only to newly generated Schema 4 artifacts; legacy Snapshots do not fabricate Tip Helper classifications or ledger counts.
+v0.2.0 is the first public BoneWeaver release and intentionally uses a clean
+runtime identity. Plans and snapshots created under pre-release package names are
+not discovered automatically. Schema-4 BoneWeaver snapshots remain restorable;
+new export and independent-reopen guarantees apply to newly generated Schema-4
+artifacts.
 
 The v0.2.0 evidence is recorded in `artifacts/release-0.2.0-report.md` and the
 canonical release notes. Blender 4.2 and 5.1 still require external executable

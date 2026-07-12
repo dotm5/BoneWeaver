@@ -48,4 +48,3 @@ silently mutates an unsafe helper.
 
 Snapshot, topology-ledger, export-readiness, and reopen checks distinguish
 reference-only helpers from explicitly included helper mutation targets.
-

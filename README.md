@@ -83,8 +83,8 @@ BoneWeaver v0.2.0 was validated with Blender 5.2.0 LTS RC build
   export, and independent reopen validation.
 - The release ZIP passed an isolated install and repeated registration cycle.
 - Archive: `boneweaver-0.2.0.zip`
-- Size: `157967` bytes
-- SHA-256: `49F0CB49373C4CABC9B1D26D66CF212EA174F62F7E39BFFF95AFD91B46825C9F`
+- Size: `170163` bytes
+- SHA-256: `5F4B3F91B2A5BB59D10469F0BDF5263B9B1EDE44BE5055990DA89CF80BC1C48F`
 
 ## Known limitations
 
