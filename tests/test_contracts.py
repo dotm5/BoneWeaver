@@ -2,17 +2,17 @@ from __future__ import annotations
 
 import unittest
 
-from ue_chain_prep import contracts
+from boneweaver import contracts
 
 
 class ContractSnapshotTests(unittest.TestCase):
     def test_versions_and_identity_are_stable(self) -> None:
-        self.assertEqual(contracts.ADDON_ID, "ue_chain_prep")
+        self.assertEqual(contracts.ADDON_ID, "boneweaver")
         self.assertEqual(contracts.ADDON_VERSION, "0.2.0")
         self.assertEqual(contracts.SCHEMA_VERSION, "4.0.0")
         self.assertEqual(
             contracts.ALGORITHM_VERSION,
-            "uecp-physics-graph-v4-tip-helper-branch-island-visual-cleanup",
+            "boneweaver-physics-graph-v4-tip-helper-branch-island-visual-cleanup",
         )
 
     def test_stable_enum_values_match_spec(self) -> None:
@@ -51,49 +51,49 @@ class ContractSnapshotTests(unittest.TestCase):
         self.assertEqual(
             contracts.OPERATOR_IDS,
             {
-                "analyze": "uecp.analyze",
-                "check_and_preview": "uecp.check_and_preview",
-                "apply": "uecp.apply",
-                "validate": "uecp.validate",
-                "preview_toggle": "uecp.preview_toggle",
-                "restore_snapshot": "uecp.restore_snapshot",
-                "export_report": "uecp.export_report",
-                "export_conversion": "uecp.export_conversion",
-                "clear_runtime": "uecp.clear_runtime",
-                "locate_issue": "uecp.locate_issue",
-                "load_details": "uecp.load_details",
-                "inspect_active_hierarchy": "uecp.inspect_active_hierarchy",
-                "select_inspected_scope": "uecp.select_inspected_scope",
-                "use_inspected_scope": "uecp.use_inspected_scope",
-                "set_branch_continuation": "uecp.set_branch_continuation",
-                "clear_hierarchy_inspection": "uecp.clear_hierarchy_inspection",
-                "discover_secondary_chains": "uecp.discover_secondary_chains",
-                "select_discovered_chain": "uecp.select_discovered_chain",
-                "use_discovered_chains": "uecp.use_discovered_chains",
-                "clear_semantic_discovery": "uecp.clear_semantic_discovery",
-                "export_semantic_discovery": "uecp.export_semantic_discovery",
+                "analyze": "boneweaver.analyze",
+                "check_and_preview": "boneweaver.check_and_preview",
+                "apply": "boneweaver.apply",
+                "validate": "boneweaver.validate",
+                "preview_toggle": "boneweaver.preview_toggle",
+                "restore_snapshot": "boneweaver.restore_snapshot",
+                "export_report": "boneweaver.export_report",
+                "export_conversion": "boneweaver.export_conversion",
+                "clear_runtime": "boneweaver.clear_runtime",
+                "locate_issue": "boneweaver.locate_issue",
+                "load_details": "boneweaver.load_details",
+                "inspect_active_hierarchy": "boneweaver.inspect_active_hierarchy",
+                "select_inspected_scope": "boneweaver.select_inspected_scope",
+                "use_inspected_scope": "boneweaver.use_inspected_scope",
+                "set_branch_continuation": "boneweaver.set_branch_continuation",
+                "clear_hierarchy_inspection": "boneweaver.clear_hierarchy_inspection",
+                "discover_secondary_chains": "boneweaver.discover_secondary_chains",
+                "select_discovered_chain": "boneweaver.select_discovered_chain",
+                "use_discovered_chains": "boneweaver.use_discovered_chains",
+                "clear_semantic_discovery": "boneweaver.clear_semantic_discovery",
+                "export_semantic_discovery": "boneweaver.export_semantic_discovery",
             },
         )
 
     def test_required_error_codes_are_present(self) -> None:
         required = {
-            "UECP_NO_ACTIVE_ARMATURE", "UECP_EMPTY_SELECTION", "UECP_NON_IDENTITY_POSE",
-            "UECP_EXTERNAL_CONNECTED_CHILD", "UECP_BRANCH_AMBIGUOUS", "UECP_COINCIDENT_HELPER",
-            "UECP_TERMINAL_CANDIDATE_AMBIGUOUS", "UECP_PHYSICS_GRAPH_INVALID",
-            "UECP_GRAPH_PROJECTION_MISMATCH", "UECP_STATE_CHANGED_AFTER_ANALYZE",
-            "UECP_WEIGHT_DIGEST_CHANGED", "UECP_NEUTRAL_MESH_CHANGED",
-            "UECP_SNAPSHOT_WRITE_FAILED", "UECP_ROLLBACK_FAILED", "UECP_RESTORE_CONFLICT",
-            "UECP_SCHEMA_VERSION_UNSUPPORTED", "UECP_INTERNAL_ERROR",
-            "UECP_BRANCH_AUTO_MAIN_SKELETON_FORBIDDEN",
-            "UECP_BRANCH_AUTO_SECONDARY_SEMANTICS_REQUIRED",
-            "UECP_WEIGHT_ISLAND_POLICY_BLOCKED",
-            "UECP_EXPORT_TIP_HELPER_MISMATCH",
-            "UECP_HIERARCHY_ARMATURE_CHANGED",
-            "UECP_SEMANTIC_CONFIRMATION_REQUIRED",
-            "UECP_SCOPE_SOURCE_CONFLICT",
+            "BONEWEAVER_NO_ACTIVE_ARMATURE", "BONEWEAVER_EMPTY_SELECTION", "BONEWEAVER_NON_IDENTITY_POSE",
+            "BONEWEAVER_EXTERNAL_CONNECTED_CHILD", "BONEWEAVER_BRANCH_AMBIGUOUS", "BONEWEAVER_COINCIDENT_HELPER",
+            "BONEWEAVER_TERMINAL_CANDIDATE_AMBIGUOUS", "BONEWEAVER_PHYSICS_GRAPH_INVALID",
+            "BONEWEAVER_GRAPH_PROJECTION_MISMATCH", "BONEWEAVER_STATE_CHANGED_AFTER_ANALYZE",
+            "BONEWEAVER_WEIGHT_DIGEST_CHANGED", "BONEWEAVER_NEUTRAL_MESH_CHANGED",
+            "BONEWEAVER_SNAPSHOT_WRITE_FAILED", "BONEWEAVER_ROLLBACK_FAILED", "BONEWEAVER_RESTORE_CONFLICT",
+            "BONEWEAVER_SCHEMA_VERSION_UNSUPPORTED", "BONEWEAVER_INTERNAL_ERROR",
+            "BONEWEAVER_BRANCH_AUTO_MAIN_SKELETON_FORBIDDEN",
+            "BONEWEAVER_BRANCH_AUTO_SECONDARY_SEMANTICS_REQUIRED",
+            "BONEWEAVER_WEIGHT_ISLAND_POLICY_BLOCKED",
+            "BONEWEAVER_EXPORT_TIP_HELPER_MISMATCH",
+            "BONEWEAVER_HIERARCHY_ARMATURE_CHANGED",
+            "BONEWEAVER_SEMANTIC_CONFIRMATION_REQUIRED",
+            "BONEWEAVER_SCOPE_SOURCE_CONFLICT",
         }
         self.assertTrue(required.issubset(contracts.ERROR_CODES))
-        self.assertTrue(all(code.startswith("UECP_") for code in contracts.ERROR_CODES))
+        self.assertTrue(all(code.startswith("BONEWEAVER_") for code in contracts.ERROR_CODES))
 
     def test_candidate_scoring_profile_is_versioned_and_normalized(self) -> None:
         profile = dict(contracts.CANDIDATE_SCORING_PROFILE)

@@ -1,6 +1,6 @@
 # Safety Contract
 
-UE Chain Prep does not:
+BoneWeaver does not:
 
 - unbind or rebind meshes;
 - clear or set mesh parenting;

@@ -8,8 +8,8 @@ from unittest.mock import patch
 import bpy
 
 from tests.fixture_builders import clear_scene
-from ue_chain_prep.controllers.preview import PreviewController
-from ue_chain_prep.ui import draw
+from boneweaver.controllers.preview import PreviewController
+from boneweaver.ui import draw
 
 
 class PreviewLifecycleTests(unittest.TestCase):

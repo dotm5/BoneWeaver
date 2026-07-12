@@ -5,23 +5,23 @@ import unittest
 from unittest.mock import patch
 
 import bpy
-import ue_chain_prep
+import boneweaver
 
 from tests.fixture_builders import clear_scene, make_bag_branch, make_bound_mesh
-from ue_chain_prep.controllers.hierarchy_inspection import HierarchyInspectionController
-from ue_chain_prep.controllers.hierarchy_overlay import HierarchyOverlayController
-from ue_chain_prep.controllers.session import SessionController
-from ue_chain_prep.core.hierarchy_index import (
+from boneweaver.controllers.hierarchy_inspection import HierarchyInspectionController
+from boneweaver.controllers.hierarchy_overlay import HierarchyOverlayController
+from boneweaver.controllers.session import SessionController
+from boneweaver.core.hierarchy_index import (
     ArmatureHierarchyIndex,
     HierarchyBoneSnapshot,
 )
-from ue_chain_prep.core.hierarchy_inspection import (
+from boneweaver.core.hierarchy_inspection import (
     HierarchyInspectionInput,
     build_hierarchy_inspection_plan,
     hierarchy_inspection_plan_to_data,
 )
-from ue_chain_prep.core.mesh_scan_cache import MeshScanCache
-from ue_chain_prep.core.runtime_store import (
+from boneweaver.core.mesh_scan_cache import MeshScanCache
+from boneweaver.core.runtime_store import (
     get_hierarchy_inspection,
     get_plan,
     get_used_inspection_scope,
@@ -86,7 +86,7 @@ class HierarchyInspectionTests(unittest.TestCase):
         self.assertEqual(branch.selected_bone_names, ("spine_01", "spine_02", "spine_03"))
         self.assertEqual(branch.branch_bone_names, ("spine_03",))
         self.assertEqual(branch.side_branch_root_names, ("clavicle_l", "neck_01"))
-        self.assertIn("UECP_HIERARCHY_BRANCH_AMBIGUOUS", branch.issue_codes)
+        self.assertIn("BONEWEAVER_HIERARCHY_BRANCH_AMBIGUOUS", branch.issue_codes)
 
     def test_full_subtree_includes_tip_and_skips_excluded_helpers(self) -> None:
         plan = build_hierarchy_inspection_plan(
@@ -112,7 +112,7 @@ class HierarchyInspectionTests(unittest.TestCase):
             plan.selected_bone_names,
             ("finger_index_l_01", "finger_index_l_02", "finger_index_l_03"),
         )
-        self.assertIn("UECP_HIERARCHY_STEM_NO_CONTINUATION", plan.issue_codes)
+        self.assertIn("BONEWEAVER_HIERARCHY_STEM_NO_CONTINUATION", plan.issue_codes)
 
     def test_selected_roots_union_only_selected_subtrees(self) -> None:
         plan = build_hierarchy_inspection_plan(
@@ -138,7 +138,7 @@ class HierarchyInspectionTests(unittest.TestCase):
             self.index, _snapshot("MAIN_PATH_TO_LEAF", "spine_01"),
         )
         self.assertEqual(stopped.selected_bone_names, ("spine_01", "spine_02", "spine_03"))
-        self.assertIn("UECP_HIERARCHY_BRANCH_AMBIGUOUS", stopped.issue_codes)
+        self.assertIn("BONEWEAVER_HIERARCHY_BRANCH_AMBIGUOUS", stopped.issue_codes)
 
         continued = build_hierarchy_inspection_plan(
             self.index,
@@ -197,7 +197,7 @@ class HierarchyInspectionTests(unittest.TestCase):
 class HierarchyInspectionRuntimeTests(unittest.TestCase):
     def setUp(self) -> None:
         clear_scene()
-        ue_chain_prep.register()
+        boneweaver.register()
         data = bpy.data.armatures.new("TipRigData")
         self.rig = bpy.data.objects.new("TipRig", data)
         bpy.context.scene.collection.objects.link(self.rig)
@@ -230,11 +230,11 @@ class HierarchyInspectionRuntimeTests(unittest.TestCase):
             group.add(indices, 1.0, "REPLACE")
         modifier = self.mesh.modifiers.new(name="Armature", type="ARMATURE")
         modifier.object = self.rig
-        bpy.context.window_manager.uecp_runtime.hierarchy_selection_mode = "FULL_SUBTREE"
+        bpy.context.window_manager.boneweaver_runtime.hierarchy_selection_mode = "FULL_SUBTREE"
 
     def tearDown(self) -> None:
         HierarchyInspectionController.clear(bpy.context)
-        ue_chain_prep.unregister()
+        boneweaver.unregister()
         clear_scene()
 
     def test_fresh_inspection_classifies_tip_helper_and_freezes_reference_identity(self) -> None:
@@ -256,7 +256,7 @@ class HierarchyInspectionRuntimeTests(unittest.TestCase):
 
         self.assertEqual(scan_count, 1)
         self.assertEqual(plan.tip_helper_names, ("hair_end",))
-        self.assertFalse(bpy.context.window_manager.uecp_runtime.hierarchy_overlay_enabled)
+        self.assertFalse(bpy.context.window_manager.boneweaver_runtime.hierarchy_overlay_enabled)
         self.assertEqual(
             tuple(pose_bone.name for pose_bone in self.rig.pose.bones if pose_bone.select),
             before_selection,
@@ -280,7 +280,7 @@ class HierarchyInspectionRuntimeTests(unittest.TestCase):
         SessionController.on_undo_post(None)
         self.assertIsNone(get_hierarchy_inspection())
         self.assertIsNone(get_used_inspection_scope())
-        runtime = bpy.context.window_manager.uecp_runtime
+        runtime = bpy.context.window_manager.boneweaver_runtime
         self.assertFalse(runtime.hierarchy_inspection_active)
         self.assertFalse(runtime.hierarchy_scope_used)
         self.assertFalse(runtime.hierarchy_overlay_enabled)
@@ -296,7 +296,7 @@ class HierarchyInspectionRuntimeTests(unittest.TestCase):
         self.rig.pose.bones["hair_01"].select = True
         self.rig.pose.bones["other_root"].select = True
         self.rig.data.bones.active = self.rig.data.bones["idle_active"]
-        runtime = bpy.context.window_manager.uecp_runtime
+        runtime = bpy.context.window_manager.boneweaver_runtime
         runtime.hierarchy_selection_mode = "SELECTED_ROOTS_AND_DESCENDANTS"
 
         plan = HierarchyInspectionController.inspect(bpy.context)
@@ -314,7 +314,7 @@ class HierarchyInspectionRuntimeTests(unittest.TestCase):
         for bone_name in self.rig.data.bones.keys():
             group = self.mesh.vertex_groups.new(name=bone_name)
             group.add([0, 1, 2], 1.0, "REPLACE")
-        runtime = bpy.context.window_manager.uecp_runtime
+        runtime = bpy.context.window_manager.boneweaver_runtime
         runtime.hierarchy_selection_mode = "LINEAR_CHAIN"
         self.rig.data.bones.active = self.rig.data.bones["bag_r_02"]
 
@@ -327,7 +327,7 @@ class HierarchyInspectionRuntimeTests(unittest.TestCase):
         scope = HierarchyInspectionController.use_scope(bpy.context)
         self.assertIn("bag_r_03a_01", scope.bone_names)
 
-        self.assertEqual(bpy.ops.uecp.analyze(), {"FINISHED"})
+        self.assertEqual(bpy.ops.boneweaver.analyze(), {"FINISHED"})
         plan = get_plan(runtime.plan_id)
         resolution = next(
             item for item in plan.branch_resolutions

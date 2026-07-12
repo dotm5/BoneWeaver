@@ -1,9 +1,9 @@
-# UE Chain Prep 交互重构计划
+# BoneWeaver 交互重构计划
 ## 面向非开发用户的主面板流程，以及性能与算法补充审计
 
 **文档状态：Implementation-ready**
 **文档用途：可独立交给 Codex Goal Mode 执行**
-**适用项目：UE Chain Prep 当前实现**
+**适用项目：BoneWeaver 当前实现**
 **本轮范围：Blender UI、会话状态、控制器、可观察性、性能收敛与少量算法稳健性修正**
 **不改变的核心安全合同：不解绑、不重绑、不重算权重、不创建生产代理链，只允许修改目标 EditBone 的 `tail`、`roll`、`use_connect`。**
 
@@ -110,7 +110,7 @@ snapshot name
 ANALYZED
 STALE
 RESTORABLE
-UECP_EXTERNAL_CONNECTED_CHILD
+BONEWEAVER_EXTERNAL_CONNECTED_CHILD
 confidence = 0.684
 ```
 
@@ -226,7 +226,7 @@ Preview、详情、恢复、导出等均为次级动作。
 而不是只显示：
 
 ```text
-UECP_BRANCH_AMBIGUOUS
+BONEWEAVER_BRANCH_AMBIGUOUS
 ```
 
 ## 4.4 分析与预览合并为一个用户动作
@@ -292,17 +292,17 @@ Apply 已包含强制 Post Validation。
 ```text
 3D Viewport
 → N Panel
-→ UE Chain Prep
+→ BoneWeaver
 ```
 
 但拆为：
 
 ```text
-UECP_PT_main
-UECP_PT_advanced
-UECP_PT_details
-UECP_PT_recovery
-UECP_PT_developer   # 默认隐藏，由插件偏好开启
+BONEWEAVER_PT_main
+BONEWEAVER_PT_advanced
+BONEWEAVER_PT_details
+BONEWEAVER_PT_recovery
+BONEWEAVER_PT_developer   # 默认隐藏，由插件偏好开启
 ```
 
 默认展开：
@@ -392,7 +392,7 @@ Confidence Threshold
 示例：
 
 ```text
-┌ UE Chain Prep ───────────────┐
+┌ BoneWeaver ───────────────┐
 │ 骨架：Character_Skeleton     │
 │ 已选择：6 根骨骼             │
 │                              │
@@ -563,8 +563,8 @@ Digest
 面板：
 
 ```python
-class UECP_PT_advanced(Panel):
-    bl_parent_id = "UECP_PT_main"
+class BONEWEAVER_PT_advanced(Panel):
+    bl_parent_id = "BONEWEAVER_PT_main"
     bl_options = {"DEFAULT_CLOSED"}
 ```
 
@@ -1141,7 +1141,7 @@ Reset Session
 ## 14.1 新增组合操作器
 
 ```python
-uecp.check_and_preview
+boneweaver.check_and_preview
 ```
 
 行为：
@@ -1152,7 +1152,7 @@ uecp.check_and_preview
 若有可用 Preview Cache，则启用 Preview
 ```
 
-底层 `uecp.analyze` 可继续保留供测试和开发者使用。
+底层 `boneweaver.analyze` 可继续保留供测试和开发者使用。
 
 ## 14.2 Apply
 
@@ -1169,7 +1169,7 @@ invoke_confirm
 新增：
 
 ```python
-uecp.locate_issue
+boneweaver.locate_issue
 ```
 
 参数：
@@ -1486,7 +1486,7 @@ DOMINANT_COMPONENT
 否则：
 
 ```text
-UECP_DISCONNECTED_WEIGHT_ISLANDS
+BONEWEAVER_DISCONNECTED_WEIGHT_ISLANDS
 需要确认或限定 Mesh Scope
 ```
 
@@ -1737,7 +1737,7 @@ load/undo/redo/unregister cleanup
 
 ## UI-R03：简洁主面板
 
-实现新的 `UECP_PT_main`：
+实现新的 `BONEWEAVER_PT_main`：
 
 ```text
 上下文摘要
@@ -1955,7 +1955,7 @@ Mirrored Roll Fallback
 17. 断开权重岛不会生成指向空白区域的自动末端；
 18. 每个 Mesh 使用独立验证阈值；
 19. 核心 Safety Contract 不变；
-20. BoneX 1.2.6 Hotfix 仍保持独立支持工具，UECP Runtime 不导入或修改 BoneX 状态。
+20. BoneX 1.2.6 Hotfix 仍保持独立支持工具，BONEWEAVER Runtime 不导入或修改 BoneX 状态。
 
 ---
 

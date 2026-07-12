@@ -81,19 +81,19 @@ def main() -> int:
     sys.path.insert(0, str(Path(args.module_root).resolve(strict=True)))
     ueformat = importlib.import_module("io_scene_ueformat")
     ueformat.register()
-    import ue_chain_prep
-    from ue_chain_prep.controllers.hierarchy_inspection import HierarchyInspectionController
-    from ue_chain_prep.controllers.hierarchy_overlay import HierarchyOverlayController
-    from ue_chain_prep.controllers.semantic_discovery import SemanticDiscoveryController
-    from ue_chain_prep.core.export_contract import file_signature
-    from ue_chain_prep.core.runtime_store import (
+    import boneweaver
+    from boneweaver.controllers.hierarchy_inspection import HierarchyInspectionController
+    from boneweaver.controllers.hierarchy_overlay import HierarchyOverlayController
+    from boneweaver.controllers.semantic_discovery import SemanticDiscoveryController
+    from boneweaver.core.export_contract import file_signature
+    from boneweaver.core.runtime_store import (
         get_performance,
         get_plan,
         get_semantic_discovery,
     )
-    from ue_chain_prep.core.serialization import to_data
+    from boneweaver.core.serialization import to_data
 
-    ue_chain_prep.register()
+    boneweaver.register()
     report = {
         "status": "STARTED",
         "source_model": str(source_model),
@@ -133,10 +133,10 @@ def main() -> int:
         weights_before = _weight_digest(mesh)
         _select(armature, ("hair_l_01",), active="hair_l_01")
         semantic_selection_before = _selection(armature)
-        semantic_result = bpy.ops.uecp.discover_secondary_chains()
+        semantic_result = bpy.ops.boneweaver.discover_secondary_chains()
         if semantic_result != {"FINISHED"}:
             raise RuntimeError(
-                bpy.context.window_manager.uecp_runtime.last_error
+                bpy.context.window_manager.boneweaver_runtime.last_error
                 or "semantic discovery failed"
             )
         semantic = get_semantic_discovery()
@@ -182,7 +182,7 @@ def main() -> int:
             raise RuntimeError("semantic discovery mutated scene state")
         SemanticDiscoveryController.clear(bpy.context)
 
-        runtime = bpy.context.window_manager.uecp_runtime
+        runtime = bpy.context.window_manager.boneweaver_runtime
         runtime.hierarchy_selection_mode = "LINEAR_CHAIN"
         _select(armature, ("Bip001-L-Finger0",), active="Bip001-L-Finger0")
         finger_selection_before = _selection(armature)
@@ -218,7 +218,7 @@ def main() -> int:
         }
         if spine_plan.selected_bone_names != ("Bip001-Spine",):
             raise RuntimeError("spine linear inspection did not stop at the first branch")
-        if "UECP_HIERARCHY_BRANCH_AMBIGUOUS" not in spine_plan.issue_codes:
+        if "BONEWEAVER_HIERARCHY_BRANCH_AMBIGUOUS" not in spine_plan.issue_codes:
             raise RuntimeError("spine branch ambiguity was not reported")
         HierarchyInspectionController.clear(bpy.context)
 
@@ -227,14 +227,14 @@ def main() -> int:
         # a real PNG first, reload it, then remove the external file after the
         # packed payload has been embedded in the .blend.
         fixture_path = output_dir / "packed-image-fixture.png"
-        image = bpy.data.images.new("UECP_Real_Acceptance_Packed_Source", width=1, height=1)
+        image = bpy.data.images.new("BONEWEAVER_Real_Acceptance_Packed_Source", width=1, height=1)
         image.generated_color = (0.2, 0.6, 1.0, 1.0)
         image.filepath_raw = str(fixture_path)
         image.file_format = "PNG"
         image.save()
         bpy.data.images.remove(image)
         image = bpy.data.images.load(str(fixture_path))
-        image.name = "UECP_Real_Acceptance_Packed"
+        image.name = "BONEWEAVER_Real_Acceptance_Packed"
         # Keep the image datablock in the saved file even though this acceptance
         # fixture deliberately does not alter the imported asset's materials.
         image.use_fake_user = True
@@ -247,11 +247,11 @@ def main() -> int:
 
         hair_chain = ("hair_l_01", "hair_l_02", "hair_l_03", "hair_l_04")
         _select(armature, hair_chain, active=hair_chain[0])
-        settings = bpy.context.scene.uecp_settings
+        settings = bpy.context.scene.boneweaver_settings
         settings.scope_mode = "SELECTED_BONES"
         settings.mesh_scope = "ALL_ASSOCIATED_MESHES"
         settings.validation_tolerance_mode = "AUTO_PRODUCTION"
-        analyze_result = bpy.ops.uecp.analyze()
+        analyze_result = bpy.ops.boneweaver.analyze()
         plan = get_plan(runtime.plan_id)
         blockers = tuple(
             item.code for item in plan.issues if item.severity == "BLOCKER"
@@ -270,14 +270,14 @@ def main() -> int:
         }
         if blockers:
             raise RuntimeError(f"real Analyze blockers: {blockers}")
-        apply_result = bpy.ops.uecp.apply(plan_id=runtime.plan_id)
+        apply_result = bpy.ops.boneweaver.apply(plan_id=runtime.plan_id)
         report["conversion"]["apply"] = sorted(apply_result)
         report["conversion"]["apply_error"] = runtime.last_error
         if apply_result != {"FINISHED"}:
             raise RuntimeError(runtime.last_error or "real Apply failed")
         report["conversion"]["performance"] = get_performance(plan.plan_id)
 
-        export_result = bpy.ops.uecp.export_conversion(filepath=str(converted_blend))
+        export_result = bpy.ops.boneweaver.export_conversion(filepath=str(converted_blend))
         report["conversion"]["export"] = sorted(export_result)
         report["conversion"]["export_error"] = runtime.last_error
         if export_result != {"FINISHED"}:
@@ -312,8 +312,8 @@ def main() -> int:
             json.dumps(report, ensure_ascii=False, sort_keys=True, indent=2) + "\n",
             encoding="utf-8",
         )
-        print("UECP_G01_G02_REAL_RESULT", report["status"], report.get("error", ""))
-        ue_chain_prep.unregister()
+        print("BONEWEAVER_G01_G02_REAL_RESULT", report["status"], report.get("error", ""))
+        boneweaver.unregister()
         ueformat.unregister()
         sys.stdout.flush()
         sys.stderr.flush()

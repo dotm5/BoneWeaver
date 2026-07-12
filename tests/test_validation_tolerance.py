@@ -3,8 +3,8 @@ from __future__ import annotations
 import math
 import unittest
 
-from ue_chain_prep.contracts import ValidationToleranceMode
-from ue_chain_prep.core.validation_tolerance import (
+from boneweaver.contracts import ValidationToleranceMode
+from boneweaver.core.validation_tolerance import (
     AUTO_TOLERANCE_DEFAULTS,
     MeshCoordinateCapture,
     evaluate_mesh_tolerance,

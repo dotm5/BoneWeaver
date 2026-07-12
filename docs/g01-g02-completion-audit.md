@@ -15,7 +15,7 @@ Release candidate: `0.2.0`, Schema `4.0.0`
 | Export / independent reopen | conversion copy, packed image, topology/digest checks | PASS |
 | Source preservation | source `.blend` signature unchanged | PASS |
 | Interactive Blender validation | Computer Use, real Blender 5.2 window, finger/spine/semantic flows | PASS |
-| Package build/install | `ue_chain_prep-0.2.0.zip`, isolated install and three register cycles | PASS |
+| Package build/install | `boneweaver-0.2.0.zip`, isolated install and three register cycles | PASS |
 | Final code review | No Critical or Important findings; branch declared merge-ready | PASS |
 
 ## G01 result

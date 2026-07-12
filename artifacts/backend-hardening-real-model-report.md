@@ -1,4 +1,4 @@
-# UE Chain Prep Backend Hardening Real Model Report
+# BoneWeaver Backend Hardening Real Model Report
 
 ## Asset
 
@@ -6,7 +6,7 @@
 - Source SHA-256 before/after: `998b92001e76a169e6e17d55f08e1cd606eda8034d7eb95f7acc57fc66464da1`
 - Source timestamp before/after: unchanged
 - Blender: 5.2.0 LTS RC `710df102694f`
-- Algorithm: `uecp-physics-graph-v2-backend-hardening`
+- Algorithm: `boneweaver-physics-graph-v2-backend-hardening`
 - Schema: 3.1.0
 - Target rule: `bag_`, `chest_`, `cloak_`, `earring_`, `hair_`, `part_`, `ribbon_`
 - Target bones: 85
@@ -14,7 +14,7 @@
 ## Result
 
 - Analyze blockers: 0
-- Warnings: 82 (`UECP_DISCONNECTED_WEIGHT_ISLANDS`: 59; `UECP_TERMINAL_SAFE_FALLBACK_USED`: 23)
+- Warnings: 82 (`BONEWEAVER_DISCONNECTED_WEIGHT_ISLANDS`: 59; `BONEWEAVER_TERMINAL_SAFE_FALLBACK_USED`: 23)
 - Auto confident terminals: 0
 - Auto safe fallback terminals: 23
 - Manual terminals: 0
@@ -55,7 +55,7 @@ No-op baseline max/RMS were both zero. Float32 ULP budget was `9.536743e-7`. Rec
 
 ## Output
 
-- Converted copy: `test-output/backend-hardening-real-model/x1-uecp-converted.blend`
+- Converted copy: `test-output/backend-hardening-real-model/x1-boneweaver-converted.blend`
 - Manifest: `test-output/backend-hardening-real-model/conversion-audit.json`
 - Reopen report: `test-output/backend-hardening-real-model/reopen-validation.json`
 - Full run data: `test-output/backend-hardening-real-model/real-run.json`

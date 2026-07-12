@@ -1,6 +1,6 @@
 # Existing Tip Helper Classification
 
-UE Chain Prep may classify a selected, zero-weight terminal bone as
+BoneWeaver may classify a selected, zero-weight terminal bone as
 `EXISTING_TIP_HELPER`. The default `REFERENCE_ONLY` usage preserves that bone as
 part of the immutable Physics Graph while excluding it from Blender mutation:
 
@@ -17,7 +17,7 @@ override may supersede that parent tail; this does not change the helper's
 reference-only classification and never creates a helper Proposal. A connected
 helper may only keep the helper-head tail: an override that would move its
 connected head is rejected with
-`UECP_MANUAL_OVERRIDE_CONNECTED_TIP_HELPER`, because Apply may not mutate a
+`BONEWEAVER_MANUAL_OVERRIDE_CONNECTED_TIP_HELPER`, because Apply may not mutate a
 reference-only helper indirectly.
 
 ## Conservative eligibility

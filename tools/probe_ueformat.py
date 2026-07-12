@@ -136,7 +136,7 @@ def main() -> int:
             encoding="utf-8",
         )
         print(
-            "UECP_UEFORMAT_PROBE_OK",
+            "BONEWEAVER_UEFORMAT_PROBE_OK",
             json.dumps(
                 {
                     "armatures": len(armatures),

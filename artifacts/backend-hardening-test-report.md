@@ -1,4 +1,4 @@
-# UE Chain Prep 0.2.0 Backend Hardening Test Report
+# BoneWeaver 0.2.0 Backend Hardening Test Report
 
 Date: 2026-07-12
 Branch: `feature/g01-g02-completion`
@@ -28,10 +28,10 @@ reuse, and digest-driven invalidation after weight edits.
 - Real acceptance: PASS; see `real-asset-regression.md`.
 - Independent reopen: PASS; see `reopen-validation.md`.
 - Interactive Computer Use smoke: PASS; see `manual-selection-smoke.md`.
-- Package: `dist/ue_chain_prep-0.2.0.zip`.
+- Package: `dist/boneweaver-0.2.0.zip`.
 - Size: 157,446 bytes.
 - SHA-256: `EB237324480BBD43B8C38AA2EAA4120E477EF2E699ACC13A6631FD2E932D53E7`.
-- Isolated install: PASS (`UECP_ZIP_INSTALL_OK`).
+- Isolated install: PASS (`BONEWEAVER_ZIP_INSTALL_OK`).
 - Three unregister/register cycles: PASS.
 
 No automatic commit, push, merge, or modification of the user's installed

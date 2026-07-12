@@ -5,7 +5,7 @@ import unittest
 import bpy
 
 from tests.fixture_builders import clear_scene, make_bound_mesh, make_chain
-from ue_chain_prep.core.mesh_resolver import find_associated_meshes
+from boneweaver.core.mesh_resolver import find_associated_meshes
 
 
 class MeshResolverTests(unittest.TestCase):
@@ -30,7 +30,7 @@ class MeshResolverTests(unittest.TestCase):
         duplicate.object = rig
         bindings, issues = find_associated_meshes(rig)
         self.assertEqual(bindings, ())
-        self.assertIn("UECP_AMBIGUOUS_ARMATURE_MODIFIER", {issue.code for issue in issues})
+        self.assertIn("BONEWEAVER_AMBIGUOUS_ARMATURE_MODIFIER", {issue.code for issue in issues})
 
 
 if __name__ == "__main__":

@@ -10,7 +10,7 @@ open Blender projects were not changed.
 ## Finger chain
 
 1. Activated `Bip001-L-Finger0` in Pose Mode.
-2. Opened **UE Chain Prep > Hierarchy Chain Inspection**.
+2. Opened **BoneWeaver > Hierarchy Chain Inspection**.
 3. Clicked **Inspect Scope** with `Linear Chain`.
 4. The panel reported parent `Bip001-L-Hand`, 2 descendants, and 0 branches.
 5. The viewport showed only the local context: parent in yellow, active root in

@@ -3,10 +3,10 @@ from __future__ import annotations
 import unittest
 
 import bpy
-import ue_chain_prep
+import boneweaver
 
 from tests.fixture_builders import clear_scene, make_chain
-from ue_chain_prep.core.overrides import (
+from boneweaver.core.overrides import (
     armature_structural_fingerprint,
     find_terminal_override,
     find_branch_override,
@@ -19,15 +19,15 @@ from ue_chain_prep.core.overrides import (
 class OverrideScopeTests(unittest.TestCase):
     def setUp(self) -> None:
         clear_scene()
-        ue_chain_prep.register()
+        boneweaver.register()
         self.rig = make_chain()
-        self.settings = bpy.context.scene.uecp_settings
+        self.settings = bpy.context.scene.boneweaver_settings
         self.settings.terminal_overrides.clear()
         self.settings.branch_overrides.clear()
         self.fingerprint = armature_structural_fingerprint(self.rig)
 
     def tearDown(self) -> None:
-        ue_chain_prep.unregister()
+        boneweaver.unregister()
         clear_scene()
 
     def test_terminal_upsert_is_idempotent_within_scope(self) -> None:

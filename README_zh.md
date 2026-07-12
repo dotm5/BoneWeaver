@@ -1,58 +1,99 @@
-# UE Chain Prep
+# BoneWeaver
 
-UE Chain Prep 是 Blender 4.2+ 扩展。它把 UE 导入骨架的 Bone Head 与父子层级解释为不可变 Physics Graph，再把无歧义的 Graph Edge 投影到原 deform bones，供 BoneX、Wiggle 2 等工具使用连续骨链。
+[English](README.md)
+
+BoneWeaver 是一款安全优先的 Blender 工具，用于把 Unreal Engine 骨骼层级整理成
+可检查、可回滚、适用于 BoneX 与 Wiggle 的物理骨链。
+
+## 功能亮点
+
+- 在改变选择或静止姿态几何前，检查 Parent、Root、Descendant、Branch 与语义次级链范围。
+- 根据 Bone Head 与父子层级构建不可变 Physics Graph，并明确记录末端证据与分叉延续。
+- Apply 前预览建议的 Tail、Roll、Connect、警告与 Blocker。
+- 提供 BoneX 旋转链、Wiggle 旋转/伸缩链与显式启用的视觉骨链整理 Profile。
+- 只有事务、Digest、拓扑、Mutation Ledger 与 Neutral evaluated mesh 验证全部成功后才允许导出。
+
+## 安全合同
+
+Analyze、层级检查与语义发现均为只读。Apply 只允许修改选中 EditBone 的
+`tail`、`roll` 与 `use_connect`，不会重新绑定 Mesh、重算权重、Apply Pose as Rest、
+重建 Armature Modifier 或创建生产代理骨骼。
+
+Apply 只接受完全匹配的冻结 Plan，先写入持久化 Snapshot，再验证结果；失败自动回滚。
+Restore 检测到后续手工修改时会拒绝覆盖。完整条款见[安全合同](docs/safety.md)。
+
+## 环境要求
+
+- Blender 4.2 或更高版本
+- 已导入的 Unreal 风格 Armature，建议保留关联的原始权重 Mesh
+- 不需要外部 Python 依赖
+
+BoneX、Wiggle、Auto-Rig Pro 与 UEFormat 只是可选工作流集成，不随插件捆绑。
 
 ## 安装
 
-在 Blender“偏好设置 → 扩展 → 从磁盘安装”中选择 `dist/ue_chain_prep-0.2.0.zip`。插件不依赖 NumPy、pytest 或其他外部 Python 包。
+从 [v0.2.0 Release](https://github.com/dotm5/BoneWeaver/releases/tag/v0.2.0)
+下载 `boneweaver-0.2.0.zip`。在 Blender 中打开
+**编辑 > 偏好设置 > 扩展 > 从磁盘安装**，选择 ZIP 并启用 BoneWeaver。
 
-标准交互已简化为：选择骨骼链和目标用途 → “检查并预览” → “应用转换”。算法阈值位于高级设置，结果/恢复单独分层，Plan ID、Fingerprint 和原始 Issue Code 默认隐藏。完整说明见 [用户工作流](docs/user-workflow.md)。
+## 快速开始
 
-## 推荐顺序
+1. 导入 UE 模型并保留原始权重。
+2. 选择需要物理整理的次级运动骨骼。
+3. 打开 **3D 视图 > 侧栏 > BoneWeaver**。
+4. 选择 Scope 与目标 Profile，然后运行 **检查并预览**。
+5. 检查 Physics Graph、末端证据、警告与 Blocker。
+6. 仅在冻结 Plan 仍然有效且无 Blocker 时运行 **应用转换**。
+7. 配置 BoneX 或 Wiggle，并在确认结果前保留 Snapshot。
 
-1. 导入 UE 模型与原始权重；
-2. 在 ARP、BoneX、Wiggle 建立控制关系前选择头发、裙摆、尾巴或飘带骨链；
-3. 打开“3D 视图 → 侧栏 → UE Chain Prep”；
-4. 设置 Scope、Physics Profile、Terminal Inference 与 Roll；
-5. Analyze 后检查 Physics Graph、Virtual Tip、Imported Forward Axis、候选排名、Confidence、Score Margin 和 Blocker；
-6. 仅对当前且无 Blocker 的 Plan 执行 Apply；
-7. Validate 后再配置第三方物理工具，确认结果前保留 Snapshot。
+## 层级检查与语义发现
 
-## 核心语义
+层级检查用缓存 Overlay 展示 Parent/Root/Descendant，不会自动改变选择。具名 Select
+操作只改变临时骨骼选择；只有执行 **用于转换**，结果才会冻结为下一次 Analyze Scope。
 
-- Interior Segment 的真值是 `parent.head → child.head`，不是 imported tail。
-- Leaf 先生成只存在于 Plan 中的 Virtual Tip，再把该位置投影为真实 leaf tail。
-- AUTO 会比较 Imported `±X/±Y/±Z`、PCA、Centroid、Planar Blend、Parent Tangent 与原显示轴；分数接近或置信度低时阻断，不静默猜测。
-- 默认 Roll 是 `MINIMAL_TWIST`，尽量保存旧局部 Z/Twist；`PARALLEL_TRANSPORT` 只在显式选择时使用。
-- Profile 区分几何连续与 Blender `use_connect`：Rotation Chain 连接，Stretch/Translation Profile 保持几何连续但断开连接。
+语义发现会扫描 Armature 中的头发、飘带、裙摆、尾巴与配饰候选。候选必须人工确认，
+不会自动进入 Apply。分叉存在歧义时必须显式选择延续 Child。
 
-## 安全与恢复
+## 验证与恢复
 
-MVP 只允许修改目标 Bone 的 `tail`、`roll`、`use_connect`。不解绑、不重绑、不 Apply Pose as Rest、不重算权重、不创建生产代理链。Apply 前创建持久化 Snapshot，验证权重、Base Mesh、Modifier、Graph Projection 与 Neutral evaluated mesh；失败自动回滚。Restore 检测到用户手工修改时返回 `UECP_RESTORE_CONFLICT`，不会覆盖新数据。
+当 Action、NLA、Driver、Constraint、Pose 状态、外部 Connected Child、分叉歧义、
+末端低置信度或 Mesh/Modifier 漂移导致风险时，BoneWeaver 会阻断 Apply。成功 Apply
+会记录字段级 Mutation Ledger；导出还会启动第二个 Blender 进程独立重开验证，成功后才报告完成。
 
-## 常见 Blocker
+## 已验证版本
 
-Active Action/NLA/Driver、非单位 Pose、相关 Constraint、Bone-parented object、Envelope、B-Bone、多 Armature Modifier、拓扑修改器位于 Armature 前、外部 Connected Child、Coincident Helper、分叉方向歧义、候选 tie/低置信度。
+BoneWeaver v0.2.0 已在 Blender 5.2.0 LTS RC build `710df102694f` 上验证：
 
-## 动画警告
+- 208 个 Blender 宿主自动化测试全部通过，无 Failure 或 Error。
+- 真实 UE 资产包含 157 根骨骼与 25,610 个顶点，完成 Analyze、Apply、导出与独立重开验证。
+- Release ZIP 通过隔离安装与重复注册/注销验证。
+- 安装包：`boneweaver-0.2.0.zip`
+- 大小：`157967` bytes
+- SHA-256：`49F0CB49373C4CABC9B1D26D66CF212EA174F62F7E39BFFF95AFD91B46825C9F`
 
-v0.2.0 是 Physics Preparation 工具，不是 UE 动画 Basis 重定向工具。转换后继续直接导入 UE 动画可能需要 Basis Rebase。
+## 已知限制
 
-## Blender 5.2 下的 BoneX 1.2.6
+- v0.2.0 用于准备物理骨链，不是 UE 动画 Basis 重定向工具。
+- Blender 4.2 是 Manifest 最低版本；本次本地可执行验证使用上述 Blender 5.2 build。
+- BoneX/Wiggle 的实际物理效果仍需按项目进行人工调参。
+- Active Action、NLA、Driver、非单位 Pose、相关 Constraint 与不安全的分叉/末端证据会按设计阻断 Apply。
 
-BoneX 1.2.6 的 Soft Connection 面板可能在 `draw()` 中初始化 `Object["bonex_data"]`，Blender 5.2 会拒绝这种 UI 绘制期写入。该问题不加载 UE Chain Prep 也能独立复现。项目提供了带版本校验、备份和恢复能力的本地修复工具，详见 [BoneX 1.2.6 draw-context 修复说明](docs/bonex-1.2.6-draw-context-hotfix.md)。应用或恢复后需重启 Blender。
+## 文档
 
-详见 [架构](docs/architecture.md)、[算法](docs/algorithms.md)、[安全合同](docs/safety.md) 与 [BoneX/Wiggle 手工验收表](docs/manual-test-bonex-wiggle.md)。
+- [用户工作流](docs/user-workflow.md)
+- [架构](docs/architecture.md)
+- [算法](docs/algorithms.md)
+- [层级选择](docs/hierarchy-selection.md)
+- [语义发现](docs/semantic-chain-discovery.md)
+- [验证与导出合同](docs/export-contract.md)
+- [兼容性](docs/compatibility.md)
+- [更新日志](CHANGELOG.md)
 
-## 后端稳健性
+## 开发
 
-生产默认现已使用逐 Mesh 的 evaluated object-local 中性验证、父链安全 Leaf 回退、候选方向聚类、分叉主延续评分、权重岛保护、带 Armature 指纹的幂等 Override、字段级 Mutation/Topology 账本、导出硬 Gate 与独立 Blender 重开验证。详见 [容差合同](docs/validation-tolerance.md)、[分叉解析](docs/branch-resolution.md) 与 [导出合同](docs/export-contract.md)。
+Blender 宿主测试、打包与隔离安装门槛见 [CONTRIBUTING.md](CONTRIBUTING.md)。
+安全问题请按 [SECURITY.md](SECURITY.md) 私密报告。
 
-## 层级与语义选择（开发中）
+## 许可证
 
-当前开发分支新增五种层级检查模式、缓存式 Parent/Root/Descendant
-Overlay、显式分叉延续选择，以及必须确认后才能使用的语义次级链发现。
-Inspection 与 Discovery 本身只读；只有具名的 Select 操作会改变选择，且
-必须再次执行 Use 才会冻结为 Analyze Scope。`VISUAL_CHAIN_CLEANUP` 也是
-显式选择项，不会自动替换生产默认 Profile。详见 [层级选择](docs/hierarchy-selection.md)、
-[语义发现](docs/semantic-chain-discovery.md) 与 [视觉整理](docs/visual-chain-cleanup.md)。
+BoneWeaver 使用 GNU General Public License v3.0 or later，详见 [LICENSE](LICENSE)。

@@ -1,4 +1,4 @@
-# UE Chain Prep v3
+# BoneWeaver v3
 ## Blender 插件项目 Spec 与 Codex Goal Mode 总执行提示词
 
 > 本文件既是产品规格，也是交给 Codex Goal Mode 的唯一总任务书。  
@@ -10,9 +10,9 @@
 
 | 字段 | 值 |
 |---|---|
-| 项目名称 | UE Chain Prep |
-| 包标识 | `ue_chain_prep` |
-| 内部命名空间 | `uecp` |
+| 项目名称 | BoneWeaver |
+| 包标识 | `boneweaver` |
+| 内部命名空间 | `boneweaver` |
 | 项目类型 | Blender Extension / Add-on |
 | 文档版本 | `3.0.0` |
 | 计划中的插件版本 | `0.1.0`（首个实现版本；数据接口 Schema 为 3.x） |
@@ -34,7 +34,7 @@
 ```text
 UE Reference Skeleton Joint Graph
         ↓
-UECP Immutable Physics Graph
+BONEWEAVER Immutable Physics Graph
         ↓
 Blender EditBone Geometry Projection
 ```
@@ -248,7 +248,7 @@ Armature Modifier 不变
 ```mermaid
 flowchart LR
     A[导入 UE 模型和原始权重] --> B[选择头发/裙摆/尾巴/飘带骨骼]
-    B --> C[UE Chain Prep Analyze]
+    B --> C[BoneWeaver Analyze]
     C --> D[查看 Chain、末端推断、Roll 和阻断项]
     D --> E[必要时人工修正末端或分叉]
     E --> F[Apply Transaction]
@@ -258,7 +258,7 @@ flowchart LR
     I --> J[物理烘焙]
 ```
 
-必须把 UE Chain Prep 放在 ARP、BoneX、Wiggle 生成控制关系之前。
+必须把 BoneWeaver 放在 ARP、BoneX、Wiggle 生成控制关系之前。
 
 ---
 
@@ -383,10 +383,10 @@ EditBone.use_connect
 若启用角色集合，只允许创建：
 
 ```text
-UECP_Anchors
-UECP_Dynamics
-UECP_BranchBoundaries
-UECP_LowConfidence
+BONEWEAVER_Anchors
+BONEWEAVER_Dynamics
+BONEWEAVER_BranchBoundaries
+BONEWEAVER_LowConfidence
 ```
 
 角色集合默认关闭，不得影响 Deform。
@@ -567,7 +567,7 @@ post_quat
 必须使用清晰的分层结构。建议如下：
 
 ```text
-ue_chain_prep/
+boneweaver/
 ├─ __init__.py
 ├─ blender_manifest.toml
 ├─ registration.py
@@ -663,9 +663,9 @@ ue_chain_prep/
 ```toml
 schema_version = "1.0.0"
 
-id = "ue_chain_prep"
+id = "boneweaver"
 version = "0.1.0"
-name = "UE Chain Prep"
+name = "BoneWeaver"
 tagline = "Convert imported Unreal-style joints into physics-ready Blender bone chains"
 maintainer = "Project Maintainer"
 type = "add-on"
@@ -875,9 +875,9 @@ MESH_VERTEX
 
 ```json
 {
-  "kind": "uecp.conversion_plan",
+  "kind": "boneweaver.conversion_plan",
   "schema_version": "3.0.0",
-  "algorithm_version": "uecp-physics-graph-v1"
+  "algorithm_version": "boneweaver-physics-graph-v1"
 }
 ```
 
@@ -901,10 +901,10 @@ MESH_VERTEX
 注册：
 
 ```python
-bpy.types.Scene.uecp_settings: PointerProperty(type=UECP_PG_Settings)
+bpy.types.Scene.boneweaver_settings: PointerProperty(type=BONEWEAVER_PG_Settings)
 ```
 
-### `UECP_PG_Settings`
+### `BONEWEAVER_PG_Settings`
 
 | 属性 | RNA 类型 | 默认值 | 范围/约束 | 说明 |
 |---|---|---:|---|---|
@@ -977,7 +977,7 @@ length_plausibility       0.10
 
 ## 7.2 末端覆盖项
 
-### `UECP_PG_TerminalOverride`
+### `BONEWEAVER_PG_TerminalOverride`
 
 | 属性 | 类型 | 说明 |
 |---|---|---|
@@ -993,8 +993,8 @@ length_plausibility       0.10
 注册为：
 
 ```python
-UECP_PG_Settings.terminal_overrides: CollectionProperty(
-    type=UECP_PG_TerminalOverride
+BONEWEAVER_PG_Settings.terminal_overrides: CollectionProperty(
+    type=BONEWEAVER_PG_TerminalOverride
 )
 ```
 
@@ -1005,12 +1005,12 @@ UECP_PG_Settings.terminal_overrides: CollectionProperty(
 注册：
 
 ```python
-bpy.types.WindowManager.uecp_runtime: PointerProperty(
-    type=UECP_PG_Runtime
+bpy.types.WindowManager.boneweaver_runtime: PointerProperty(
+    type=BONEWEAVER_PG_Runtime
 )
 ```
 
-### `UECP_PG_Runtime`
+### `BONEWEAVER_PG_Runtime`
 
 | 属性 | 类型 | 说明 |
 |---|---|---|
@@ -1045,9 +1045,9 @@ WindowManager 只保留 ID 和 UI 摘要。
 可以创建：
 
 ```text
-UECP_PG_ChainItem
-UECP_PG_BoneProposalItem
-UECP_PG_IssueItem
+BONEWEAVER_PG_ChainItem
+BONEWEAVER_PG_BoneProposalItem
+BONEWEAVER_PG_IssueItem
 ```
 
 这些只用于 UI 展示，不作为 Apply 的数据源。Apply 必须从 `_PLAN_STORE[plan_id]` 读取不可变 Plan。
@@ -1056,10 +1056,10 @@ UECP_PG_IssueItem
 
 # 8. Operator 接口 Schema
 
-## 8.1 `uecp.analyze`
+## 8.1 `boneweaver.analyze`
 
 ```python
-bl_idname = "uecp.analyze"
+bl_idname = "boneweaver.analyze"
 bl_label = "Analyze UE Bone Chains"
 bl_options = {"REGISTER"}
 ```
@@ -1076,7 +1076,7 @@ bl_options = {"REGISTER"}
 只读取：
 
 ```text
-Scene.uecp_settings
+Scene.boneweaver_settings
 当前选择
 活动 Armature
 关联 Mesh
@@ -1094,10 +1094,10 @@ Scene.uecp_settings
 - 返回 `FINISHED`，即使存在 Blocker，因为 Analyze 本身成功；
 - 若连基本上下文都不能读取，返回 `CANCELLED`。
 
-## 8.2 `uecp.apply`
+## 8.2 `boneweaver.apply`
 
 ```python
-bl_idname = "uecp.apply"
+bl_idname = "boneweaver.apply"
 bl_label = "Apply Chain Conversion"
 bl_options = {"REGISTER", "UNDO"}
 ```
@@ -1132,10 +1132,10 @@ plan_id: StringProperty(options={"HIDDEN"})
 
 不得读取当前 UI 设置重新计算 Proposal。
 
-## 8.3 `uecp.validate`
+## 8.3 `boneweaver.validate`
 
 ```python
-bl_idname = "uecp.validate"
+bl_idname = "boneweaver.validate"
 bl_label = "Validate Current Conversion"
 bl_options = {"REGISTER"}
 ```
@@ -1150,10 +1150,10 @@ validation_scope:
 
 不修改场景。生成 `DiagnosticReport`。
 
-## 8.4 `uecp.preview_toggle`
+## 8.4 `boneweaver.preview_toggle`
 
 ```python
-bl_idname = "uecp.preview_toggle"
+bl_idname = "boneweaver.preview_toggle"
 bl_label = "Toggle Chain Preview"
 ```
 
@@ -1164,11 +1164,11 @@ bl_label = "Toggle Chain Preview"
 - 不修改 Armature；
 - 文件关闭、Add-on 禁用或 Plan Stale 时必须移除 handler。
 
-## 8.5 `uecp.restore_snapshot`
+## 8.5 `boneweaver.restore_snapshot`
 
 ```python
-bl_idname = "uecp.restore_snapshot"
-bl_label = "Restore UECP Snapshot"
+bl_idname = "boneweaver.restore_snapshot"
+bl_label = "Restore BONEWEAVER Snapshot"
 bl_options = {"REGISTER", "UNDO"}
 ```
 
@@ -1181,11 +1181,11 @@ allow_partial: Bool = False
 
 默认只允许完整无冲突恢复。
 
-## 8.6 `uecp.export_report`
+## 8.6 `boneweaver.export_report`
 
 ```python
-bl_idname = "uecp.export_report"
-bl_label = "Export UECP Diagnostic Report"
+bl_idname = "boneweaver.export_report"
+bl_label = "Export BONEWEAVER Diagnostic Report"
 ```
 
 继承 `ExportHelper`，输出 UTF-8 JSON。
@@ -1201,7 +1201,7 @@ include_snapshot_summary = True
 
 不得默认导出逐顶点坐标或完整权重表，避免报告过大。只导出 digest 与统计。
 
-## 8.7 `uecp.clear_runtime`
+## 8.7 `boneweaver.clear_runtime`
 
 - 清除 Plan Store 当前 Plan；
 - 关闭 Preview；
@@ -1218,7 +1218,7 @@ include_snapshot_summary = True
 ```python
 bl_space_type = "VIEW_3D"
 bl_region_type = "UI"
-bl_category = "UE Chain Prep"
+bl_category = "BoneWeaver"
 ```
 
 面板分区：
@@ -1639,8 +1639,8 @@ Schema 文件必须真实存在于 `schemas/`，并与 Dataclass Serializer 保�
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "uecp://schema/conversion-plan/3.0.0",
-  "title": "UE Chain Prep Conversion Plan",
+  "$id": "boneweaver://schema/conversion-plan/3.0.0",
+  "title": "BoneWeaver Conversion Plan",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -1664,7 +1664,7 @@ Schema 文件必须真实存在于 `schemas/`，并与 Dataclass Serializer 保�
     "issues"
   ],
   "properties": {
-    "kind": {"const": "uecp.conversion_plan"},
+    "kind": {"const": "boneweaver.conversion_plan"},
     "schema_version": {
       "type": "string",
       "pattern": "^3\\.[0-9]+\\.[0-9]+$"
@@ -1884,7 +1884,7 @@ Schema 文件必须真实存在于 `schemas/`，并与 Dataclass Serializer 保�
         "severity": {"enum": ["INFO", "WARNING", "BLOCKER"]},
         "code": {
           "type": "string",
-          "pattern": "^UECP_[A-Z0-9_]+$"
+          "pattern": "^BONEWEAVER_[A-Z0-9_]+$"
         },
         "message_key": {"type": "string"},
         "message": {"type": "string"},
@@ -1917,9 +1917,9 @@ algorithm_version
 
 ```json
 {
-  "kind": "uecp.snapshot",
+  "kind": "boneweaver.snapshot",
   "schema_version": "3.0.0",
-  "algorithm_version": "uecp-physics-graph-v1",
+  "algorithm_version": "boneweaver-physics-graph-v1",
   "snapshot_id": "...",
   "plan_id": "...",
   "physics_graph_id": "...",
@@ -2145,7 +2145,7 @@ child.use_connect == True
 必须产生：
 
 ```text
-UECP_EXTERNAL_CONNECTED_CHILD
+BONEWEAVER_EXTERNAL_CONNECTED_CHILD
 BLOCKER
 ```
 
@@ -2163,7 +2163,7 @@ distance(parent.head, child.head) <= epsilon
 
 必须：
 
-- 标记 `UECP_COINCIDENT_HELPER`；
+- 标记 `BONEWEAVER_COINCIDENT_HELPER`；
 - 不创建零长度 Bone；
 - 不自动跨越；
 - UI 可提示下一级非重合 descendant；
@@ -2275,7 +2275,7 @@ for obj in bpy.data.objects:
 同一 Mesh 若有多个指向同一 Armature 的 Modifier：
 
 ```text
-UECP_AMBIGUOUS_ARMATURE_MODIFIER
+BONEWEAVER_AMBIGUOUS_ARMATURE_MODIFIER
 BLOCKER
 ```
 
@@ -2314,13 +2314,13 @@ modifier.use_bone_envelopes == True
 产生 Blocker：
 
 ```text
-UECP_ENVELOPE_DEFORMATION
+BONEWEAVER_ENVELOPE_DEFORMATION
 ```
 
 若 Bone 开启 Vertex Group × Envelope：
 
 ```text
-UECP_ENVELOPE_MULTIPLY
+BONEWEAVER_ENVELOPE_MULTIPLY
 ```
 
 MVP 不尝试自动改选项。
@@ -2353,7 +2353,7 @@ BLOCKER
 若矩阵 determinant < 0：
 
 ```text
-UECP_NEGATIVE_OBJECT_TRANSFORM
+BONEWEAVER_NEGATIVE_OBJECT_TRANSFORM
 BLOCKER
 ```
 
@@ -2887,7 +2887,7 @@ candidate length > epsilon
 若第一和第二候选非常接近：
 
 ```text
-UECP_TERMINAL_CANDIDATE_AMBIGUOUS
+BONEWEAVER_TERMINAL_CANDIDATE_AMBIGUOUS
 BLOCKER 或 requires_confirmation
 ```
 
@@ -3112,7 +3112,7 @@ z_{ref}=r-new_y(r\cdot new_y)
 1. Parent transported Z；
 2. Old X 投影；
 3. Global X/Y/Z 中与 new Y 最不平行的轴；
-4. 记录 `UECP_ROLL_FALLBACK_USED`。
+4. 记录 `BONEWEAVER_ROLL_FALLBACK_USED`。
 
 不得向 `align_roll()` 传零向量或 NaN。
 
@@ -3287,7 +3287,7 @@ matrix_basis == identity
 失败：
 
 ```text
-UECP_NON_IDENTITY_POSE
+BONEWEAVER_NON_IDENTITY_POSE
 BLOCKER
 ```
 
@@ -3412,7 +3412,7 @@ SHA-256(canonical plan payload without timestamps and plan_id)
 ## 24.1 Text Datablock 命名
 
 ```text
-UECP_SNAPSHOT::<snapshot_id>
+BONEWEAVER_SNAPSHOT::<snapshot_id>
 ```
 
 内容为 UTF-8 JSON。
@@ -3460,7 +3460,7 @@ Restore 前：
 若用户在 Apply 后手工改过目标 Bone：
 
 ```text
-UECP_RESTORE_CONFLICT
+BONEWEAVER_RESTORE_CONFLICT
 ```
 
 默认完整拒绝。
@@ -3676,7 +3676,7 @@ allowed_max = max(
 任何 Mesh `max_delta > allowed_max`：
 
 ```text
-UECP_NEUTRAL_MESH_CHANGED
+BONEWEAVER_NEUTRAL_MESH_CHANGED
 BLOCKER
 自动回滚
 ```
@@ -3705,56 +3705,56 @@ Preview Handler 不纳入场景 Object Count，但必须正确销毁。
 至少实现：
 
 ```text
-UECP_NO_ACTIVE_ARMATURE
-UECP_EMPTY_SELECTION
-UECP_LINKED_ARMATURE
-UECP_SHARED_ARMATURE_DATA
-UECP_UNSUPPORTED_CONTEXT
-UECP_NON_INVERTIBLE_TRANSFORM
-UECP_NEGATIVE_OBJECT_TRANSFORM
-UECP_NON_UNIFORM_OBJECT_SCALE
-UECP_NON_IDENTITY_POSE
-UECP_RELATED_ACTION
-UECP_RELATED_NLA
-UECP_RELATED_DRIVER
-UECP_RELATED_CONSTRAINT
-UECP_BONE_PARENTED_OBJECT
-UECP_EXTERNAL_CONNECTED_CHILD
-UECP_BRANCH_AMBIGUOUS
-UECP_COINCIDENT_HELPER
-UECP_ZERO_LENGTH_PROPOSAL
-UECP_NO_ASSOCIATED_MESH
-UECP_NO_WEIGHT_GROUP
-UECP_INSUFFICIENT_WEIGHT_CLOUD
-UECP_DISCONNECTED_WEIGHT_ISLANDS
-UECP_LOW_WEIGHT_CONFIDENCE
-UECP_IMPORTED_FORWARD_AXIS_UNAVAILABLE
-UECP_FORWARD_AXIS_AMBIGUOUS
-UECP_TERMINAL_CANDIDATE_AMBIGUOUS
-UECP_TERMINAL_CANDIDATE_SCORE_TOO_LOW
-UECP_VIRTUAL_TIP_INVALID
-UECP_PHYSICS_GRAPH_INVALID
-UECP_GRAPH_PROJECTION_MISMATCH
-UECP_LONG_SEGMENT_SAMPLING_HINT
-UECP_WEIGHT_DIRECTION_CONFLICT
-UECP_ENVELOPE_DEFORMATION
-UECP_ENVELOPE_MULTIPLY
-UECP_BBONE_UNSUPPORTED
-UECP_AMBIGUOUS_ARMATURE_MODIFIER
-UECP_TOPOLOGY_MODIFIER_BEFORE_ARMATURE
-UECP_STATE_CHANGED_AFTER_ANALYZE
-UECP_SETTINGS_CHANGED_AFTER_ANALYZE
-UECP_WEIGHT_DIGEST_CHANGED
-UECP_BASE_MESH_CHANGED
-UECP_MODIFIER_DIGEST_CHANGED
-UECP_NEUTRAL_MESH_CHANGED
-UECP_NON_TARGET_BONE_CHANGED
-UECP_ROLL_FALLBACK_USED
-UECP_SNAPSHOT_WRITE_FAILED
-UECP_ROLLBACK_FAILED
-UECP_RESTORE_CONFLICT
-UECP_SCHEMA_VERSION_UNSUPPORTED
-UECP_INTERNAL_ERROR
+BONEWEAVER_NO_ACTIVE_ARMATURE
+BONEWEAVER_EMPTY_SELECTION
+BONEWEAVER_LINKED_ARMATURE
+BONEWEAVER_SHARED_ARMATURE_DATA
+BONEWEAVER_UNSUPPORTED_CONTEXT
+BONEWEAVER_NON_INVERTIBLE_TRANSFORM
+BONEWEAVER_NEGATIVE_OBJECT_TRANSFORM
+BONEWEAVER_NON_UNIFORM_OBJECT_SCALE
+BONEWEAVER_NON_IDENTITY_POSE
+BONEWEAVER_RELATED_ACTION
+BONEWEAVER_RELATED_NLA
+BONEWEAVER_RELATED_DRIVER
+BONEWEAVER_RELATED_CONSTRAINT
+BONEWEAVER_BONE_PARENTED_OBJECT
+BONEWEAVER_EXTERNAL_CONNECTED_CHILD
+BONEWEAVER_BRANCH_AMBIGUOUS
+BONEWEAVER_COINCIDENT_HELPER
+BONEWEAVER_ZERO_LENGTH_PROPOSAL
+BONEWEAVER_NO_ASSOCIATED_MESH
+BONEWEAVER_NO_WEIGHT_GROUP
+BONEWEAVER_INSUFFICIENT_WEIGHT_CLOUD
+BONEWEAVER_DISCONNECTED_WEIGHT_ISLANDS
+BONEWEAVER_LOW_WEIGHT_CONFIDENCE
+BONEWEAVER_IMPORTED_FORWARD_AXIS_UNAVAILABLE
+BONEWEAVER_FORWARD_AXIS_AMBIGUOUS
+BONEWEAVER_TERMINAL_CANDIDATE_AMBIGUOUS
+BONEWEAVER_TERMINAL_CANDIDATE_SCORE_TOO_LOW
+BONEWEAVER_VIRTUAL_TIP_INVALID
+BONEWEAVER_PHYSICS_GRAPH_INVALID
+BONEWEAVER_GRAPH_PROJECTION_MISMATCH
+BONEWEAVER_LONG_SEGMENT_SAMPLING_HINT
+BONEWEAVER_WEIGHT_DIRECTION_CONFLICT
+BONEWEAVER_ENVELOPE_DEFORMATION
+BONEWEAVER_ENVELOPE_MULTIPLY
+BONEWEAVER_BBONE_UNSUPPORTED
+BONEWEAVER_AMBIGUOUS_ARMATURE_MODIFIER
+BONEWEAVER_TOPOLOGY_MODIFIER_BEFORE_ARMATURE
+BONEWEAVER_STATE_CHANGED_AFTER_ANALYZE
+BONEWEAVER_SETTINGS_CHANGED_AFTER_ANALYZE
+BONEWEAVER_WEIGHT_DIGEST_CHANGED
+BONEWEAVER_BASE_MESH_CHANGED
+BONEWEAVER_MODIFIER_DIGEST_CHANGED
+BONEWEAVER_NEUTRAL_MESH_CHANGED
+BONEWEAVER_NON_TARGET_BONE_CHANGED
+BONEWEAVER_ROLL_FALLBACK_USED
+BONEWEAVER_SNAPSHOT_WRITE_FAILED
+BONEWEAVER_ROLLBACK_FAILED
+BONEWEAVER_RESTORE_CONFLICT
+BONEWEAVER_SCHEMA_VERSION_UNSUPPORTED
+BONEWEAVER_INTERNAL_ERROR
 ```
 
 每个错误码必须有：
@@ -3927,13 +3927,13 @@ Inter-bone Runtime Dummy
   --background `
   --factory-startup `
   --python tests/test_install_zip.py `
-  -- --zip "dist\ue_chain_prep-0.1.0.zip"
+  -- --zip "dist\boneweaver-0.1.0.zip"
 ```
 
 Python 语法：
 
 ```pwsh
-python -m compileall ue_chain_prep tests
+python -m compileall boneweaver tests
 ```
 
 Manifest 构建按当前 Blender Extension CLI 能力执行；若版本 API 有差异，记录实际命令。
@@ -4036,7 +4036,7 @@ BoneX/Wiggle/ARP 手工验证。
 ## 31.7 Candidate Tie
 
 - 两个轴得分差小于 margin；
-- 产生 `UECP_TERMINAL_CANDIDATE_AMBIGUOUS`；
+- 产生 `BONEWEAVER_TERMINAL_CANDIDATE_AMBIGUOUS`；
 - Apply 不可用。
 
 ## 31.8 Linear Leaf Weight Cloud
@@ -4514,7 +4514,7 @@ Conflict 不覆盖用户数据
 交付：
 
 ```text
-dist/ue_chain_prep-0.1.0.zip
+dist/boneweaver-0.1.0.zip
 artifacts/test-report.md
 artifacts/compatibility-report.md
 artifacts/physics-graph-review.md
@@ -4734,7 +4734,7 @@ Implemented With External Manual Validation Pending
 # 39. 最终报告格式
 
 ```markdown
-# UE Chain Prep Goal Result
+# BoneWeaver Goal Result
 
 ## Outcome
 Implemented / Implemented With External Validation Pending / Partially Implemented / Blocked

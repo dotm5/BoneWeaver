@@ -1,10 +1,10 @@
-# UE Chain Prep 用户工作流
+# BoneWeaver 用户工作流
 
 ## 标准流程
 
 1. 在 3D 视图中选中 Armature，或选中带 Armature Modifier 的 Mesh。
 2. 选择要处理的骨骼链。
-3. 在 `N 面板 > UE Chain Prep` 选择目标用途：BoneX 稳定旋转链、Wiggle 稳定旋转链、Wiggle 可伸缩链或仅整理骨骼链。
+3. 在 `N 面板 > BoneWeaver` 选择目标用途：BoneX 稳定旋转链、Wiggle 稳定旋转链、Wiggle 可伸缩链或仅整理骨骼链。
 4. 点击“检查并预览”。该操作只分析并显示预览，不修改骨架或网格。
 5. 根据结果处理阻断问题；设置、选择或文件发生变化后应重新检查。
 6. 点击“应用转换”并确认影响摘要。Apply 内置安全验证，成功后无需再执行一次 Validate。

@@ -74,7 +74,7 @@ def _paths(root: str | Path) -> tuple[Path, Path]:
     source_path = root_path / "utils" / "utils.py"
     if not source_path.is_file():
         raise PatchError(f"BoneX utils source not found: {source_path}")
-    backup_path = source_path.with_name("utils.py.uecp-bonex-1.2.6.bak")
+    backup_path = source_path.with_name("utils.py.boneweaver-bonex-1.2.6.bak")
     return source_path, backup_path
 
 

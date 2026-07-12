@@ -5,11 +5,11 @@ import types
 import unittest
 
 from tests.test_physics_graph import state
-from ue_chain_prep.core.graph_projection import build_proposals
-from ue_chain_prep.core.models import ValidationIssue
-from ue_chain_prep.core.mutation_ledger import build_topology_projection_ledger
-from ue_chain_prep.core.physics_graph import build_physics_graph
-from ue_chain_prep.core.tip_helpers import classify_tip_helpers
+from boneweaver.core.graph_projection import build_proposals
+from boneweaver.core.models import ValidationIssue
+from boneweaver.core.mutation_ledger import build_topology_projection_ledger
+from boneweaver.core.physics_graph import build_physics_graph
+from boneweaver.core.tip_helpers import classify_tip_helpers
 
 
 def _cloud(name, *, weighted):
@@ -68,7 +68,7 @@ class TipHelperTests(unittest.TestCase):
         socket_bones = bones[:-1] + (dataclasses.replace(bones[-1], is_socket=True),)
         self.assertFalse(classify_tip_helpers(socket_bones, clouds))
         issue = ValidationIssue(
-            "BLOCKER", "UECP_RELATED_CONSTRAINT", "constraint", "constraint",
+            "BLOCKER", "BONEWEAVER_RELATED_CONSTRAINT", "constraint", "constraint",
             bone_names=("hair_end",),
         )
         self.assertFalse(classify_tip_helpers(bones, clouds, (issue,)))

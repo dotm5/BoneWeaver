@@ -3,15 +3,15 @@ from __future__ import annotations
 import unittest
 
 import bpy
-import ue_chain_prep
+import boneweaver
 
 from tests.fixture_builders import clear_scene
 from tests.test_branch_resolution import bag_fixture
 from tests.test_physics_graph import state
-from ue_chain_prep.core.branch_resolution import resolve_branch
-from ue_chain_prep.core.graph_projection import build_proposals
-from ue_chain_prep.core.physics_graph import build_physics_graph
-from ue_chain_prep.core.runtime_store import get_plan
+from boneweaver.core.branch_resolution import resolve_branch
+from boneweaver.core.graph_projection import build_proposals
+from boneweaver.core.physics_graph import build_physics_graph
+from boneweaver.core.runtime_store import get_plan
 
 
 def _make_tip_scene():
@@ -91,23 +91,23 @@ class VisualCleanupPureTests(unittest.TestCase):
 class VisualCleanupPlannerTests(unittest.TestCase):
     def setUp(self) -> None:
         clear_scene()
-        ue_chain_prep.register()
+        boneweaver.register()
         self.rig, self.mesh = _make_tip_scene()
-        settings = bpy.context.scene.uecp_settings
+        settings = bpy.context.scene.boneweaver_settings
         settings.minimum_candidate_score = 0.40
         settings.candidate_minimum_margin = 0.001
         settings.minimum_confidence = 0.40
 
     def tearDown(self) -> None:
-        ue_chain_prep.unregister()
+        boneweaver.unregister()
         clear_scene()
 
     def _analyze_plan(self):
-        self.assertEqual(bpy.ops.uecp.analyze(), {"FINISHED"})
-        return get_plan(bpy.context.window_manager.uecp_runtime.plan_id)
+        self.assertEqual(bpy.ops.boneweaver.analyze(), {"FINISHED"})
+        return get_plan(bpy.context.window_manager.boneweaver_runtime.plan_id)
 
     def test_tip_helper_inclusion_requires_explicit_visual_profile(self) -> None:
-        settings = bpy.context.scene.uecp_settings
+        settings = bpy.context.scene.boneweaver_settings
         default_plan = self._analyze_plan()
         self.assertEqual(default_plan.tip_helper_usage, "REFERENCE_ONLY")
         self.assertEqual(tuple(item.bone_name for item in default_plan.tip_helpers), ("hair_end",))
@@ -116,7 +116,7 @@ class VisualCleanupPlannerTests(unittest.TestCase):
         settings.tip_helper_usage = "INCLUDE_AS_PHYSICS_TERMINAL"
         rejected = self._analyze_plan()
         self.assertIn(
-            "UECP_TIP_HELPER_INCLUDE_PROFILE_REQUIRED",
+            "BONEWEAVER_TIP_HELPER_INCLUDE_PROFILE_REQUIRED",
             {item.code for item in rejected.issues},
         )
 
@@ -128,7 +128,7 @@ class VisualCleanupPlannerTests(unittest.TestCase):
         self.assertTrue(helper.requires_own_tail)
         self.assertIn("hair_end", {item.bone_name for item in included.proposals})
         self.assertNotIn(
-            "UECP_TIP_HELPER_INCLUDE_PROFILE_REQUIRED",
+            "BONEWEAVER_TIP_HELPER_INCLUDE_PROFILE_REQUIRED",
             {item.code for item in included.issues},
         )
 

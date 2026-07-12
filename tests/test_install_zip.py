@@ -33,18 +33,18 @@ def main() -> int:
     )
     if "FINISHED" not in result:
         raise RuntimeError(f"extension install returned {result!r}")
-    module = importlib.import_module("bl_ext.user_default.ue_chain_prep")
-    if not hasattr(bpy.types.Scene, "uecp_settings"):
+    module = importlib.import_module("bl_ext.user_default.boneweaver")
+    if not hasattr(bpy.types.Scene, "boneweaver_settings"):
         module.register()
     for _ in range(3):
         module.unregister()
-        if hasattr(bpy.types.Scene, "uecp_settings"):
-            raise RuntimeError("Scene.uecp_settings leaked after unregister")
+        if hasattr(bpy.types.Scene, "boneweaver_settings"):
+            raise RuntimeError("Scene.boneweaver_settings leaked after unregister")
         module.register()
-        if not hasattr(bpy.types.Scene, "uecp_settings"):
-            raise RuntimeError("Scene.uecp_settings missing after register")
+        if not hasattr(bpy.types.Scene, "boneweaver_settings"):
+            raise RuntimeError("Scene.boneweaver_settings missing after register")
     module.unregister()
-    print("UECP_ZIP_INSTALL_OK", archive)
+    print("BONEWEAVER_ZIP_INSTALL_OK", archive)
     return 0
 
 

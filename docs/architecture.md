@@ -1,6 +1,6 @@
 # Architecture
 
-UE Chain Prep separates stable source truth, immutable reasoning, and Blender mutation:
+BoneWeaver separates stable source truth, immutable reasoning, and Blender mutation:
 
 ```text
 Armature Bone Head + Parent Hierarchy + Rest Axes + Weight Evidence
@@ -11,7 +11,7 @@ Armature Bone Head + Parent Hierarchy + Rest Axes + Weight Evidence
   -> post validation or rollback
 ```
 
-`Analyze` reads Blender RNA and freezes ordinary Python dataclasses. `_PLAN_STORE` holds no Blender RNA references. `Apply` accepts one exact `plan_id`, recomputes source and settings fingerprints, creates `UECP_SNAPSHOT::<sha256>`, modifies only allowed EditBone fields, then validates. UI lists and viewport caches are views, never transaction inputs.
+`Analyze` reads Blender RNA and freezes ordinary Python dataclasses. `_PLAN_STORE` holds no Blender RNA references. `Apply` accepts one exact `plan_id`, recomputes source and settings fingerprints, creates `BONEWEAVER_SNAPSHOT::<sha256>`, modifies only allowed EditBone fields, then validates. UI lists and viewport caches are views, never transaction inputs.
 
 The interaction layer is controller-owned: `WorkflowController` owns workflow transitions, `PreviewController` owns the draw handler/cache/runtime flag, `SessionController` owns Plan loss and lifecycle cleanup, and `SelectionController` owns selection identity and issue location. Operators are thin adapters. The main panel renders a pure `PanelViewState`; technical state and raw codes stay in opt-in diagnostics.
 

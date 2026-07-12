@@ -5,24 +5,24 @@ import unittest
 from unittest.mock import patch
 
 import bpy
-import ue_chain_prep
+import boneweaver
 
 from tests.fixture_builders import clear_scene
 from tests.test_physics_graph import state
-from ue_chain_prep.core.armature_reader import read_bone_states
-from ue_chain_prep.controllers.semantic_discovery import (
+from boneweaver.core.armature_reader import read_bone_states
+from boneweaver.controllers.semantic_discovery import (
     SemanticDiscoveryController,
     SemanticDiscoveryRuntimeError,
 )
-from ue_chain_prep.controllers.session import SessionController
-from ue_chain_prep.core.mesh_scan_cache import MeshScanCache
-from ue_chain_prep.core.runtime_store import (
+from boneweaver.controllers.session import SessionController
+from boneweaver.core.mesh_scan_cache import MeshScanCache
+from boneweaver.core.runtime_store import (
     get_plan,
     get_semantic_discovery,
     get_used_semantic_scope,
 )
-from ue_chain_prep.core.semantic_discovery import build_semantic_discovery_plan
-from ue_chain_prep.core.semantic_serialization import (
+from boneweaver.core.semantic_discovery import build_semantic_discovery_plan
+from boneweaver.core.semantic_serialization import (
     semantic_discovery_plan_from_json,
     semantic_discovery_plan_to_json,
 )
@@ -109,7 +109,7 @@ class SemanticDiscoveryCoreTests(unittest.TestCase):
         missing = build_semantic_discovery_plan(states)
         self.assertFalse(any(chain.discovery_class == "AUTO_INCLUDE" for chain in missing.chains))
         self.assertTrue(all(
-            "UECP_SEMANTIC_WEIGHT_EVIDENCE_UNAVAILABLE" in item.reason_codes
+            "BONEWEAVER_SEMANTIC_WEIGHT_EVIDENCE_UNAVAILABLE" in item.reason_codes
             for item in missing.bone_evidence
         ))
 
@@ -121,7 +121,7 @@ class SemanticDiscoveryCoreTests(unittest.TestCase):
                     sample_count=2,
                     total=1.0e-15,
                     confidence=1.0,
-                    warnings=("UECP_INSUFFICIENT_WEIGHT_CLOUD",),
+                    warnings=("BONEWEAVER_INSUFFICIENT_WEIGHT_CLOUD",),
                 )
                 for item in states
             ),
@@ -130,7 +130,7 @@ class SemanticDiscoveryCoreTests(unittest.TestCase):
             chain.discovery_class == "AUTO_INCLUDE" for chain in insufficient.chains
         ))
         self.assertTrue(all(
-            "UECP_SEMANTIC_NO_WEIGHT_SUPPORT" in item.reason_codes
+            "BONEWEAVER_SEMANTIC_NO_WEIGHT_SUPPORT" in item.reason_codes
             for item in insufficient.bone_evidence
         ))
 
@@ -186,11 +186,11 @@ class SemanticDiscoveryCoreTests(unittest.TestCase):
 class SemanticDiscoveryRuntimeTests(unittest.TestCase):
     def setUp(self) -> None:
         clear_scene()
-        ue_chain_prep.register()
+        boneweaver.register()
         self.rig, self.mesh = _make_weighted_hair_scene()
 
     def tearDown(self) -> None:
-        ue_chain_prep.unregister()
+        boneweaver.unregister()
         clear_scene()
 
     def _bone_state(self):
@@ -227,7 +227,7 @@ class SemanticDiscoveryRuntimeTests(unittest.TestCase):
 
         with patch.object(MeshScanCache, "scan", side_effect=counted_scan):
             self.assertEqual(
-                bpy.ops.uecp.discover_secondary_chains(), {"FINISHED"},
+                bpy.ops.boneweaver.discover_secondary_chains(), {"FINISHED"},
             )
 
         session = get_semantic_discovery()
@@ -238,13 +238,13 @@ class SemanticDiscoveryRuntimeTests(unittest.TestCase):
         ), repr((session.plan.chains, session.plan.bone_evidence)))
         self.assertEqual(self._bone_state(), before_bones)
         self.assertEqual(self._weights(), before_weights)
-        self.assertEqual(bpy.context.window_manager.uecp_runtime.state, "IDLE")
+        self.assertEqual(bpy.context.window_manager.boneweaver_runtime.state, "IDLE")
 
     def test_confirmation_is_required_before_selection_and_frozen_scope(self) -> None:
         plan = SemanticDiscoveryController.discover(bpy.context)
         self.assertEqual(len(plan.chains), 1)
         with self.assertRaisesRegex(
-            SemanticDiscoveryRuntimeError, "UECP_SEMANTIC_CONFIRMATION_REQUIRED",
+            SemanticDiscoveryRuntimeError, "BONEWEAVER_SEMANTIC_CONFIRMATION_REQUIRED",
         ):
             SemanticDiscoveryController.use_confirmed_chains(bpy.context)
 
@@ -271,13 +271,13 @@ class SemanticDiscoveryRuntimeTests(unittest.TestCase):
         SessionController.on_undo_post(None)
         self.assertIsNone(get_semantic_discovery())
         self.assertIsNone(get_used_semantic_scope())
-        runtime = bpy.context.window_manager.uecp_runtime
+        runtime = bpy.context.window_manager.boneweaver_runtime
         self.assertFalse(runtime.semantic_discovery_active)
         self.assertFalse(runtime.semantic_scope_used)
 
     def test_partial_analyze_cache_is_not_reused_for_full_armature_discovery(self) -> None:
-        self.assertEqual(bpy.ops.uecp.analyze(), {"FINISHED"})
-        runtime = bpy.context.window_manager.uecp_runtime
+        self.assertEqual(bpy.ops.boneweaver.analyze(), {"FINISHED"})
+        runtime = bpy.context.window_manager.boneweaver_runtime
         plan = get_plan(runtime.plan_id)
         self.assertEqual(tuple(state.name for state in plan.bone_states), ("hair_l_01",))
         all_bone_states = read_bone_states(
@@ -310,8 +310,8 @@ class SemanticDiscoveryRuntimeTests(unittest.TestCase):
     def test_full_analyze_weight_cloud_cache_is_rejected_after_weight_edit(self) -> None:
         for pose_bone in self.rig.pose.bones:
             pose_bone.select = True
-        self.assertEqual(bpy.ops.uecp.analyze(), {"FINISHED"})
-        runtime = bpy.context.window_manager.uecp_runtime
+        self.assertEqual(bpy.ops.boneweaver.analyze(), {"FINISHED"})
+        runtime = bpy.context.window_manager.boneweaver_runtime
         plan = get_plan(runtime.plan_id)
         bone_states = read_bone_states(
             self.rig, tuple(state.name for state in plan.bone_states),

@@ -1,0 +1,248 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "boneweaver://schema/conversion-plan/4.0.0",
+  "title": "BoneWeaver Conversion Plan",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "kind", "schema_version", "algorithm_version", "addon_version", "plan_id",
+    "source_fingerprint", "settings_fingerprint", "armature", "profile", "tip_helper_usage",
+    "scoring_profile", "meshes", "bones", "physics_graph", "weight_clouds",
+    "tip_helpers", "terminal_solutions", "proposals", "segment_sampling_hints",
+    "branch_resolutions", "topology_ledger", "issues"
+  ],
+  "properties": {
+    "kind": {"const": "boneweaver.conversion_plan"},
+    "schema_version": {"const": "4.0.0"},
+    "algorithm_version": {"type": "string", "minLength": 1},
+    "addon_version": {"type": "string"},
+    "plan_id": {"$ref": "#/$defs/sha256"},
+    "source_fingerprint": {"$ref": "#/$defs/sha256"},
+    "settings_fingerprint": {"$ref": "#/$defs/sha256"},
+    "armature": {"$ref": "#/$defs/armature"},
+    "profile": {"enum": ["BONEX_ROTATION_CHAIN", "BONEX_TRANSLATION_ALLOWED", "WIGGLE2_ROTATION_CHAIN", "WIGGLE2_STRETCH_CHAIN", "GEOMETRY_ONLY", "VISUAL_CHAIN_CLEANUP"]},
+    "tip_helper_usage": {"enum": ["REFERENCE_ONLY", "INCLUDE_AS_PHYSICS_TERMINAL"]},
+    "scoring_profile": {"type": "object", "additionalProperties": {"type": "number"}},
+    "meshes": {"type": "array", "items": {"$ref": "#/$defs/meshState"}},
+    "bones": {"type": "array", "items": {"$ref": "#/$defs/boneState"}},
+    "physics_graph": {"$ref": "#/$defs/physicsGraph"},
+    "weight_clouds": {"type": "array", "items": {"$ref": "#/$defs/weightCloud"}},
+    "tip_helpers": {"type": "array", "items": {"$ref": "#/$defs/tipHelper"}},
+    "terminal_solutions": {"type": "array", "items": {"$ref": "#/$defs/terminalSolution"}},
+    "proposals": {"type": "array", "items": {"$ref": "#/$defs/proposal"}},
+    "segment_sampling_hints": {"type": "array", "items": {"$ref": "#/$defs/segmentSamplingHint"}},
+    "issues": {"type": "array", "items": {"$ref": "#/$defs/issue"}},
+    "branch_resolutions": {"type": "array", "items": {"$ref": "#/$defs/branchResolution"}},
+    "topology_ledger": {"$ref": "#/$defs/topologyLedger"}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "vec3": {"type": "array", "prefixItems": [{"type": "number"}, {"type": "number"}, {"type": "number"}], "items": false},
+    "quat": {"type": "array", "prefixItems": [{"type": "number"}, {"type": "number"}, {"type": "number"}, {"type": "number"}], "items": false},
+    "armature": {
+      "type": "object", "additionalProperties": false,
+      "required": ["object_name", "data_name"],
+      "properties": {"object_name": {"type": "string", "minLength": 1}, "data_name": {"type": "string", "minLength": 1}}
+    },
+    "meshState": {
+      "type": "object", "additionalProperties": false,
+      "required": ["object_name", "data_name", "vertex_count", "polygon_count", "armature_modifier_names", "selected_armature_modifier_name", "object_matrix_world", "mesh_to_armature_matrix", "vertex_group_names", "vertex_group_digest", "modifier_digest", "base_mesh_digest"],
+      "properties": {
+        "object_name": {"type": "string"}, "data_name": {"type": "string"},
+        "vertex_count": {"type": "integer", "minimum": 0}, "polygon_count": {"type": "integer", "minimum": 0},
+        "armature_modifier_names": {"$ref": "#/$defs/stringArray"},
+        "selected_armature_modifier_name": {"type": "string"},
+        "object_matrix_world": {"type": "array", "items": {"type": "number"}},
+        "mesh_to_armature_matrix": {"type": "array", "items": {"type": "number"}},
+        "vertex_group_names": {"$ref": "#/$defs/stringArray"},
+        "vertex_group_digest": {"$ref": "#/$defs/sha256"}, "modifier_digest": {"$ref": "#/$defs/sha256"}, "base_mesh_digest": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "boneState": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "parent_name", "child_names", "head", "tail", "roll", "matrix_local", "local_x", "local_y", "local_z", "use_connect", "use_deform", "inherit_scale", "use_inherit_rotation", "bbone_segments", "is_socket", "importer_metadata_flags"],
+      "properties": {
+        "name": {"type": "string"}, "parent_name": {"type": ["string", "null"]},
+        "child_names": {"type": "array", "items": {"type": "string"}},
+        "head": {"$ref": "#/$defs/vec3"}, "tail": {"$ref": "#/$defs/vec3"}, "roll": {"type": "number"},
+        "matrix_local": {"type": "array", "items": {"type": "number"}},
+        "local_x": {"$ref": "#/$defs/vec3"}, "local_y": {"$ref": "#/$defs/vec3"}, "local_z": {"$ref": "#/$defs/vec3"},
+        "use_connect": {"type": "boolean"}, "use_deform": {"type": "boolean"},
+        "inherit_scale": {"type": "string"}, "use_inherit_rotation": {"type": "boolean"},
+        "bbone_segments": {"type": "integer", "minimum": 1}, "is_socket": {"type": "boolean"},
+        "importer_metadata_flags": {"$ref": "#/$defs/stringArray"}
+      }
+    },
+    "physicsNode": {
+      "type": "object", "additionalProperties": false,
+      "required": ["node_id", "kind", "bone_name", "joint_position", "rest_rotation", "local_x", "local_y", "local_z", "parent_node_id", "child_node_ids", "is_kinematic", "source", "semantic_role", "reference_only", "mutation_target", "requires_own_tail"],
+      "properties": {
+        "node_id": {"type": "string"}, "kind": {"enum": ["REAL_BONE", "VIRTUAL_TIP"]},
+        "bone_name": {"type": ["string", "null"]}, "joint_position": {"$ref": "#/$defs/vec3"},
+        "rest_rotation": {"anyOf": [{"$ref": "#/$defs/quat"}, {"type": "null"}]},
+        "local_x": {"anyOf": [{"$ref": "#/$defs/vec3"}, {"type": "null"}]},
+        "local_y": {"anyOf": [{"$ref": "#/$defs/vec3"}, {"type": "null"}]},
+        "local_z": {"anyOf": [{"$ref": "#/$defs/vec3"}, {"type": "null"}]},
+        "parent_node_id": {"type": ["string", "null"]}, "child_node_ids": {"type": "array", "items": {"type": "string"}},
+        "is_kinematic": {"type": "boolean"}, "source": {"type": "string"},
+        "semantic_role": {"enum": ["DEFORM_SEGMENT", "EXISTING_TIP_HELPER", "CONTROL_EFFECTOR", "TWIST_HELPER", "SOCKET_HELPER", "UNKNOWN_HELPER"]},
+        "reference_only": {"type": "boolean"},
+        "mutation_target": {"type": "boolean"},
+        "requires_own_tail": {"type": "boolean"}
+      }
+    },
+    "physicsEdge": {
+      "type": "object", "additionalProperties": false,
+      "required": ["edge_id", "kind", "parent_node_id", "child_node_id", "rest_vector", "rest_length", "source"],
+      "properties": {
+        "edge_id": {"type": "string"}, "kind": {"enum": ["HIERARCHY_SEGMENT", "VIRTUAL_TIP_SEGMENT"]},
+        "parent_node_id": {"type": "string"}, "child_node_id": {"type": "string"},
+        "rest_vector": {"$ref": "#/$defs/vec3"}, "rest_length": {"type": "number", "exclusiveMinimum": 0}, "source": {"type": "string"}
+      }
+    },
+    "physicsGraph": {
+      "type": "object", "additionalProperties": false,
+      "required": ["graph_id", "nodes", "edges", "chains", "issues"],
+      "properties": {
+        "graph_id": {"$ref": "#/$defs/sha256"}, "nodes": {"type": "array", "items": {"$ref": "#/$defs/physicsNode"}},
+        "edges": {"type": "array", "items": {"$ref": "#/$defs/physicsEdge"}}, "chains": {"type": "array", "items": {"$ref": "#/$defs/physicsChain"}},
+        "issues": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "physicsChain": {
+      "type": "object", "additionalProperties": false,
+      "required": ["chain_id", "node_ids", "edge_ids", "real_bone_names", "root_node_id", "terminal_node_id", "has_virtual_tip", "branch_parent_node_id", "resolved", "issue_codes"],
+      "properties": {
+        "chain_id": {"$ref": "#/$defs/sha256"}, "node_ids": {"$ref": "#/$defs/stringArray"},
+        "edge_ids": {"$ref": "#/$defs/stringArray"}, "real_bone_names": {"$ref": "#/$defs/stringArray"},
+        "root_node_id": {"type": "string"}, "terminal_node_id": {"type": "string"},
+        "has_virtual_tip": {"type": "boolean"}, "branch_parent_node_id": {"type": ["string", "null"]},
+        "resolved": {"type": "boolean"}, "issue_codes": {"$ref": "#/$defs/stringArray"}
+      }
+    },
+    "terminalCandidateScore": {
+      "type": "object", "additionalProperties": false,
+      "required": ["mesh_support", "chain_continuity", "cloud_shape_suitability", "imported_axis_prior", "length_plausibility", "penalties", "total"],
+      "properties": {
+        "mesh_support": {"type": "number"}, "chain_continuity": {"type": "number"},
+        "cloud_shape_suitability": {"type": "number"}, "imported_axis_prior": {"type": "number"},
+        "length_plausibility": {"type": "number"}, "penalties": {"type": "number"}, "total": {"type": "number"}
+      }
+    },
+    "terminalCandidate": {
+      "type": "object", "additionalProperties": false,
+      "required": ["candidate_id", "kind", "axis_label", "direction", "raw_length", "clamped_length", "tail", "score", "evidence", "issue_codes"],
+      "properties": {
+        "candidate_id": {"type": "string"}, "kind": {"type": "string"}, "axis_label": {"type": ["string", "null"]},
+        "direction": {"$ref": "#/$defs/vec3"}, "raw_length": {"type": "number", "exclusiveMinimum": 0},
+        "clamped_length": {"type": "number", "exclusiveMinimum": 0}, "tail": {"$ref": "#/$defs/vec3"},
+        "score": {"$ref": "#/$defs/terminalCandidateScore"}, "evidence": {"$ref": "#/$defs/stringArray"}, "issue_codes": {"$ref": "#/$defs/stringArray"}
+      }
+    },
+    "terminalCandidateCluster": {
+      "type": "object", "additionalProperties": false,
+      "required": ["cluster_id", "direction", "score", "support_bonus", "member_candidate_ids", "evidence_kinds"],
+      "properties": {
+        "cluster_id": {"type": "string"}, "direction": {"$ref": "#/$defs/vec3"},
+        "score": {"type": "number"}, "support_bonus": {"type": "number"},
+        "member_candidate_ids": {"$ref": "#/$defs/stringArray"}, "evidence_kinds": {"$ref": "#/$defs/stringArray"}
+      }
+    },
+    "terminalSolution": {
+      "type": "object", "additionalProperties": false,
+      "required": ["bone_name", "source", "selected_candidate_id", "candidates", "virtual_tip_node_id", "tail", "direction", "length", "confidence", "score_margin", "requires_confirmation", "evidence", "resolution_class", "candidate_clusters"],
+      "properties": {
+        "bone_name": {"type": "string"}, "source": {"type": "string"}, "selected_candidate_id": {"type": ["string", "null"]},
+        "candidates": {"type": "array", "items": {"$ref": "#/$defs/terminalCandidate"}}, "virtual_tip_node_id": {"type": ["string", "null"]},
+        "tail": {"$ref": "#/$defs/vec3"}, "direction": {"$ref": "#/$defs/vec3"}, "length": {"type": "number", "minimum": 0},
+        "confidence": {"type": "number", "minimum": 0, "maximum": 1}, "score_margin": {"type": "number", "minimum": 0},
+        "requires_confirmation": {"type": "boolean"}, "evidence": {"$ref": "#/$defs/stringArray"},
+        "resolution_class": {"type": "string"}, "candidate_clusters": {"type": "array", "items": {"$ref": "#/$defs/terminalCandidateCluster"}}
+      }
+    },
+    "weightComponent": {"type": "object", "additionalProperties": false, "required": ["vertex_count", "statistical_weight", "centroid", "principal_axis"], "properties": {"vertex_count": {"type": "integer", "minimum": 0}, "statistical_weight": {"type": "number"}, "centroid": {"$ref": "#/$defs/vec3"}, "principal_axis": {"anyOf": [{"$ref": "#/$defs/vec3"}, {"type": "null"}]}}},
+    "perMeshWeightCloud": {"type": "object", "additionalProperties": false, "required": ["mesh_name", "component_count", "components", "dominant_weight_ratio", "selected_centroid", "selected_principal_axis", "selected_statistical_weight"], "properties": {"mesh_name": {"type": "string"}, "component_count": {"type": "integer", "minimum": 0}, "components": {"type": "array", "items": {"$ref": "#/$defs/weightComponent"}}, "dominant_weight_ratio": {"type": "number"}, "selected_centroid": {"anyOf": [{"$ref": "#/$defs/vec3"}, {"type": "null"}]}, "selected_principal_axis": {"anyOf": [{"$ref": "#/$defs/vec3"}, {"type": "null"}]}, "selected_statistical_weight": {"type": "number"}}},
+    "weightCloud": {
+      "type": "object", "additionalProperties": false,
+      "required": ["bone_name", "mesh_names", "sample_count", "effective_sample_count", "total_statistical_weight", "centroid", "principal_axis", "eigenvalues", "linearity", "planarity", "sphericity", "positive_projection_fraction", "centroid_distance_ratio", "direction_agreement", "length_percentile", "cloud_class", "confidence", "warnings", "per_mesh_clouds", "component_strategy"],
+      "properties": {
+        "bone_name": {"type": "string"}, "mesh_names": {"$ref": "#/$defs/stringArray"},
+        "sample_count": {"type": "integer", "minimum": 0}, "effective_sample_count": {"type": "number", "minimum": 0},
+        "total_statistical_weight": {"type": "number", "minimum": 0},
+        "centroid": {"anyOf": [{"$ref": "#/$defs/vec3"}, {"type": "null"}]},
+        "principal_axis": {"anyOf": [{"$ref": "#/$defs/vec3"}, {"type": "null"}]},
+        "eigenvalues": {"anyOf": [{"$ref": "#/$defs/vec3"}, {"type": "null"}]},
+        "linearity": {"type": "number"}, "planarity": {"type": "number"}, "sphericity": {"type": "number"},
+        "positive_projection_fraction": {"type": "number"}, "centroid_distance_ratio": {"type": "number"},
+        "direction_agreement": {"type": "number"}, "length_percentile": {"type": ["number", "null"]},
+        "cloud_class": {"type": "string"}, "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+        "warnings": {"$ref": "#/$defs/stringArray"}, "per_mesh_clouds": {"type": "array", "items": {"$ref": "#/$defs/perMeshWeightCloud"}},
+        "component_strategy": {"enum": ["DOMINANT_COMPONENT", "REQUIRE_SINGLE_COMPONENT", "ALL_COMPATIBLE_COMPONENTS"]}
+      }
+    },
+    "proposal": {
+      "type": "object", "additionalProperties": false,
+      "required": ["bone_name", "chain_id", "source_edge_id", "role", "original_head", "original_tail", "original_roll", "proposed_tail", "proposed_roll_reference_z", "final_use_connect", "terminal_source", "confidence", "issue_codes", "proposal_id"],
+      "properties": {"bone_name": {"type": "string"}, "chain_id": {"type": "string"}, "source_edge_id": {"type": "string"}, "role": {"type": "string"}, "original_head": {"$ref": "#/$defs/vec3"}, "original_tail": {"$ref": "#/$defs/vec3"}, "original_roll": {"type": "number"}, "proposed_tail": {"$ref": "#/$defs/vec3"}, "proposed_roll_reference_z": {"$ref": "#/$defs/vec3"}, "final_use_connect": {"type": "boolean"}, "terminal_source": {"type": "string"}, "confidence": {"type": "number"}, "issue_codes": {"$ref": "#/$defs/stringArray"}, "proposal_id": {"$ref": "#/$defs/sha256"}}
+    },
+    "segmentSamplingHint": {"type": "object", "additionalProperties": false, "required": ["edge_id", "segment_length", "reference_length", "length_ratio", "suggested_virtual_subdivisions", "severity", "message_key"], "properties": {"edge_id": {"type": "string"}, "segment_length": {"type": "number"}, "reference_length": {"type": "number"}, "length_ratio": {"type": "number"}, "suggested_virtual_subdivisions": {"type": "integer", "minimum": 0}, "severity": {"type": "string"}, "message_key": {"type": "string"}}},
+    "branchCandidate": {"type": "object", "additionalProperties": false, "required": ["child_bone_name", "immediate_edge_length", "longest_downstream_path_length", "branch_depth", "deform_weight_mass", "weighted_vertex_count", "direction_continuity", "naming_continuity", "penalties", "score"], "properties": {"child_bone_name": {"type": "string"}, "immediate_edge_length": {"type": "number"}, "longest_downstream_path_length": {"type": "number"}, "branch_depth": {"type": "integer"}, "deform_weight_mass": {"type": "number"}, "weighted_vertex_count": {"type": "integer"}, "direction_continuity": {"type": "number"}, "naming_continuity": {"type": "number"}, "penalties": {"type": "array", "items": {"$ref": "#/$defs/stringNumberPair"}}, "score": {"type": "number"}}},
+    "branchResolution": {"type": "object", "additionalProperties": false, "required": ["branch_bone_name", "mode", "candidates", "selected_child_name", "side_child_names", "score", "margin", "result", "requires_confirmation", "issue_codes"], "properties": {"branch_bone_name": {"type": "string"}, "mode": {"type": "string"}, "candidates": {"type": "array", "items": {"$ref": "#/$defs/branchCandidate"}}, "selected_child_name": {"type": ["string", "null"]}, "side_child_names": {"$ref": "#/$defs/stringArray"}, "score": {"type": "number"}, "margin": {"type": "number"}, "result": {"type": "string"}, "requires_confirmation": {"type": "boolean"}, "issue_codes": {"$ref": "#/$defs/stringArray"}}},
+    "mutationRecord": {"type": "object", "additionalProperties": true},
+    "tipHelper": {
+      "type": "object", "additionalProperties": false,
+      "required": ["bone_name", "parent_bone_name", "role", "reference_only", "mutation_target", "requires_own_tail", "source", "confidence", "evidence", "excluded_child_names", "head", "tail", "roll", "use_connect", "parent_name", "parent_proposal_id", "parent_terminal_source", "parent_expected_tail"],
+      "properties": {
+        "bone_name": {"type": "string"}, "parent_bone_name": {"type": "string"},
+        "role": {"const": "EXISTING_TIP_HELPER"}, "reference_only": {"type": "boolean"},
+        "mutation_target": {"type": "boolean"}, "requires_own_tail": {"type": "boolean"},
+        "source": {"const": "EXISTING_TIP_HELPER_HEAD"},
+        "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+        "evidence": {"type": "array", "items": {"type": "string"}},
+        "excluded_child_names": {"type": "array", "items": {"type": "string"}},
+        "head": {"$ref": "#/$defs/vec3"}, "tail": {"$ref": "#/$defs/vec3"},
+        "roll": {"type": "number"}, "use_connect": {"type": "boolean"},
+        "parent_name": {"type": "string"},
+        "parent_proposal_id": {"anyOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]},
+        "parent_terminal_source": {"type": ["string", "null"]},
+        "parent_expected_tail": {"anyOf": [{"$ref": "#/$defs/vec3"}, {"type": "null"}]}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"reference_only": {"const": true}}},
+          "then": {"properties": {"mutation_target": {"const": false}, "requires_own_tail": {"const": false}}}
+        },
+        {
+          "if": {"properties": {"reference_only": {"const": false}}},
+          "then": {"properties": {"mutation_target": {"const": true}, "requires_own_tail": {"const": true}, "excluded_child_names": {"maxItems": 0}}}
+        }
+      ]
+    },
+    "topologyLedger": {
+      "type": "object", "additionalProperties": false,
+      "required": ["selected_bone_count", "mutation_target_count", "reference_only_tip_helper_count", "selected_hierarchy_edge_count", "linear_edge_count", "branch_node_count", "branch_edge_count", "resolved_branch_count", "unresolved_branch_count", "external_child_edge_count", "virtual_tip_count", "proposal_count", "mutation_record_count", "skipped_by_design_count"],
+      "properties": {
+        "selected_bone_count": {"type": "integer", "minimum": 0},
+        "mutation_target_count": {"type": "integer", "minimum": 0},
+        "reference_only_tip_helper_count": {"type": "integer", "minimum": 0},
+        "selected_hierarchy_edge_count": {"type": "integer", "minimum": 0},
+        "linear_edge_count": {"type": "integer", "minimum": 0},
+        "branch_node_count": {"type": "integer", "minimum": 0},
+        "branch_edge_count": {"type": "integer", "minimum": 0},
+        "resolved_branch_count": {"type": "integer", "minimum": 0},
+        "unresolved_branch_count": {"type": "integer", "minimum": 0},
+        "external_child_edge_count": {"type": "integer", "minimum": 0},
+        "virtual_tip_count": {"type": "integer", "minimum": 0},
+        "proposal_count": {"type": "integer", "minimum": 0},
+        "mutation_record_count": {"type": "integer", "minimum": 0},
+        "skipped_by_design_count": {"type": "integer", "minimum": 0}
+      }
+    },
+    "meshValidationResult": {"type": "object", "additionalProperties": true},
+    "exportManifest": {"type": "object", "additionalProperties": true},
+    "issue": {"type": "object", "additionalProperties": false, "required": ["severity", "code", "message_key", "message", "bone_names", "object_names", "node_ids", "edge_ids", "details"], "properties": {"severity": {"enum": ["INFO", "WARNING", "BLOCKER"]}, "code": {"type": "string", "pattern": "^BONEWEAVER_[A-Z0-9_]+$"}, "message_key": {"type": "string"}, "message": {"type": "string"}, "bone_names": {"$ref": "#/$defs/stringArray"}, "object_names": {"$ref": "#/$defs/stringArray"}, "node_ids": {"$ref": "#/$defs/stringArray"}, "edge_ids": {"$ref": "#/$defs/stringArray"}, "details": {"type": "array", "items": {"$ref": "#/$defs/stringPair"}}}},
+    "stringArray": {"type": "array", "items": {"type": "string"}},
+    "stringPair": {"type": "array", "prefixItems": [{"type": "string"}, {"type": "string"}], "items": false},
+    "stringNumberPair": {"type": "array", "prefixItems": [{"type": "string"}, {"type": "number"}], "items": false}
+  }
+}

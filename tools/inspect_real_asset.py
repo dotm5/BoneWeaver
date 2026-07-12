@@ -1,4 +1,4 @@
-"""Read-only inventory for a loaded UECP real-asset blend file."""
+"""Read-only inventory for a loaded BONEWEAVER real-asset blend file."""
 
 from __future__ import annotations
 
@@ -49,9 +49,9 @@ def main():
         "filepath": bpy.data.filepath,
         "armatures": armatures,
         "meshes": meshes,
-        "uecp_texts": sorted(text.name for text in bpy.data.texts if text.name.startswith("UECP_")),
+        "boneweaver_texts": sorted(text.name for text in bpy.data.texts if text.name.startswith("BONEWEAVER_")),
     }
-    print("UECP_REAL_ASSET_INVENTORY=" + json.dumps(payload, ensure_ascii=False, sort_keys=True))
+    print("BONEWEAVER_REAL_ASSET_INVENTORY=" + json.dumps(payload, ensure_ascii=False, sort_keys=True))
 
 
 if __name__ == "__main__":

@@ -7,10 +7,10 @@ from pathlib import Path
 import unittest
 import inspect
 
-from ue_chain_prep.core.validation_tolerance import MeshCoordinateCapture, evaluate_mesh_tolerance
-from ue_chain_prep.ui import draw
+from boneweaver.core.validation_tolerance import MeshCoordinateCapture, evaluate_mesh_tolerance
+from boneweaver.ui import draw
 
-from ue_chain_prep.core.weight_islands import CompactPerMeshWeightedInput
+from boneweaver.core.weight_islands import CompactPerMeshWeightedInput
 
 
 class PerformanceContractTests(unittest.TestCase):
@@ -39,7 +39,7 @@ class PerformanceContractTests(unittest.TestCase):
                 gc.collect()
 
     def test_runtime_has_no_numpy_dependency(self) -> None:
-        root = Path(__file__).resolve().parents[1] / "ue_chain_prep"
+        root = Path(__file__).resolve().parents[1] / "boneweaver"
         source = "\n".join(path.read_text(encoding="utf-8") for path in root.rglob("*.py"))
         self.assertNotIn("import numpy", source)
         self.assertNotIn("from numpy", source)

@@ -4,8 +4,8 @@ import dataclasses
 import unittest
 
 from tests.test_physics_graph import state
-from ue_chain_prep.contracts import BranchResolutionMode
-from ue_chain_prep.core.branch_resolution import resolve_branch
+from boneweaver.contracts import BranchResolutionMode
+from boneweaver.core.branch_resolution import resolve_branch
 
 
 def bag_fixture():
@@ -65,7 +65,7 @@ class BranchResolutionTests(unittest.TestCase):
         resolution = resolve_branch("Skirt", bones)
         self.assertEqual(resolution.result, "AMBIGUOUS")
         self.assertIsNone(resolution.selected_child_name)
-        self.assertIn("UECP_BRANCH_AMBIGUOUS", resolution.issue_codes)
+        self.assertIn("BONEWEAVER_BRANCH_AMBIGUOUS", resolution.issue_codes)
 
     def test_three_way_branch_is_deterministic(self) -> None:
         bones = (
@@ -90,7 +90,7 @@ class BranchResolutionTests(unittest.TestCase):
         resolution = resolve_branch("spine_01", bones)
         self.assertIsNone(resolution.selected_child_name)
         self.assertEqual(resolution.result, "BLOCKED")
-        self.assertIn("UECP_BRANCH_AUTO_MAIN_SKELETON_FORBIDDEN", resolution.issue_codes)
+        self.assertIn("BONEWEAVER_BRANCH_AUTO_MAIN_SKELETON_FORBIDDEN", resolution.issue_codes)
 
     def test_socket_branch_is_penalized(self) -> None:
         bones = list(bag_fixture())

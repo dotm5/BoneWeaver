@@ -2,7 +2,7 @@
 
 Reference: Kawaii Physics commit `e29e078f49526ce721125468657043ecf5c9ae1f`.
 
-| Architecture question | UECP result |
+| Architecture question | BONEWEAVER result |
 |---|---|
 | Are real nodes joint origins? | Yes; every `REAL_BONE.joint_position` is the frozen Bone head. |
 | Do hierarchy edges depend on imported tails? | No; tests mutate every tail without changing edge vectors or Graph ID. |

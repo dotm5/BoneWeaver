@@ -5,15 +5,15 @@ import types
 import unittest
 
 from tests.test_branch_resolution import bag_fixture
-from ue_chain_prep.core.branch_resolution import resolve_branch
-from ue_chain_prep.core.graph_projection import build_proposals
-from ue_chain_prep.core.models import BoneMutationRecord, BoneProposal
-from ue_chain_prep.core.mutation_ledger import (
+from boneweaver.core.branch_resolution import resolve_branch
+from boneweaver.core.graph_projection import build_proposals
+from boneweaver.core.models import BoneMutationRecord, BoneProposal
+from boneweaver.core.mutation_ledger import (
     build_mutation_records,
     build_topology_projection_ledger,
     validate_mutation_records,
 )
-from ue_chain_prep.core.physics_graph import build_physics_graph
+from boneweaver.core.physics_graph import build_physics_graph
 
 
 def proposal(name="Bone", proposal_id="proposal-1"):
@@ -56,7 +56,7 @@ class MutationLedgerTests(unittest.TestCase):
         before = {"Bone": {"tail": (0, 1, 0), "roll": 0.0, "use_connect": False}}
         after = {"Bone": {"tail": (0, 2, 0), "roll": 0.0, "use_connect": False}}
         issues = validate_mutation_records(plan, before, after, ())
-        self.assertIn("UECP_UNRECORDED_BONE_MUTATION", issues)
+        self.assertIn("BONEWEAVER_UNRECORDED_BONE_MUTATION", issues)
 
     def test_record_without_frozen_proposal_fails_validation(self) -> None:
         plan = types.SimpleNamespace(proposals=(proposal(),))
@@ -68,7 +68,7 @@ class MutationLedgerTests(unittest.TestCase):
             ("TAIL_PROJECTED",),
         )
         issues = validate_mutation_records(plan, before, after, (rogue,))
-        self.assertIn("UECP_MUTATION_WITHOUT_PROPOSAL", issues)
+        self.assertIn("BONEWEAVER_MUTATION_WITHOUT_PROPOSAL", issues)
 
     def test_noop_proposal_does_not_create_false_mutation(self) -> None:
         plan = types.SimpleNamespace(proposals=(proposal(),))

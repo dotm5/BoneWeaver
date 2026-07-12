@@ -1,1 +1,1 @@
-"""UE Chain Prep test package."""
+"""BoneWeaver test package."""

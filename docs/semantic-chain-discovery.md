@@ -71,7 +71,7 @@ penalty and a separately serialized `discovery_score`. The v0.2.0 weighted score
 ```
 
 Absent optional weight summaries are explicit unavailable evidence: they never
-count as positive support, emit `UECP_SEMANTIC_WEIGHT_EVIDENCE_UNAVAILABLE`, and
+count as positive support, emit `BONEWEAVER_SEMANTIC_WEIGHT_EVIDENCE_UNAVAILABLE`, and
 prevent automatic acceptance. The candidate may still be emitted for user
 review. Absent optional importer metadata remains neutral rather than positive
 evidence. Hard exclusions have
@@ -104,7 +104,7 @@ and discovery class.
 
 Branches retain every compatible child in the discovered component. Discovery
 never chooses a main continuation; a branched AUTO candidate is capped at
-`SUGGEST_INCLUDE` with `UECP_SEMANTIC_BRANCH_REVIEW_REQUIRED`.
+`SUGGEST_INCLUDE` with `BONEWEAVER_SEMANTIC_BRANCH_REVIEW_REQUIRED`.
 
 ## Geometry projection need
 
@@ -154,7 +154,7 @@ is the only selection-changing bridge and selects the complete candidate, never 
 guessed main branch. `Use Confirmed Discovered Chains` freezes confirmed bone-name
 tuples for the next Analyze but does not run Analyze. AUTO candidates require the
 same explicit confirmation as suggestions. Hierarchy and semantic frozen scopes
-are mutually exclusive; `UECP_SCOPE_SOURCE_CONFLICT` rejects simultaneous use.
+are mutually exclusive; `BONEWEAVER_SCOPE_SOURCE_CONFLICT` rejects simultaneous use.
 Strict JSON export serializes the immutable plan.
 
 The panel displays category, discovery class, score, branch count, and reason

@@ -6,7 +6,7 @@
 | Blender | |
 | Model SHA-256 | |
 | Chain | |
-| UECP profile / Plan ID / Graph ID | |
+| BONEWEAVER profile / Plan ID / Graph ID | |
 | BoneX / Wiggle / ARP version | |
 | Result | Pending |
 | Evidence path | |

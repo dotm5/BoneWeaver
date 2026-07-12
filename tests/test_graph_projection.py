@@ -3,11 +3,11 @@ from __future__ import annotations
 import unittest
 
 from tests.test_physics_graph import state
-from ue_chain_prep.core.graph_projection import build_proposals
-from ue_chain_prep.core.branch_resolution import resolve_branch
-from ue_chain_prep.core.physics_graph import build_physics_graph, with_virtual_tips
-from ue_chain_prep.core.terminal_candidates import generate_candidates, select_candidate
-from ue_chain_prep.core.weight_cloud import analyze_weight_cloud
+from boneweaver.core.graph_projection import build_proposals
+from boneweaver.core.branch_resolution import resolve_branch
+from boneweaver.core.physics_graph import build_physics_graph, with_virtual_tips
+from boneweaver.core.terminal_candidates import generate_candidates, select_candidate
+from boneweaver.core.weight_cloud import analyze_weight_cloud
 
 
 class GraphProjectionTests(unittest.TestCase):

@@ -4,8 +4,8 @@ import dataclasses
 import unittest
 
 from tests.test_physics_graph import state
-from ue_chain_prep.contracts import TerminalResolutionClass
-from ue_chain_prep.core.terminal_candidates import safe_parent_chain_fallback
+from boneweaver.contracts import TerminalResolutionClass
+from boneweaver.core.terminal_candidates import safe_parent_chain_fallback
 
 
 class TerminalFallbackTests(unittest.TestCase):
@@ -36,18 +36,18 @@ class TerminalFallbackTests(unittest.TestCase):
         coincident = dataclasses.replace(self.bones[-1], head=self.bones[-2].head)
         solution = safe_parent_chain_fallback(coincident, self.bones[:-1] + (coincident,))
         self.assertEqual(solution.resolution_class, "UNRESOLVED")
-        self.assertIn("UECP_COINCIDENT_HELPER", solution.evidence)
+        self.assertIn("BONEWEAVER_COINCIDENT_HELPER", solution.evidence)
 
     def test_missing_parent_is_unresolved(self) -> None:
         orphan = dataclasses.replace(self.bones[-1], parent_name=None)
         solution = safe_parent_chain_fallback(orphan, self.bones[:-1] + (orphan,))
         self.assertEqual(solution.resolution_class, "UNRESOLVED")
-        self.assertIn("UECP_TERMINAL_PARENT_UNAVAILABLE", solution.evidence)
+        self.assertIn("BONEWEAVER_TERMINAL_PARENT_UNAVAILABLE", solution.evidence)
 
     def test_unresolved_branch_is_not_silently_crossed(self) -> None:
         solution = safe_parent_chain_fallback(self.bones[-1], self.bones, unresolved_branch=True)
         self.assertEqual(solution.resolution_class, "UNRESOLVED")
-        self.assertIn("UECP_BRANCH_AMBIGUOUS", solution.evidence)
+        self.assertIn("BONEWEAVER_BRANCH_AMBIGUOUS", solution.evidence)
 
     def test_socket_control_or_helper_is_not_eligible(self) -> None:
         socket = dataclasses.replace(self.bones[-1], is_socket=True)
@@ -66,7 +66,7 @@ class TerminalFallbackTests(unittest.TestCase):
             reliable_confidence_threshold=0.7,
         )
         self.assertEqual(solution.resolution_class, "UNRESOLVED")
-        self.assertIn("UECP_WEIGHT_DIRECTION_CONFLICT", solution.evidence)
+        self.assertIn("BONEWEAVER_WEIGHT_DIRECTION_CONFLICT", solution.evidence)
 
     def test_enum_values_are_stable(self) -> None:
         self.assertEqual(

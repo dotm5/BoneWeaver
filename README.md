@@ -1,48 +1,117 @@
-# UE Chain Prep
+# BoneWeaver
 
-UE Chain Prep is a Blender 4.2+ extension that interprets imported Unreal-style bone heads and parent hierarchy as an immutable physics graph, then projects unambiguous graph edges onto the original deform bones for BoneX/Wiggle-style continuous chains.
+[中文说明](README_zh.md)
 
-## Safety model
+Safety-first Blender tooling for turning Unreal Engine bone hierarchies into
+reviewable, physics-ready chains for BoneX and Wiggle.
 
-The `REST_ONLY_STRICT` MVP changes only selected bones' `tail`, `roll`, and `use_connect`. It does not unparent meshes, rebuild Armature modifiers, recalculate weights, apply pose as rest pose, or create a production proxy rig. Analyze is read-only. Apply consumes an exact frozen plan, writes a persistent snapshot, validates digests and neutral evaluated geometry, and rolls back on failure.
+## Highlights
 
-## Install
+- Inspect parent, root, descendant, branch, and semantic secondary-chain scopes
+  before changing selection or rest geometry.
+- Build an immutable Physics Graph from bone heads and hierarchy, with explicit
+  terminal-tip evidence and branch continuation.
+- Preview proposed tails, roll, connectivity, warnings, and blockers before
+  Apply.
+- Use conservative presets for BoneX rotation chains, Wiggle rotation/stretch
+  chains, or opt-in visual chain cleanup.
+- Export only after transaction, digest, topology, mutation-ledger, and neutral
+  evaluated-mesh validation succeeds.
 
-Install `dist/ue_chain_prep-0.2.0.zip` through Blender Preferences → Extensions → Install from Disk. The extension has no external Python dependencies.
+## Safety contract
 
-## Recommended workflow
+Analyze, hierarchy inspection, and semantic discovery are read-only. Apply may
+change only the selected EditBones' `tail`, `roll`, and `use_connect`. It does
+not rebind meshes, recalculate weights, apply pose as rest pose, recreate
+Armature modifiers, or create production proxy bones.
 
-1. Import the UE model and original weights.
-2. Before ARP, BoneX, or Wiggle creates control relationships, select a secondary-motion chain.
-3. Open View3D → Sidebar → UE Chain Prep.
-4. Choose scope, physics profile, terminal inference, and roll mode.
-5. Analyze and review blockers, terminal candidates, confidence, and graph projection.
-6. Apply only a current blocker-free plan.
-7. Validate, configure the third-party physics tool, and keep the snapshot until the result is accepted.
+Apply consumes an exact frozen plan, writes a persistent Snapshot, validates
+the result, and rolls back on failure. Restore refuses conflicts instead of
+overwriting later manual edits. See [the full safety contract](docs/safety.md).
 
-The default roll mode is Minimal Twist. Parallel Transport is opt-in. Virtual tips and long-segment samples exist only in the immutable plan, preview, and diagnostics; they never become deform bones.
+## Requirements
 
-## Important limitation
+- Blender 4.2 or newer
+- An imported Unreal-style Armature; associated weighted meshes are recommended
+- No external Python packages
 
-Version 0.2.0 is a physics-preparation tool, not a UE animation-basis retargeter. Active Actions, NLA, drivers, non-identity pose, related constraints, ambiguous branches, connected external children, and low-confidence terminal solutions block Apply.
+BoneX, Wiggle, Auto-Rig Pro, and UEFormat are optional workflow integrations,
+not bundled dependencies.
 
-## BoneX 1.2.6 on Blender 5.2
+## Installation
 
-BoneX 1.2.6 may try to initialize `Object["bonex_data"]` while its Soft Connection panel is drawing, which Blender 5.2 rejects. This is a BoneX UI-context bug and reproduces without UE Chain Prep. A version-guarded, reversible local hotfix is documented in [BoneX 1.2.6 draw-context hotfix](docs/bonex-1.2.6-draw-context-hotfix.md). Restart Blender after applying or restoring it.
+Download `boneweaver-0.2.0.zip` from the
+[v0.2.0 release](https://github.com/dotm5/BoneWeaver/releases/tag/v0.2.0).
+In Blender, open **Edit > Preferences > Extensions > Install from Disk**, select
+the ZIP, and enable BoneWeaver.
 
-See [architecture](docs/architecture.md), [algorithms](docs/algorithms.md), [safety](docs/safety.md), and the [manual BoneX/Wiggle checklist](docs/manual-test-bonex-wiggle.md).
+## Quick start
 
-## Backend hardening
+1. Import the UE model and preserve its original weights.
+2. Select the secondary-motion bones you want to prepare.
+3. Open **3D Viewport > Sidebar > BoneWeaver**.
+4. Choose a scope and target profile, then run **Check and Preview**.
+5. Review the Physics Graph, terminal evidence, warnings, and blockers.
+6. Run **Apply Conversion** only when the frozen plan is current and unblocked.
+7. Configure BoneX or Wiggle, then keep the Snapshot until the result is accepted.
 
-The production default now uses per-mesh evaluated object-local neutral validation, safe parent-chain leaf fallback, clustered terminal evidence, scored branch continuation, topology-aware weight islands, scoped idempotent overrides, mutation/topology ledgers, a hard conversion-export gate, and independent reopen validation. See [validation tolerance](docs/validation-tolerance.md), [branch resolution](docs/branch-resolution.md), and [export contract](docs/export-contract.md).
+## Hierarchy inspection and semantic discovery
 
-## Hierarchy and semantic selection (unreleased)
+Hierarchy inspection shows cached Parent/Root/Descendant overlays without
+changing selection. Named Select actions change only temporary bone selection;
+**Use for Conversion** explicitly freezes that result as the next Analyze scope.
 
-The current development branch adds five hierarchy inspection modes, cached
-Parent/Root/Descendant overlays, explicit branch continuation, and confirmed
-semantic secondary-chain discovery. Inspection and discovery are read-only;
-selection changes only through their named Select actions, and a frozen scope is
-used only after an explicit Use action. The `VISUAL_CHAIN_CLEANUP` profile is
-also opt-in and never replaces the production default automatically. See
-[hierarchy selection](docs/hierarchy-selection.md), [semantic discovery](docs/semantic-chain-discovery.md),
-and [visual cleanup](docs/visual-chain-cleanup.md).
+Semantic discovery scans the Armature for hair, ribbon, skirt, tail, and
+accessory candidates. Candidates require confirmation and never flow into Apply
+automatically. Ambiguous branches require an explicit continuation choice.
+
+## Validation and recovery
+
+BoneWeaver blocks Apply when Actions, NLA, drivers, constraints, pose state,
+connected external children, branch ambiguity, low-confidence terminals, or
+mesh/modifier drift make the conversion unsafe. A successful Apply records a
+field-level mutation ledger. Export also performs an independent second-process
+reopen validation before reporting success.
+
+## Tested release
+
+BoneWeaver v0.2.0 was validated with Blender 5.2.0 LTS RC build
+`710df102694f`:
+
+- 208 Blender-hosted automated tests passed with zero failures or errors.
+- A real UE asset with 157 bones and 25,610 vertices completed Analyze, Apply,
+  export, and independent reopen validation.
+- The release ZIP passed an isolated install and repeated registration cycle.
+- Archive: `boneweaver-0.2.0.zip`
+- Size: `157967` bytes
+- SHA-256: `49F0CB49373C4CABC9B1D26D66CF212EA174F62F7E39BFFF95AFD91B46825C9F`
+
+## Known limitations
+
+- v0.2.0 prepares physics chains; it is not a UE animation-basis retargeter.
+- Blender 4.2 is the manifest minimum, but this release's local executable
+  validation was performed on the Blender 5.2 build above.
+- BoneX/Wiggle runtime behavior still requires project-specific manual tuning.
+- Existing Actions, NLA, drivers, non-identity pose, related constraints, and
+  unsafe branch/terminal evidence intentionally block Apply.
+
+## Documentation
+
+- [User workflow](docs/user-workflow.md)
+- [Architecture](docs/architecture.md)
+- [Algorithms](docs/algorithms.md)
+- [Hierarchy selection](docs/hierarchy-selection.md)
+- [Semantic discovery](docs/semantic-chain-discovery.md)
+- [Validation and export contract](docs/export-contract.md)
+- [Compatibility](docs/compatibility.md)
+- [Changelog](CHANGELOG.md)
+
+## Development
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the Blender-hosted verification and
+packaging gates. Security issues must follow [SECURITY.md](SECURITY.md).
+
+## License
+
+BoneWeaver is licensed under the GNU General Public License v3.0 or later. See
+[LICENSE](LICENSE).

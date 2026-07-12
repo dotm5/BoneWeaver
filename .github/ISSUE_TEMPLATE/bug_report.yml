@@ -1,0 +1,59 @@
+name: Bug report
+description: Report a reproducible BoneWeaver problem
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for helping improve BoneWeaver. Do not post sensitive assets or security reports here.
+  - type: input
+    id: blender_version
+    attributes:
+      label: Blender version
+      placeholder: "5.2.0, build hash if available"
+    validations:
+      required: true
+  - type: input
+    id: boneweaver_version
+    attributes:
+      label: BoneWeaver version
+      placeholder: "0.2.0"
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps
+      description: Include the selected scope, profile, and exact actions.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Include visible error text and sanitized logs when possible.
+    validations:
+      required: true
+  - type: dropdown
+    id: source_share
+    attributes:
+      label: Can the source .blend be shared privately if needed?
+      options:
+        - Yes
+        - A reduced reproduction can be shared
+        - No
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing issues and removed private data from this report.
+          required: true

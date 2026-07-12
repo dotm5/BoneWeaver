@@ -15,7 +15,7 @@
 | `PLAN_LOST` | UI 有 Plan ID、内存 Store 无 Plan | 重新检查 |
 | `APPLYING` | Apply 进行中 | 禁用的进度动作 |
 | `APPLIED` | Apply/验证成功 | 检查另一条骨骼链 |
-| `ROLLBACK_FAILED` | `UECP_ROLLBACK_FAILED` | 重置本次会话 |
+| `ROLLBACK_FAILED` | `BONEWEAVER_ROLLBACK_FAILED` | 重置本次会话 |
 | `ERROR` | 其他不可恢复错误 | 重置本次会话 |
 
 主面板不得显示原始 Issue Code、数值 Confidence、Plan ID 或 Fingerprint。算法设置回调使当前 Analyze Plan Stale 并关闭 Preview；Preview-only 设置只重绘，不改变 Plan 指纹。

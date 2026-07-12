@@ -18,10 +18,10 @@
 
 - BoneX 1.2.6 的物理生成、播放、bake 与主面板真实交互观感。
 - Wiggle 2 RTX 2.2.5 的稳定旋转链和可伸缩链动态行为。
-- 这些项目不影响 UECP 的 transaction/digest/neutral-mesh 自动安全验证，但不能由 headless 测试替代。
+- 这些项目不影响 BONEWEAVER 的 transaction/digest/neutral-mesh 自动安全验证，但不能由 headless 测试替代。
 
 ## 版本声明
 
-- `algorithm_version`：已修改，升级到 `uecp-physics-graph-v3-interaction-hardening`。
+- `algorithm_version`：已修改，升级到 `boneweaver-physics-graph-v3-interaction-hardening`。
 - JSON `schema_version`：本交付分支相对父提交从 `3.0.0` 升级到 `3.1.0`，用于已纳入本分支的 branch、tolerance、mutation、topology 与 export 持久化字段；交互 ViewModel/RNA 状态本身未再增加持久化 JSON 字段。
-- BoneX 1.2.6 hotfix 仍是独立支持工具；UECP Runtime 未导入、修改或初始化 BoneX 状态。
+- BoneX 1.2.6 hotfix 仍是独立支持工具；BONEWEAVER Runtime 未导入、修改或初始化 BoneX 状态。
