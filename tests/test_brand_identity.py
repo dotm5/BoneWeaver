@@ -19,7 +19,9 @@ class BoneWeaverIdentityTests(unittest.TestCase):
         self.assertEqual(boneweaver.bl_info["name"], "BoneWeaver")
         self.assertEqual(boneweaver.bl_info["version"], (0, 2, 0))
         self.assertTrue(PACKAGE.is_dir())
-        self.assertFalse((ROOT / "ue_chain_prep").exists())
+        legacy_package = ROOT / "ue_chain_prep"
+        self.assertFalse((legacy_package / "__init__.py").exists())
+        self.assertFalse((legacy_package / "blender_manifest.toml").exists())
         manifest = (PACKAGE / "blender_manifest.toml").read_text("utf-8")
         self.assertIn('id = "boneweaver"', manifest)
         self.assertIn('name = "BoneWeaver"', manifest)

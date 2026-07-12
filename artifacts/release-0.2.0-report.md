@@ -24,8 +24,8 @@ Date: 2026-07-12
 - Isolated install: `BONEWEAVER_ZIP_INSTALL_OK`
 - Repeated unregister/register cycles: passed
 - File: `boneweaver-0.2.0.zip`
-- Size: `170163` bytes
-- SHA-256: `5F4B3F91B2A5BB59D10469F0BDF5263B9B1EDE44BE5055990DA89CF80BC1C48F`
+- Size: `168341` bytes
+- SHA-256: `A8F7BA9DE47AD01D10829FCB7DCB2EB3A95A06A64E791BBAA83DF7F7235C32C2`
 
 ## Interactive evidence
 

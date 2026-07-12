@@ -68,8 +68,8 @@ BoneWeaver v0.2.0 已在 Blender 5.2.0 LTS RC build `710df102694f` 上验证：
 - 真实 UE 资产包含 157 根骨骼与 25,610 个顶点，完成 Analyze、Apply、导出与独立重开验证。
 - Release ZIP 通过隔离安装与重复注册/注销验证。
 - 安装包：`boneweaver-0.2.0.zip`
-- 大小：`170163` bytes
-- SHA-256：`5F4B3F91B2A5BB59D10469F0BDF5263B9B1EDE44BE5055990DA89CF80BC1C48F`
+- 大小：`168341` bytes
+- SHA-256：`A8F7BA9DE47AD01D10829FCB7DCB2EB3A95A06A64E791BBAA83DF7F7235C32C2`
 
 ## 已知限制
 
