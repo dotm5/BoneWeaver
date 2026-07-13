@@ -2,7 +2,7 @@
 
 | Target | Status |
 |---|---|
-| Blender 5.2.0 LTS RC `710df102694f` | v0.3.0 validated with 220 automated tests, fixed UEFormat parity, raw `.uemodel` and existing `.blend` one-click/native-`L` acceptance, exact Restore, and isolated ZIP installation |
+| Blender 5.2.0 LTS RC `710df102694f` | v0.3.1 validated with 223 automated tests, combined former-blocker force-complete coverage, fixed UEFormat parity, raw `.uemodel` and existing `.blend` one-click/native-`L` acceptance, exact Restore, and isolated ZIP installation |
 | Blender 4.2 | Manifest minimum; executable unavailable locally, external validation pending |
 | Blender 5.1 | Executable unavailable locally, external validation pending |
 | UEFormat 1.0.0 | Factory-startup import verified; Quick Reorient compared against fixed commit `8da96d65f669ca688dbf7c0141f800605a6c16e6` across 154 eligible bones |
@@ -31,3 +31,9 @@ identity. Its idempotence marker makes an unchanged converted Armature a safe
 zero-mutation second run. It does not rewrite UEFormat `post_quat` animation
 metadata. Release evidence is recorded in
 `artifacts/release-0.3.0-report.md` and `docs/releases/v0.3.0.md`.
+
+v0.3.1 keeps the same geometry algorithm and Schema while changing the public
+one-click execution policy to force-complete. Existing 0.3.0 idempotence markers
+remain valid, so upgrading does not reorient an unchanged converted Armature a
+second time. Evidence is recorded in `artifacts/release-0.3.1-report.md` and
+`docs/releases/v0.3.1.md`.

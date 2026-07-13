@@ -14,7 +14,7 @@ class SchemaAndManifestTests(unittest.TestCase):
     def test_manifest_identity(self) -> None:
         manifest = tomllib.loads((PACKAGE / "blender_manifest.toml").read_text(encoding="utf-8"))
         self.assertEqual(manifest["id"], "boneweaver")
-        self.assertEqual(manifest["version"], "0.3.0")
+        self.assertEqual(manifest["version"], "0.3.1")
         self.assertEqual(manifest["blender_version_min"], "4.2.0")
         self.assertEqual(manifest["type"], "add-on")
 

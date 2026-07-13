@@ -9,6 +9,7 @@ import boneweaver
 
 from tests.fixture_builders import (
     clear_scene,
+    make_bound_mesh,
     make_quick_finger_tree,
     make_quick_straight_chain,
 )
@@ -128,14 +129,82 @@ class QuickReorientBlenderTests(unittest.TestCase):
         self.assertEqual(self._states(rig), before)
         self.assertNotEqual(first_snapshot, second_snapshot)
 
-    def test_constraint_blocks_before_mutation(self):
+    def test_constraint_is_advisory_and_conversion_finishes(self):
         rig = make_quick_straight_chain()
         before = self._states(rig)
         rig.pose.bones["chain_02"].constraints.new("COPY_ROTATION")
-        self.assertEqual(bpy.ops.boneweaver.quick_reorient_auto(), {"CANCELLED"})
+        self.assertEqual(bpy.ops.boneweaver.quick_reorient_auto(), {"FINISHED"})
         runtime = bpy.context.window_manager.boneweaver_runtime
-        self.assertEqual(runtime.quick_state, "BLOCKED")
-        self.assertGreater(runtime.quick_blocker_count, 0)
+        self.assertEqual(runtime.quick_state, "RESTORABLE")
+        self.assertEqual(runtime.quick_blocker_count, 0)
+        self.assertGreater(runtime.quick_warning_count, 0)
+        self.assertNotEqual(self._states(rig), before)
+        self.assertEqual(len(rig.pose.bones["chain_02"].constraints), 1)
+
+    def test_all_previous_policy_blockers_are_advisory(self):
+        rig = make_quick_straight_chain()
+        before = self._states(rig)
+        mesh, _modifier = make_bound_mesh(rig, name="QuickMesh")
+        second_modifier = mesh.modifiers.new(name="ArmatureSecond", type="ARMATURE")
+        second_modifier.object = rig
+        _envelope_mesh, envelope_modifier = make_bound_mesh(
+            rig, name="QuickEnvelopeMesh"
+        )
+        envelope_modifier.use_bone_envelopes = True
+        rig.animation_data_create().action = bpy.data.actions.new("QuickAction")
+        rig.animation_data.nla_tracks.new()
+        rig.driver_add("hide_viewport")
+        rig.pose.bones["chain_02"].constraints.new("COPY_ROTATION")
+        rig.pose.bones["chain_03"].rotation_mode = "XYZ"
+        rig.pose.bones["chain_03"].rotation_euler.x = 0.25
+        rig.data.bones["chain_02"].bbone_segments = 2
+
+        attached = bpy.data.objects.new("QuickAttached", None)
+        bpy.context.scene.collection.objects.link(attached)
+        attached.parent = rig
+        attached.parent_type = "BONE"
+        attached.parent_bone = "chain_02"
+        object_constraint = attached.constraints.new("COPY_LOCATION")
+        object_constraint.target = rig
+        object_constraint.subtarget = "chain_03"
+
+        shared_data = rig.data
+        sibling = bpy.data.objects.new("QuickSharedInstance", shared_data)
+        bpy.context.scene.collection.objects.link(sibling)
+        bpy.context.view_layer.objects.active = rig
+        rig.select_set(True)
+
+        self.assertEqual(bpy.ops.boneweaver.quick_reorient_auto(), {"FINISHED"})
+        runtime = bpy.context.window_manager.boneweaver_runtime
+        plan = get_quick_plan(runtime.quick_plan_id)
+        codes = {issue.code for issue in plan.issues}
+        self.assertEqual(runtime.quick_state, "RESTORABLE")
+        self.assertEqual(runtime.quick_blocker_count, 0)
+        self.assertFalse(any(issue.severity == "BLOCKER" for issue in plan.issues))
+        self.assertTrue(
+            {
+                "BONEWEAVER_AMBIGUOUS_ARMATURE_MODIFIER",
+                "BONEWEAVER_NON_IDENTITY_POSE",
+                "BONEWEAVER_QUICK_BBONE_UNSUPPORTED",
+                "BONEWEAVER_QUICK_BONE_PARENTED_OBJECT",
+                "BONEWEAVER_QUICK_ENVELOPE_DEFORMATION",
+                "BONEWEAVER_QUICK_RELATED_ACTION",
+                "BONEWEAVER_QUICK_RELATED_CONSTRAINT",
+                "BONEWEAVER_QUICK_RELATED_DRIVER",
+                "BONEWEAVER_QUICK_RELATED_NLA",
+            }.issubset(codes),
+            codes,
+        )
+        self.assertIsNot(rig.data, shared_data)
+        self.assertIs(sibling.data, shared_data)
+        self.assertNotEqual(self._states(rig), before)
+        self.assertIn(
+            "BONEWEAVER_QUICK_MESH_DIAGNOSTIC_SKIPPED",
+            json.loads(
+                bpy.data.texts[runtime.quick_snapshot_text_name].as_string()
+            )["validation_issues"],
+        )
+        self.assertEqual(bpy.ops.boneweaver.quick_reorient_restore(), {"FINISHED"})
         self.assertEqual(self._states(rig), before)
 
     def test_validation_failure_rolls_back(self):
@@ -147,6 +216,25 @@ class QuickReorientBlenderTests(unittest.TestCase):
         self.assertFalse(result.success)
         self.assertTrue(result.rolled_back)
         self.assertEqual(self._states(rig), before)
+
+    def test_force_complete_keeps_conversion_when_diagnostic_fails(self):
+        rig = make_quick_straight_chain()
+        before = self._states(rig)
+        from boneweaver.core.quick_reorient import build_quick_reorient_plan
+        plan = build_quick_reorient_plan(bpy.context)
+        result = apply_quick_plan(
+            bpy.context,
+            plan,
+            validator=lambda *_: False,
+            strict_validation=False,
+        )
+        self.assertTrue(result.success)
+        self.assertFalse(result.rolled_back)
+        self.assertIn(
+            "BONEWEAVER_QUICK_CUSTOM_VALIDATION_FAILED",
+            result.validation_issues,
+        )
+        self.assertNotEqual(self._states(rig), before)
 
     def test_restore_conflict_preserves_manual_edit(self):
         rig = make_quick_straight_chain()

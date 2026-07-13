@@ -3,7 +3,9 @@
 ## 全自动转换与原生 L 键选择
 
 需要一次完成整个 UE 骨架的方向转换与层级整理时，选中 Armature，打开
-`N 面板 > BoneWeaver`，点击顶部的“全自动转换并重建 L 键骨链”并确认。
+`N 面板 > BoneWeaver`，点击顶部的“全自动转换并重建 L 键骨链”。按钮会立即执行，
+无需二次确认；Action、NLA、Driver、Constraint、Pose、B-Bone、Bone Parent、
+Envelope、Modifier 与 Mesh 诊断都只提示、不阻断。
 BoneWeaver 会自动捕获全骨架、生成不可变 Plan、排除 Socket/控制/零长度骨、
 修改合格骨骼、重建最大线性 Connected 分量、验证结果并保存恢复快照。
 

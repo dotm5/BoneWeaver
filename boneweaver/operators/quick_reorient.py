@@ -21,16 +21,7 @@ class BONEWEAVER_OT_quick_reorient_auto(bpy.types.Operator):
         return QuickReorientController.can_run(context)
 
     def invoke(self, context, event):
-        message = (
-            "将自动处理整个非 Socket 骨架并重建原生 L 键连通分量；"
-            "操作前会创建恢复快照，安全检查失败时不会修改。"
-        )
-        try:
-            return context.window_manager.invoke_confirm(
-                self, event, title="运行全自动骨架转换", message=message
-            )
-        except TypeError:
-            return context.window_manager.invoke_confirm(self, event)
+        return self.execute(context)
 
     def execute(self, context):
         success = QuickReorientController.run(context)

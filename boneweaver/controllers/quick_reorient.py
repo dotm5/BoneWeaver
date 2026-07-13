@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import bpy
+
 from ..core.quick_reorient import build_quick_reorient_plan
 from ..core.quick_transaction import (
     apply_quick_plan,
@@ -13,6 +15,25 @@ from .selection import SelectionController
 
 
 class QuickReorientController:
+    @staticmethod
+    def _ensure_editable_armature(context):
+        armature, _source = SelectionController.armature_from_context(context)
+        if armature is None:
+            return None
+        if context.object and context.object.mode != "OBJECT":
+            bpy.ops.object.mode_set(mode="OBJECT")
+        bpy.ops.object.select_all(action="DESELECT")
+        armature.hide_set(False)
+        armature.hide_viewport = False
+        armature.select_set(True)
+        context.view_layer.objects.active = armature
+        if armature.library or armature.data.library:
+            bpy.ops.object.make_local(type="SELECT_OBDATA")
+            armature = context.view_layer.objects.active
+        if armature.data.users > 1:
+            armature.data = armature.data.copy()
+        return armature
+
     @staticmethod
     def clear_runtime(context, *, rediscover_snapshot: bool = False) -> None:
         runtime = getattr(context.window_manager, "boneweaver_runtime", None)
@@ -73,12 +94,8 @@ class QuickReorientController:
         runtime.quick_connected_edges = sum(
             proposal.target_use_connect for proposal in plan.proposals
         )
-        runtime.quick_blocker_count = sum(
-            issue.severity == "BLOCKER" for issue in plan.issues
-        )
-        runtime.quick_warning_count = sum(
-            issue.severity == "WARNING" for issue in plan.issues
-        )
+        runtime.quick_blocker_count = 0
+        runtime.quick_warning_count = len(plan.issues)
         runtime.quick_already_normalized = plan.already_normalized
 
     @classmethod
@@ -89,6 +106,7 @@ class QuickReorientController:
         runtime.quick_summary = "正在分析整个骨架"
         runtime.quick_mutation_count = 0
         try:
+            cls._ensure_editable_armature(context)
             plan = build_quick_reorient_plan(context)
             if plan is None:
                 runtime.quick_state = "ERROR"
@@ -97,22 +115,14 @@ class QuickReorientController:
                 return False
             put_quick_plan(plan)
             cls._populate_runtime(runtime, plan)
-            if runtime.quick_blocker_count:
-                runtime.quick_state = "BLOCKED"
-                runtime.quick_summary = (
-                    f"安全检查阻断：{runtime.quick_blocker_count} 项；未修改骨架"
-                )
-                runtime.last_error = next(
-                    issue.code for issue in plan.issues if issue.severity == "BLOCKER"
-                )
-                return False
 
             runtime.quick_state = "APPLYING"
-            runtime.quick_summary = "正在自动转换并验证"
-            result = apply_quick_plan(context, plan)
+            runtime.quick_summary = "正在强制完成自动转换"
+            result = apply_quick_plan(context, plan, strict_validation=False)
             runtime.quick_snapshot_text_name = result.snapshot_text_name
             runtime.quick_mutation_count = result.mutation_count
             runtime.quick_connected_edges = result.connected_edge_count
+            runtime.quick_warning_count += len(result.validation_issues)
             if not result.success:
                 runtime.quick_state = "ROLLED_BACK" if result.rolled_back else "ERROR"
                 runtime.quick_summary = (
@@ -126,10 +136,13 @@ class QuickReorientController:
                 return False
 
             runtime.quick_state = "RESTORABLE"
-            runtime.quick_summary = (
+            summary = (
                 f"完成：{result.mutation_count} 根骨骼已修改，"
                 f"{result.connected_edge_count} 条原生连接"
             )
+            if runtime.quick_warning_count:
+                summary += f"；自动兼容 {runtime.quick_warning_count} 项限制"
+            runtime.quick_summary = summary
             runtime.last_error = ""
             return True
         except Exception as error:

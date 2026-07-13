@@ -21,8 +21,10 @@ Analyze、层级检查与语义发现均为只读。Apply 与全自动转换只�
 `tail`、`roll` 与 `use_connect`，不会重新绑定 Mesh、重算权重、Apply Pose as Rest、
 重建 Armature Modifier 或创建生产代理骨骼。
 
-Apply 只接受完全匹配的冻结 Plan，先写入持久化 Snapshot，再验证结果；失败自动回滚。
-Restore 检测到后续手工修改时会拒绝覆盖。完整条款见[安全合同](docs/safety.md)。
+精细范围 Apply 仍只接受完全匹配的冻结 Plan，并保留严格验证合同。面板顶部的一键功能
+使用“强制完成”模式：Action、NLA、Driver、Constraint、Pose、B-Bone、Bone Parent、
+Envelope、Modifier 与 Mesh 诊断都只提示、不阻断。操作仍会保存 Snapshot；Blender 编辑
+异常时自动回滚，Restore 检测到后续手工修改时会拒绝覆盖。完整条款见[安全合同](docs/safety.md)。
 
 ## 环境要求
 
@@ -34,16 +36,16 @@ BoneX、Wiggle、Auto-Rig Pro 与 UEFormat 只是可选工作流集成，不随�
 
 ## 安装
 
-从 [v0.3.0 Release](https://github.com/dotm5/BoneWeaver/releases/tag/v0.3.0)
-下载 `boneweaver-0.3.0.zip`。在 Blender 中打开
+从 [v0.3.1 Release](https://github.com/dotm5/BoneWeaver/releases/tag/v0.3.1)
+下载 `boneweaver-0.3.1.zip`。在 Blender 中打开
 **编辑 > 偏好设置 > 扩展 > 从磁盘安装**，选择 ZIP 并启用 BoneWeaver。
 
 ## 快速开始
 
 1. 导入 UE 模型并保留原始权重。
 2. 选择 Armature，打开 **3D 视图 > 侧栏 > BoneWeaver**。
-3. 点击面板顶部的 **全自动转换并重建 L 键骨链**。
-4. 确认后，BoneWeaver 会自动重定向合格骨骼、用原生 `use_connect` 重建最大线性段、
+3. 点击面板顶部的 **全自动转换并重建 L 键骨链**；无需二次确认，也没有策略阻断。
+4. BoneWeaver 会自动重定向合格骨骼、用原生 `use_connect` 重建最大线性段、
    验证结果并保存持久化 Snapshot。
 5. 进入编辑模式，将鼠标移到已转换骨链上并按 `L`；同一原生 Connected 段会被快速选择，
    分叉边界按设计保持断开。
@@ -62,22 +64,27 @@ BoneX、Wiggle、Auto-Rig Pro 与 UEFormat 只是可选工作流集成，不随�
 ## 验证与恢复
 
 当 Action、NLA、Driver、Constraint、Pose 状态、外部 Connected Child、分叉歧义、
-末端低置信度或 Mesh/Modifier 漂移导致风险时，BoneWeaver 会阻断 Apply。成功 Apply
+末端低置信度或 Mesh/Modifier 漂移导致风险时，精细 Physics Graph 流程会阻断 Apply。成功 Apply
 会记录字段级 Mutation Ledger；导出还会启动第二个 Blender 进程独立重开验证，成功后才报告完成。
+
+这些阻断不适用于 v0.3.1 面板顶部的一键转换；转换完成后只显示“自动兼容 N 项限制”。
 
 ## 已验证版本
 
-BoneWeaver v0.3.0 已在 Blender 5.2.0 LTS RC build `710df102694f` 上验证：
+BoneWeaver v0.3.1 已在 Blender 5.2.0 LTS RC build `710df102694f` 上验证：
 
-- 220 个 Blender 宿主自动化测试全部通过，无 Failure 或 Error。
+- 223 个 Blender 宿主自动化测试全部通过，无 Failure 或 Error。
+- 同一强制完成 Fixture 同时包含 Action、NLA、Driver、非单位 Pose、骨骼/对象 Constraint、
+  B-Bone、Bone Parent、Envelope、重复 Armature Modifier 与共享 Armature Data，仍一键完成、
+  `BLOCKER=0` 且精确 Restore 通过。
 - 对固定 UEFormat 1.0.0 实现比较了 154 根合格骨骼：最大方向误差 `0.033878°`、
   最大长度误差 `1.164412e-7`，Head、Parent 与 Socket 均未改变。
 - 全自动流程在原始 157 骨 `.uemodel` 与现有 `x1.blend` 上通过；手指、头发、飘带、
   脊柱的原生 `L` 键选择均可用，第二次运行无额外修改，精确 Restore 通过，两个源文件哈希不变。
 - Release ZIP 通过隔离安装与重复注册/注销验证。
-- 安装包：`boneweaver-0.3.0.zip`
-- 大小：`185592` bytes
-- SHA-256：`4FA71A1F71640047D10F03E023DB03EB89126D6DEF8353BBCB93D9989E2B23C2`
+- 安装包：`boneweaver-0.3.1.zip`
+- 大小：`186108` bytes
+- SHA-256：`1FDFBA24BD878E07EA3FC194D8D8477F8FD6765B0FD5093154A006BDFD660987`
 
 ## 已知限制
 
@@ -85,7 +92,8 @@ BoneWeaver v0.3.0 已在 Blender 5.2.0 LTS RC build `710df102694f` 上验证：
   也不会重定向动画 Basis。
 - Blender 4.2 是 Manifest 最低版本；本次本地可执行验证使用上述 Blender 5.2 build。
 - BoneX/Wiggle 的实际物理效果仍需按项目进行人工调参。
-- Active Action、NLA、Driver、非单位 Pose、相关 Constraint 与不安全的分叉/末端证据会按设计阻断 Apply。
+- Active Action、NLA、Driver、非单位 Pose、相关 Constraint 与不安全的分叉/末端证据只会阻断
+  独立的精细 Physics Graph Apply，不会阻断一键 Quick Reorient。
 
 ## 文档
 

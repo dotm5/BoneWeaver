@@ -243,27 +243,34 @@ def _build_proposals(states, metadata, *, source_adapter, already_reoriented,
 
 
 def _quick_preflight(context, armature, states, metadata, proposals, structural_edges):
+    """Collect advisory diagnostics for the force-complete one-click workflow.
+
+    Quick Reorient runs after import, where animation and rig relationships are
+    common.  None of those observations are allowed to block conversion; they
+    remain visible so users can inspect the environment after the automatic
+    operation has completed.
+    """
     issues = []
     by_name = {state.bone_name: state for state in states}
     proposal_by_name = {proposal.bone_name: proposal for proposal in proposals}
     targets = {proposal.bone_name for proposal in proposals if not proposal.skipped}
     if armature.library or armature.data.library:
-        issues.append(_issue("BLOCKER", "BONEWEAVER_QUICK_LINKED_ARMATURE", "Armature is linked and not editable", objects=(armature.name,)))
+        issues.append(_issue("WARNING", "BONEWEAVER_QUICK_LINKED_ARMATURE", "Linked Armature will be localized automatically", objects=(armature.name,)))
     if armature.data.users > 1:
-        issues.append(_issue("BLOCKER", "BONEWEAVER_QUICK_SHARED_ARMATURE_DATA", "Armature data has multiple object users", objects=(armature.name,)))
+        issues.append(_issue("WARNING", "BONEWEAVER_QUICK_SHARED_ARMATURE_DATA", "Shared Armature data will be made single-user automatically", objects=(armature.name,)))
     determinant = armature.matrix_world.to_3x3().determinant()
     if not math.isfinite(determinant) or abs(determinant) <= 1.0e-12 or determinant < 0.0:
-        issues.append(_issue("BLOCKER", "BONEWEAVER_NON_INVERTIBLE_TRANSFORM", "Armature transform is unsafe", objects=(armature.name,)))
+        issues.append(_issue("WARNING", "BONEWEAVER_NON_INVERTIBLE_TRANSFORM", "Armature transform diagnostics are advisory in automatic mode", objects=(armature.name,)))
     scales = tuple(abs(float(value)) for value in armature.scale)
     if max(scales) - min(scales) > _EPSILON:
         issues.append(_issue("WARNING", "BONEWEAVER_NON_UNIFORM_OBJECT_SCALE", "Armature has non-uniform scale", objects=(armature.name,)))
     for name in sorted(targets):
         bone = armature.data.bones[name]
         if bone.bbone_segments > 1:
-            issues.append(_issue("BLOCKER", "BONEWEAVER_QUICK_BBONE_UNSUPPORTED", "B-Bone segments are unsupported", bones=(name,)))
+            issues.append(_issue("WARNING", "BONEWEAVER_QUICK_BBONE_UNSUPPORTED", "B-Bone settings are preserved while rest geometry is converted", bones=(name,)))
         pose_bone = armature.pose.bones.get(name)
         if pose_bone and pose_bone.constraints:
-            issues.append(_issue("BLOCKER", "BONEWEAVER_QUICK_RELATED_CONSTRAINT", "Target bone has constraints", bones=(name,)))
+            issues.append(_issue("WARNING", "BONEWEAVER_QUICK_RELATED_CONSTRAINT", "Target bone constraints are preserved", bones=(name,)))
         if pose_bone:
             identity = Matrix.Identity(4)
             if any(
@@ -271,12 +278,12 @@ def _quick_preflight(context, armature, states, metadata, proposals, structural_
                 for row in range(4)
                 for column in range(4)
             ):
-                issues.append(_issue("BLOCKER", "BONEWEAVER_NON_IDENTITY_POSE", "Armature pose is not identity", bones=(name,)))
+                issues.append(_issue("WARNING", "BONEWEAVER_NON_IDENTITY_POSE", "Current pose is preserved while rest geometry is converted", bones=(name,)))
         proposal = proposal_by_name[name]
         if (Vector(proposal.target_tail) - Vector(by_name[name].tail)).length > _EPSILON:
             for child_name in by_name[name].child_names:
                 if (name, child_name) not in structural_edges and by_name[child_name].use_connect:
-                    issues.append(_issue("BLOCKER", "BONEWEAVER_QUICK_EXTERNAL_CONNECTED_CHILD", "A non-structural connected child would move", bones=(name, child_name)))
+                    issues.append(_issue("WARNING", "BONEWEAVER_QUICK_EXTERNAL_CONNECTED_CHILD", "External connectivity will be normalized automatically", bones=(name, child_name)))
     for child in states:
         parent_name = child.parent_name
         if (
@@ -290,24 +297,37 @@ def _quick_preflight(context, armature, states, metadata, proposals, structural_
     animation = armature.animation_data
     if animation:
         if animation.action:
-            issues.append(_issue("BLOCKER", "BONEWEAVER_QUICK_RELATED_ACTION", "Armature has an active Action", objects=(armature.name,)))
+            issues.append(_issue("WARNING", "BONEWEAVER_QUICK_RELATED_ACTION", "Active Action is preserved", objects=(armature.name,)))
         if animation.nla_tracks:
-            issues.append(_issue("BLOCKER", "BONEWEAVER_QUICK_RELATED_NLA", "Armature has NLA tracks", objects=(armature.name,)))
+            issues.append(_issue("WARNING", "BONEWEAVER_QUICK_RELATED_NLA", "NLA tracks are preserved", objects=(armature.name,)))
         if animation.drivers:
-            issues.append(_issue("BLOCKER", "BONEWEAVER_QUICK_RELATED_DRIVER", "Armature has drivers", objects=(armature.name,)))
+            issues.append(_issue("WARNING", "BONEWEAVER_QUICK_RELATED_DRIVER", "Drivers are preserved", objects=(armature.name,)))
     for obj in bpy.data.objects:
         if obj.parent == armature and obj.parent_type == "BONE" and obj.parent_bone in targets:
-            issues.append(_issue("BLOCKER", "BONEWEAVER_QUICK_BONE_PARENTED_OBJECT", "Object is parented to a target bone", bones=(obj.parent_bone,), objects=(obj.name,)))
+            issues.append(_issue("WARNING", "BONEWEAVER_QUICK_BONE_PARENTED_OBJECT", "Bone-parented object is preserved", bones=(obj.parent_bone,), objects=(obj.name,)))
         for constraint in obj.constraints:
             if getattr(constraint, "target", None) == armature and getattr(constraint, "subtarget", "") in targets:
-                issues.append(_issue("BLOCKER", "BONEWEAVER_QUICK_RELATED_CONSTRAINT", "Object constraint targets a processed bone", objects=(obj.name,)))
+                issues.append(_issue("WARNING", "BONEWEAVER_QUICK_RELATED_CONSTRAINT", "Object constraint is preserved", objects=(obj.name,)))
     bindings, mesh_issues = find_associated_meshes(armature)
-    issues.extend(mesh_issues)
+    issues.extend(
+        ValidationIssue(
+            "WARNING",
+            issue.code,
+            issue.message_key,
+            issue.message,
+            issue.bone_names,
+            issue.object_names,
+            issue.node_ids,
+            issue.edge_ids,
+            issue.details,
+        )
+        for issue in mesh_issues
+    )
     for binding in bindings:
         modifier = bpy.data.objects[binding.object_name].modifiers[binding.modifier_name]
         if modifier.use_bone_envelopes:
-            issues.append(_issue("BLOCKER", "BONEWEAVER_QUICK_ENVELOPE_DEFORMATION", "Armature modifier uses bone envelopes", objects=(binding.object_name,)))
-    rank = {"BLOCKER": 0, "WARNING": 1, "INFO": 2}
+            issues.append(_issue("WARNING", "BONEWEAVER_QUICK_ENVELOPE_DEFORMATION", "Envelope deformation is preserved", objects=(binding.object_name,)))
+    rank = {"WARNING": 0, "INFO": 1}
     return tuple(sorted(issues, key=lambda item: (rank.get(item.severity, 3), item.code, item.bone_names, item.object_names)))
 
 

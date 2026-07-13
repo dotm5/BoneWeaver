@@ -29,7 +29,7 @@ class BONEWEAVER_PT_main(bpy.types.Panel):
             icon="PLAY",
         )
         if quick.summary:
-            icon = "ERROR" if quick.state in {"BLOCKED", "ERROR", "ROLLED_BACK"} else "CHECKMARK"
+            icon = "ERROR" if quick.state in {"ERROR", "ROLLED_BACK"} else "CHECKMARK"
             quick_box.label(text=quick.summary, icon=icon)
             quick_box.label(
                 text=(

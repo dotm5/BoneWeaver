@@ -29,9 +29,12 @@ the one-click conversion may change only EditBone `tail`, `roll`, and
 not rebind meshes, recalculate weights, apply pose as rest pose, recreate
 Armature modifiers, or create production proxy bones.
 
-Apply consumes an exact frozen plan, writes a persistent Snapshot, validates
-the result, and rolls back on failure. Restore refuses conflicts instead of
-overwriting later manual edits. See [the full safety contract](docs/safety.md).
+Scoped Apply consumes an exact frozen plan and keeps its strict validation
+contract. The one-click action uses force-complete mode: Action, NLA, Driver,
+Constraint, Pose, B-Bone, parenting, envelope, modifier, and mesh diagnostics
+are advisory and never block conversion. It still writes a persistent Snapshot;
+Blender editing exceptions roll back, and Restore refuses to overwrite later
+manual edits. See [the full safety contract](docs/safety.md).
 
 ## Requirements
 
@@ -44,8 +47,8 @@ not bundled dependencies.
 
 ## Installation
 
-Download `boneweaver-0.3.0.zip` from the
-[v0.3.0 release](https://github.com/dotm5/BoneWeaver/releases/tag/v0.3.0).
+Download `boneweaver-0.3.1.zip` from the
+[v0.3.1 release](https://github.com/dotm5/BoneWeaver/releases/tag/v0.3.1).
 In Blender, open **Edit > Preferences > Extensions > Install from Disk**, select
 the ZIP, and enable BoneWeaver.
 
@@ -53,8 +56,9 @@ the ZIP, and enable BoneWeaver.
 
 1. Import the UE model and preserve its original weights.
 2. Select its Armature and open **3D Viewport > Sidebar > BoneWeaver**.
-3. Click **Auto Convert and Rebuild L-key Chains** at the top of the panel.
-4. Confirm the operation. BoneWeaver reorients eligible bones, rebuilds maximal
+3. Click **Auto Convert and Rebuild L-key Chains** at the top of the panel. It
+   starts immediately with no second confirmation and no policy blocker.
+4. BoneWeaver reorients eligible bones, rebuilds maximal
    linear segments with native `use_connect`, validates the result, and stores a
    persistent Snapshot automatically.
 5. In Edit Mode, hover a converted segment and press `L` to select the linked
@@ -77,18 +81,25 @@ automatically. Ambiguous branches require an explicit continuation choice.
 
 ## Validation and recovery
 
-BoneWeaver blocks Apply when Actions, NLA, drivers, constraints, pose state,
+The scoped Physics Graph Apply blocks when Actions, NLA, drivers, constraints, pose state,
 connected external children, branch ambiguity, low-confidence terminals, or
 mesh/modifier drift make the conversion unsafe. A successful Apply records a
 field-level mutation ledger. Export also performs an independent second-process
 reopen validation before reporting success.
 
+These blockers do not apply to the panel-top one-click action in v0.3.1. Its
+diagnostics remain visible as an automatic-compatibility count after conversion.
+
 ## Tested release
 
-BoneWeaver v0.3.0 was validated with Blender 5.2.0 LTS RC build
+BoneWeaver v0.3.1 was validated with Blender 5.2.0 LTS RC build
 `710df102694f`:
 
-- 220 Blender-hosted automated tests passed with zero failures or errors.
+- 223 Blender-hosted automated tests passed with zero failures or errors.
+- A combined force-complete fixture containing Action, NLA, Driver, non-identity
+  Pose, bone/object Constraints, B-Bone segments, Bone parenting, envelopes,
+  duplicate Armature modifiers, and shared Armature data completed in one click
+  with zero blockers and exact Restore.
 - A fixed UEFormat 1.0.0 comparison covered 154 eligible bones: maximum direction
   error `0.033878°`, maximum length error `1.164412e-7`, with unchanged heads,
   parents, and sockets.
@@ -97,9 +108,9 @@ BoneWeaver v0.3.0 was validated with Blender 5.2.0 LTS RC build
   chains; a second run was idempotent; exact Restore passed; both source hashes
   remained unchanged.
 - The release ZIP passed an isolated install and repeated registration cycle.
-- Archive: `boneweaver-0.3.0.zip`
-- Size: `185592` bytes
-- SHA-256: `4FA71A1F71640047D10F03E023DB03EB89126D6DEF8353BBCB93D9989E2B23C2`
+- Archive: `boneweaver-0.3.1.zip`
+- Size: `186108` bytes
+- SHA-256: `1FDFBA24BD878E07EA3FC194D8D8477F8FD6765B0FD5093154A006BDFD660987`
 
 ## Known limitations
 
@@ -109,7 +120,8 @@ BoneWeaver v0.3.0 was validated with Blender 5.2.0 LTS RC build
   validation was performed on the Blender 5.2 build above.
 - BoneX/Wiggle runtime behavior still requires project-specific manual tuning.
 - Existing Actions, NLA, drivers, non-identity pose, related constraints, and
-  unsafe branch/terminal evidence intentionally block Apply.
+  unsafe branch/terminal evidence intentionally block only the separate scoped
+  Physics Graph Apply; they do not block one-click Quick Reorient.
 
 ## Documentation
 
