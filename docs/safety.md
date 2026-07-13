@@ -9,11 +9,23 @@ BoneWeaver does not:
 - delete or recreate Armature modifiers;
 - create a production proxy chain, constraints, drivers, empties, or deform dummy bones.
 
-Only selected EditBone `tail`, `roll`, and `use_connect` may change. Names, parents, heads, deform/inheritance flags, mesh topology/coordinates, vertex groups/weights, transforms, modifiers, actions, NLA, constraints, drivers, shape keys, and importer metadata are invariants.
+Only target EditBone `tail`, `roll`, and `use_connect` may change. The selective
+Physics Graph workflow targets its frozen scope; the one-click Quick Reorient
+workflow targets every eligible non-Socket bone in the active Armature. Names,
+parents, heads, deform/inheritance flags, mesh topology/coordinates, vertex
+groups/weights, transforms, modifiers, actions, NLA, constraints, drivers,
+shape keys, and importer metadata are invariants.
 
 The legacy `create_role_collections` setting remains readable for compatibility but is deprecated and behaviorless. Analyze and Apply never create, remove, or assign Armature Bone Collections.
 
 Analyze is read-only. Apply requires an exact current fingerprint, persistent snapshot, context guard, and post validation. Any validation failure restores allowed fields. Restore refuses conflicts rather than overwriting manual edits.
+
+Quick Reorient captures and plans before mutation, writes a persistent Snapshot,
+then validates every target and invariant plus native component connectivity,
+mesh digests, and neutral evaluated meshes. A blocker makes the one-click
+operator cancel without mutation. A post-check failure rolls back automatically.
+Its Restore additionally compares the complete expected post-state and refuses
+to overwrite later manual changes.
 
 Hierarchy Inspect and Semantic Discover are also read-only. Their named Select
 operators may change temporary Bone selection only; they do not change

@@ -80,3 +80,50 @@ def make_bag_branch(*, name: str = "BranchRig"):
         pose_bone.select = True
     data.bones.active = data.bones["bag_r_02"]
     return obj
+
+
+def make_quick_straight_chain(*, name: str = "QuickStraight", count: int = 4):
+    data = bpy.data.armatures.new(f"{name}Data")
+    obj = bpy.data.objects.new(name, data)
+    bpy.context.scene.collection.objects.link(obj)
+    bpy.context.view_layer.objects.active = obj
+    obj.select_set(True)
+    bpy.ops.object.mode_set(mode="EDIT")
+    parent = None
+    for index in range(count):
+        bone = data.edit_bones.new(f"chain_{index + 1:02d}")
+        bone.head = (0.0, float(index), 0.0)
+        bone.tail = (0.2, float(index), 0.0)
+        bone.parent = parent
+        bone.use_connect = False
+        parent = bone
+    bpy.ops.object.mode_set(mode="OBJECT")
+    data.bones.active = data.bones["chain_01"]
+    return obj
+
+
+def make_quick_finger_tree(*, name: str = "QuickFingers"):
+    data = bpy.data.armatures.new(f"{name}Data")
+    obj = bpy.data.objects.new(name, data)
+    bpy.context.scene.collection.objects.link(obj)
+    bpy.context.view_layer.objects.active = obj
+    obj.select_set(True)
+    specs = [("hand", None, (0.0, 0.0, 0.0))]
+    for label, x in (("thumb", -0.4), ("index", 0.0), ("middle", 0.4)):
+        specs.extend(
+            (
+                (f"{label}_01", "hand", (x, 1.0, 0.0)),
+                (f"{label}_02", f"{label}_01", (x, 2.0, 0.0)),
+                (f"{label}_03", f"{label}_02", (x, 3.0, 0.0)),
+            )
+        )
+    bpy.ops.object.mode_set(mode="EDIT")
+    for bone_name, parent_name, head in specs:
+        bone = data.edit_bones.new(bone_name)
+        bone.head = head
+        bone.tail = (head[0] + 0.2, head[1], head[2])
+        bone.parent = data.edit_bones.get(parent_name) if parent_name else None
+        bone.use_connect = False
+    bpy.ops.object.mode_set(mode="OBJECT")
+    data.bones.active = data.bones["index_02"]
+    return obj

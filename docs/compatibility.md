@@ -2,10 +2,10 @@
 
 | Target | Status |
 |---|---|
-| Blender 5.2.0 LTS RC `710df102694f` | v0.2.0 validated with 208 automated tests, real-asset transaction/export/reopen acceptance, interactive viewport evidence, and isolated ZIP installation |
+| Blender 5.2.0 LTS RC `710df102694f` | v0.3.0 validated with 220 automated tests, fixed UEFormat parity, raw `.uemodel` and existing `.blend` one-click/native-`L` acceptance, exact Restore, and isolated ZIP installation |
 | Blender 4.2 | Manifest minimum; executable unavailable locally, external validation pending |
 | Blender 5.1 | Executable unavailable locally, external validation pending |
-| UEFormat 1.0.0 | Factory-startup isolated-copy import verified |
+| UEFormat 1.0.0 | Factory-startup import verified; Quick Reorient compared against fixed commit `8da96d65f669ca688dbf7c0141f800605a6c16e6` across 154 eligible bones |
 | BoneX 1.2.6 | Blender 5.2 draw-context fault reproduced and reversible local hotfix verified; physics behavior remains manual |
 | Wiggle 2 RTX 2.2.5 | Installed locally; manual physics behavior must be recorded separately |
 | Auto-Rig Pro 3.78.22 | Installed locally; post-conversion rig workflow remains manual |
@@ -25,3 +25,9 @@ artifacts.
 The v0.2.0 evidence is recorded in `artifacts/release-0.2.0-report.md` and the
 canonical release notes. Blender 4.2 and 5.1 still require external executable
 coverage because those runtimes are not available in the local validation setup.
+
+v0.3.0 adds a separate Quick Reorient Plan/Snapshot Schema 1.0.0 and algorithm
+identity. Its idempotence marker makes an unchanged converted Armature a safe
+zero-mutation second run. It does not rewrite UEFormat `post_quat` animation
+metadata. Release evidence is recorded in
+`artifacts/release-0.3.0-report.md` and `docs/releases/v0.3.0.md`.

@@ -29,6 +29,8 @@ class UIRefactorTests(unittest.TestCase):
         ):
             self.assertNotIn(forbidden, source)
         self.assertIn("panel_view_state_from_context", source)
+        self.assertIn('OPERATOR_IDS["quick_reorient_auto"]', source)
+        self.assertIn("全自动转换并重建 L 键骨链", source)
 
     def test_panel_layers_and_primary_operators_are_registered(self):
         for name in (

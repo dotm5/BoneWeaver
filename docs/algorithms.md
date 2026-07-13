@@ -1,5 +1,28 @@
 # Algorithms
 
+## One-click UE-style reorientation
+
+Quick Reorient captures every EditBone into immutable local-coordinate state.
+Importer original-transform metadata selects the same dominant local axis used
+by UEFormat; otherwise the generic adapter derives stable joint directions from
+the existing hierarchy. Eligible non-leaf bones point toward the normalized
+average of eligible child Heads. Leaves use the transformed dominant axis and
+retain their original length. Existing UEFormat-reoriented sources avoid
+double-transforming their basis. Roll is updated through Blender `align_roll`
+using a stable reference, minimizing twist.
+
+Socket, control/IK/pole/helper, zero-length, and already-normalized bones are
+conservatively skipped. The numeric A/B harness disables native connection
+reconstruction to compare this direction stage independently against fixed
+UEFormat commit `8da96d65f669ca688dbf7c0141f800605a6c16e6`.
+
+The second stage decomposes the eligible hierarchy into deterministic maximal
+linear components. Every internal single-child parent ends at the unchanged
+child Head and the child receives `use_connect = True`. Component roots and all
+children of a branch boundary stay disconnected. This is the minimum native
+topology required for Blender Edit Mode `L` selection without changing parent
+relationships or adding bones.
+
 ## Coordinates and evidence
 
 Mesh points are transformed once with `armature.matrix_world.inverted_safe() @ mesh.matrix_world`. Each vertex and group membership is scanned once. Statistical weight is `q = area * max(weight-minimum,0)^gamma * exclusivity`; it is never written back.

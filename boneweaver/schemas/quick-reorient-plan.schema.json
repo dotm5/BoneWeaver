@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "boneweaver://schema/quick-reorient-plan/1.0.0",
+  "title": "BoneWeaver Quick Reorient Plan",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "kind", "schema_version", "algorithm_version", "addon_version", "plan_id",
+    "source_fingerprint", "source_adapter", "armature_object_name",
+    "armature_data_name", "already_reoriented", "already_normalized",
+    "connect_linear_chains",
+    "bone_states", "proposals", "linked_components", "issues"
+  ],
+  "properties": {
+    "kind": {"const": "boneweaver.quick_reorient_plan"},
+    "schema_version": {"const": "1.0.0"},
+    "algorithm_version": {"type": "string"},
+    "addon_version": {"type": "string"},
+    "plan_id": {"type": "string"},
+    "source_fingerprint": {"type": "string"},
+    "source_adapter": {
+      "enum": ["UEFORMAT_METADATA", "UEFORMAT_ALREADY_REORIENTED", "GENERIC_JOINT_HIERARCHY"]
+    },
+    "armature_object_name": {"type": "string"},
+    "armature_data_name": {"type": "string"},
+    "already_reoriented": {"type": "boolean"},
+    "already_normalized": {"type": "boolean"},
+    "connect_linear_chains": {"type": "boolean"},
+    "bone_states": {"type": "array", "items": {"$ref": "#/$defs/boneState"}},
+    "proposals": {"type": "array", "items": {"$ref": "#/$defs/proposal"}},
+    "linked_components": {"type": "array", "items": {"$ref": "#/$defs/component"}},
+    "issues": {"type": "array", "items": {"$ref": "#/$defs/issue"}}
+  },
+  "$defs": {
+    "vec3": {
+      "type": "array", "minItems": 3, "maxItems": 3,
+      "items": {"type": "number"}
+    },
+    "boneState": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "bone_name", "parent_name", "child_names", "head", "tail", "roll",
+        "matrix", "length", "use_connect", "use_deform", "source_metadata_flags"
+      ],
+      "properties": {
+        "bone_name": {"type": "string"},
+        "parent_name": {"type": ["string", "null"]},
+        "child_names": {"type": "array", "items": {"type": "string"}},
+        "head": {"$ref": "#/$defs/vec3"},
+        "tail": {"$ref": "#/$defs/vec3"},
+        "roll": {"type": "number"},
+        "matrix": {"type": "array", "minItems": 16, "maxItems": 16, "items": {"type": "number"}},
+        "length": {"type": "number"},
+        "use_connect": {"type": "boolean"},
+        "use_deform": {"type": "boolean"},
+        "source_metadata_flags": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "proposal": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "bone_name", "source", "target_direction_local", "target_tail",
+        "target_roll_reference", "target_length", "target_use_connect",
+        "component_id", "branch_boundary", "skipped", "skip_reason"
+      ],
+      "properties": {
+        "bone_name": {"type": "string"},
+        "source": {"type": "string"},
+        "target_direction_local": {"anyOf": [{"$ref": "#/$defs/vec3"}, {"type": "null"}]},
+        "target_tail": {"$ref": "#/$defs/vec3"},
+        "target_roll_reference": {"$ref": "#/$defs/vec3"},
+        "target_length": {"type": "number"},
+        "target_use_connect": {"type": "boolean"},
+        "component_id": {"type": ["string", "null"]},
+        "branch_boundary": {"type": "boolean"},
+        "skipped": {"type": "boolean"},
+        "skip_reason": {"type": ["string", "null"]}
+      }
+    },
+    "component": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "component_id", "bone_names", "root_bone_name", "leaf_bone_name",
+        "parent_branch_name", "contains_weightless_leaf"
+      ],
+      "properties": {
+        "component_id": {"type": "string"},
+        "bone_names": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+        "root_bone_name": {"type": "string"},
+        "leaf_bone_name": {"type": "string"},
+        "parent_branch_name": {"type": ["string", "null"]},
+        "contains_weightless_leaf": {"type": "boolean"}
+      }
+    },
+    "issue": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "severity", "code", "message_key", "message", "bone_names",
+        "object_names", "node_ids", "edge_ids", "details"
+      ],
+      "properties": {
+        "severity": {"enum": ["INFO", "WARNING", "BLOCKER"]},
+        "code": {"type": "string"},
+        "message_key": {"type": "string"},
+        "message": {"type": "string"},
+        "bone_names": {"type": "array", "items": {"type": "string"}},
+        "object_names": {"type": "array", "items": {"type": "string"}},
+        "node_ids": {"type": "array", "items": {"type": "string"}},
+        "edge_ids": {"type": "array", "items": {"type": "string"}},
+        "details": {
+          "type": "array",
+          "items": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "string"}}
+        }
+      }
+    }
+  }
+}
