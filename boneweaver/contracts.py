@@ -6,9 +6,11 @@ from enum import Enum
 
 
 ADDON_ID = "boneweaver"
-ADDON_VERSION = "0.2.0"
+ADDON_VERSION = "0.3.0"
 SCHEMA_VERSION = "4.0.0"
 ALGORITHM_VERSION = "boneweaver-physics-graph-v4-tip-helper-branch-island-visual-cleanup"
+QUICK_REORIENT_ALGORITHM_VERSION = "boneweaver-quick-reorient-v1.0.0"
+QUICK_REORIENT_SCHEMA_VERSION = "1.0.0"
 
 
 class StableStringEnum(str, Enum):
@@ -234,6 +236,8 @@ OPERATOR_IDS = {
     "use_discovered_chains": "boneweaver.use_discovered_chains",
     "clear_semantic_discovery": "boneweaver.clear_semantic_discovery",
     "export_semantic_discovery": "boneweaver.export_semantic_discovery",
+    "quick_reorient_auto": "boneweaver.quick_reorient_auto",
+    "quick_reorient_restore": "boneweaver.quick_reorient_restore",
 }
 
 CANDIDATE_SCORING_PROFILE = (
@@ -313,5 +317,20 @@ ERROR_CODES = frozenset(
         "BONEWEAVER_SEMANTIC_SCOPE_CHANGED_REANALYZE",
         "BONEWEAVER_SEMANTIC_EXPORT_FAILED", "BONEWEAVER_SEMANTIC_RULE_LOAD_FAILED",
         "BONEWEAVER_SCOPE_SOURCE_CONFLICT",
+        "BONEWEAVER_QUICK_NO_ACTIVE_ARMATURE",
+        "BONEWEAVER_QUICK_LINKED_ARMATURE",
+        "BONEWEAVER_QUICK_SHARED_ARMATURE_DATA",
+        "BONEWEAVER_QUICK_RELATED_ACTION",
+        "BONEWEAVER_QUICK_RELATED_NLA",
+        "BONEWEAVER_QUICK_RELATED_DRIVER",
+        "BONEWEAVER_QUICK_RELATED_CONSTRAINT",
+        "BONEWEAVER_QUICK_BONE_PARENTED_OBJECT",
+        "BONEWEAVER_QUICK_BBONE_UNSUPPORTED",
+        "BONEWEAVER_QUICK_ENVELOPE_DEFORMATION",
+        "BONEWEAVER_QUICK_EXTERNAL_CONNECTED_CHILD",
+        "BONEWEAVER_QUICK_ZERO_LENGTH",
+        "BONEWEAVER_QUICK_STATE_CHANGED",
+        "BONEWEAVER_QUICK_POST_VALIDATION_FAILED",
+        "BONEWEAVER_QUICK_RESTORE_CONFLICT",
     }
 )

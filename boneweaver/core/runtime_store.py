@@ -7,10 +7,12 @@ from dataclasses import dataclass
 from .hierarchy_index import ArmatureHierarchyIndex
 from .hierarchy_inspection import HierarchyInspectionInput, HierarchyInspectionPlan
 from .models import ConversionPlan
+from .quick_reorient_models import QuickReorientPlan
 from .semantic_models import SemanticDiscoveryPlan
 
 
 _PLAN_STORE: dict[str, ConversionPlan] = {}
+_QUICK_PLAN_STORE: dict[str, QuickReorientPlan] = {}
 _LAST_REPORT: dict | None = None
 _PREVIEW_CACHE: tuple = ()
 _PERFORMANCE: dict[str, dict] = {}
@@ -87,6 +89,7 @@ def clear_plans() -> None:
     global _LAST_REPORT, _PREVIEW_CACHE, _HIERARCHY_INSPECTION, _USED_INSPECTION_SCOPE
     global _SEMANTIC_DISCOVERY, _USED_SEMANTIC_SCOPE
     _PLAN_STORE.clear()
+    _QUICK_PLAN_STORE.clear()
     _LAST_REPORT = None
     _PREVIEW_CACHE = ()
     _PERFORMANCE.clear()
@@ -95,6 +98,18 @@ def clear_plans() -> None:
     _SEMANTIC_DISCOVERY = None
     _USED_SEMANTIC_SCOPE = None
     _ANALYSIS_SCOPES.clear()
+
+
+def put_quick_plan(plan: QuickReorientPlan) -> None:
+    _QUICK_PLAN_STORE[plan.plan_id] = plan
+
+
+def get_quick_plan(plan_id: str) -> QuickReorientPlan:
+    return _QUICK_PLAN_STORE[plan_id]
+
+
+def has_quick_plan(plan_id: str) -> bool:
+    return plan_id in _QUICK_PLAN_STORE
 
 
 def put_report(report: dict) -> None:

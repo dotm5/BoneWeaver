@@ -7,6 +7,9 @@ reviewable, physics-ready chains for BoneX and Wiggle.
 
 ## Highlights
 
+- Run **Auto Convert and Rebuild L-key Chains** once to apply UEFormat-compatible
+  bone reorientation to the active Armature and rebuild safe linear segments as
+  native Blender connected chains.
 - Inspect parent, root, descendant, branch, and semantic secondary-chain scopes
   before changing selection or rest geometry.
 - Build an immutable Physics Graph from bone heads and hierarchy, with explicit
@@ -20,8 +23,9 @@ reviewable, physics-ready chains for BoneX and Wiggle.
 
 ## Safety contract
 
-Analyze, hierarchy inspection, and semantic discovery are read-only. Apply may
-change only the selected EditBones' `tail`, `roll`, and `use_connect`. It does
+Analyze, hierarchy inspection, and semantic discovery are read-only. Apply and
+the one-click conversion may change only EditBone `tail`, `roll`, and
+`use_connect`. They do
 not rebind meshes, recalculate weights, apply pose as rest pose, recreate
 Armature modifiers, or create production proxy bones.
 
@@ -40,20 +44,26 @@ not bundled dependencies.
 
 ## Installation
 
-Download `boneweaver-0.2.0.zip` from the
-[v0.2.0 release](https://github.com/dotm5/BoneWeaver/releases/tag/v0.2.0).
+Download `boneweaver-0.3.0.zip` from the
+[v0.3.0 release](https://github.com/dotm5/BoneWeaver/releases/tag/v0.3.0).
 In Blender, open **Edit > Preferences > Extensions > Install from Disk**, select
 the ZIP, and enable BoneWeaver.
 
 ## Quick start
 
 1. Import the UE model and preserve its original weights.
-2. Select the secondary-motion bones you want to prepare.
-3. Open **3D Viewport > Sidebar > BoneWeaver**.
-4. Choose a scope and target profile, then run **Check and Preview**.
-5. Review the Physics Graph, terminal evidence, warnings, and blockers.
-6. Run **Apply Conversion** only when the frozen plan is current and unblocked.
-7. Configure BoneX or Wiggle, then keep the Snapshot until the result is accepted.
+2. Select its Armature and open **3D Viewport > Sidebar > BoneWeaver**.
+3. Click **Auto Convert and Rebuild L-key Chains** at the top of the panel.
+4. Confirm the operation. BoneWeaver reorients eligible bones, rebuilds maximal
+   linear segments with native `use_connect`, validates the result, and stores a
+   persistent Snapshot automatically.
+5. In Edit Mode, hover a converted segment and press `L` to select the linked
+   native chain. Branch boundaries remain separate by design.
+6. Use **Restore Pre-conversion State** if the result is not wanted. Restore
+   refuses to overwrite later manual edits.
+
+The existing scoped Physics Graph workflow remains available below the one-click
+box for selective BoneX/Wiggle preparation and detailed preview.
 
 ## Hierarchy inspection and semantic discovery
 
@@ -75,20 +85,26 @@ reopen validation before reporting success.
 
 ## Tested release
 
-BoneWeaver v0.2.0 was validated with Blender 5.2.0 LTS RC build
+BoneWeaver v0.3.0 was validated with Blender 5.2.0 LTS RC build
 `710df102694f`:
 
-- 208 Blender-hosted automated tests passed with zero failures or errors.
-- A real UE asset with 157 bones and 25,610 vertices completed Analyze, Apply,
-  export, and independent reopen validation.
+- 220 Blender-hosted automated tests passed with zero failures or errors.
+- A fixed UEFormat 1.0.0 comparison covered 154 eligible bones: maximum direction
+  error `0.033878°`, maximum length error `1.164412e-7`, with unchanged heads,
+  parents, and sockets.
+- The one-click workflow passed on a raw 157-bone `.uemodel` and an existing
+  `x1.blend`: native `L` selection worked on finger, hair, ribbon, and spine
+  chains; a second run was idempotent; exact Restore passed; both source hashes
+  remained unchanged.
 - The release ZIP passed an isolated install and repeated registration cycle.
-- Archive: `boneweaver-0.2.0.zip`
-- Size: `168341` bytes
-- SHA-256: `A8F7BA9DE47AD01D10829FCB7DCB2EB3A95A06A64E791BBAA83DF7F7235C32C2`
+- Archive: `boneweaver-0.3.0.zip`
+- Size: `185592` bytes
+- SHA-256: `4FA71A1F71640047D10F03E023DB03EB89126D6DEF8353BBCB93D9989E2B23C2`
 
 ## Known limitations
 
-- v0.2.0 prepares physics chains; it is not a UE animation-basis retargeter.
+- The one-click tool reorients rest-bone display geometry; it does not rewrite
+  UEFormat `post_quat` animation metadata or retarget animation bases.
 - Blender 4.2 is the manifest minimum, but this release's local executable
   validation was performed on the Blender 5.2 build above.
 - BoneX/Wiggle runtime behavior still requires project-specific manual tuning.
@@ -98,6 +114,8 @@ BoneWeaver v0.2.0 was validated with Blender 5.2.0 LTS RC build
 ## Documentation
 
 - [User workflow](docs/user-workflow.md)
+- [One-click Quick Reorient](docs/quick-reorient.md)
+- [Native linked selection](docs/native-linked-selection.md)
 - [Architecture](docs/architecture.md)
 - [Algorithms](docs/algorithms.md)
 - [Hierarchy selection](docs/hierarchy-selection.md)

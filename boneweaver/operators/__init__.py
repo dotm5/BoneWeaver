@@ -23,6 +23,7 @@ from .select_discovered_chain import BONEWEAVER_OT_select_discovered_chain
 from .use_discovered_chains import BONEWEAVER_OT_use_discovered_chains
 from .clear_semantic_discovery import BONEWEAVER_OT_clear_semantic_discovery
 from .export_semantic_discovery import BONEWEAVER_OT_export_semantic_discovery
+from .quick_reorient import QUICK_REORIENT_OPERATOR_CLASSES
 
 
 OPERATOR_CLASSES = (
@@ -47,4 +48,4 @@ OPERATOR_CLASSES = (
     BONEWEAVER_OT_use_discovered_chains,
     BONEWEAVER_OT_clear_semantic_discovery,
     BONEWEAVER_OT_export_semantic_discovery,
-)
+) + QUICK_REORIENT_OPERATOR_CLASSES

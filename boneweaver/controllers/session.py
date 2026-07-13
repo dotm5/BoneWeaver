@@ -11,6 +11,7 @@ from ..core.runtime_store import get_plan, has_plan
 from ..core.runtime_store import get_hierarchy_inspection, get_semantic_discovery
 from .preview import PreviewController
 from .hierarchy_overlay import HierarchyOverlayController
+from .quick_reorient import QuickReorientController
 from ..core.snapshot_availability import discover_latest_restorable_snapshot
 
 
@@ -86,6 +87,7 @@ class SessionController:
         runtime.is_busy = False
         SessionController._clear_hierarchy_runtime(runtime)
         SessionController._clear_semantic_runtime(runtime)
+        QuickReorientController.clear_runtime(context)
 
     @staticmethod
     def reset_session(context) -> None:
@@ -147,6 +149,7 @@ class SessionController:
         runtime.is_busy = False
         SessionController._clear_hierarchy_runtime(runtime)
         SessionController._clear_semantic_runtime(runtime)
+        QuickReorientController.clear_runtime(context)
 
     @staticmethod
     @persistent
@@ -160,6 +163,7 @@ class SessionController:
         if hasattr(bpy.context.window_manager, "boneweaver_runtime"):
             SessionController.invalidate_for_scene_change(bpy.context, "load_post")
             SessionController.refresh_snapshot(bpy.context)
+            QuickReorientController.refresh_snapshot(bpy.context)
 
     @staticmethod
     @persistent

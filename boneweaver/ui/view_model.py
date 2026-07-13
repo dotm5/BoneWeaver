@@ -129,6 +129,21 @@ class DeveloperPanelView:
     last_error: str
 
 
+@dataclass(frozen=True, slots=True)
+class QuickReorientView:
+    button_enabled: bool
+    state: str
+    summary: str
+    source: str
+    processed_bones: int
+    total_bones: int
+    component_count: int
+    connected_edges: int
+    blocker_count: int
+    warning_count: int
+    restore_enabled: bool
+
+
 def _action(key: str, label: str, icon: str, *, enabled: bool = True,
             reason: str = "", primary: bool = False) -> ActionView:
     return ActionView(OPERATOR_IDS[key], label, icon, enabled, reason, primary)
@@ -317,3 +332,31 @@ def recovery_panel_view_from_context(context) -> RecoveryPanelView:
 def developer_panel_view_from_context(context) -> DeveloperPanelView:
     state = context.window_manager.boneweaver_runtime
     return DeveloperPanelView(state.state, state.plan_id, state.plan_fingerprint, state.last_error)
+
+
+def quick_reorient_view_from_context(context) -> QuickReorientView:
+    runtime = context.window_manager.boneweaver_runtime
+    armature, _source = SelectionController.armature_from_context(context)
+    texts = getattr(context.blend_data, "texts", None)
+    snapshot_exists = bool(
+        texts is not None
+        and runtime.quick_snapshot_text_name
+        and texts.get(runtime.quick_snapshot_text_name)
+    )
+    return QuickReorientView(
+        button_enabled=bool(armature is not None and not runtime.is_busy),
+        state=runtime.quick_state,
+        summary=runtime.quick_summary,
+        source=runtime.quick_source,
+        processed_bones=runtime.quick_processed_bones,
+        total_bones=runtime.quick_total_bones,
+        component_count=runtime.quick_component_count,
+        connected_edges=runtime.quick_connected_edges,
+        blocker_count=runtime.quick_blocker_count,
+        warning_count=runtime.quick_warning_count,
+        restore_enabled=bool(
+            snapshot_exists
+            and runtime.quick_state == "RESTORABLE"
+            and not runtime.is_busy
+        ),
+    )
