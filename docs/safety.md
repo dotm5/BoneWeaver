@@ -20,12 +20,15 @@ The legacy `create_role_collections` setting remains readable for compatibility 
 
 Analyze is read-only. Apply requires an exact current fingerprint, persistent snapshot, context guard, and post validation. Any validation failure restores allowed fields. Restore refuses conflicts rather than overwriting manual edits.
 
-Quick Reorient captures and plans before mutation, writes a persistent Snapshot,
-then validates every target and invariant plus native component connectivity,
-mesh digests, and neutral evaluated meshes. A blocker makes the one-click
-operator cancel without mutation. A post-check failure rolls back automatically.
-Its Restore additionally compares the complete expected post-state and refuses
-to overwrite later manual changes.
+Quick Reorient captures and plans before mutation and writes a persistent
+Snapshot. In v0.3.1 its panel-top one-click action is explicitly force-complete:
+preflight and post-diagnostic findings never become policy blockers. Action,
+NLA, Driver, Constraint, Pose, B-Bone, parenting, envelope, modifier, transform,
+mesh-digest, and neutral-mesh findings remain visible as advisory evidence. An
+actual Blender edit exception still rolls back to avoid a half-written Armature.
+Its Restore compares the complete expected post-state and refuses to overwrite
+later manual changes. The separate scoped Physics Graph Apply retains its strict
+blocking and post-validation behavior.
 
 Hierarchy Inspect and Semantic Discover are also read-only. Their named Select
 operators may change temporary Bone selection only; they do not change

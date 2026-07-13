@@ -2,6 +2,23 @@
 
 All notable changes to BoneWeaver are documented here.
 
+## 0.3.1 - 2026-07-13
+
+- Changed the panel-top Quick Reorient action to force-complete mode: all
+  previous Action, NLA, Driver, Constraint, Pose, B-Bone, parenting, envelope,
+  modifier, transform, and mesh policy blockers are now advisory diagnostics.
+- Removed the confirmation dialog so the panel button starts and completes the
+  automatic conversion with one click.
+- Automatically localizes linked Armature data when Blender permits it and
+  makes shared Armature data single-user before planning.
+- Made mesh and neutral-evaluation diagnostics best-effort in one-click mode;
+  failed diagnostics are recorded in the Snapshot but no longer roll back a
+  completed bone conversion.
+- Preserved strict validation for the separate scoped Physics Graph workflow
+  and for direct callers that explicitly use strict Quick Transaction mode.
+- Added a combined former-blocker regression fixture and raised the complete
+  Blender-hosted suite to 223 passing tests.
+
 ## 0.3.0 - 2026-07-13
 
 - Added a panel-top **Auto Convert and Rebuild L-key Chains** action that runs

@@ -8,7 +8,7 @@ from boneweaver import contracts
 class ContractSnapshotTests(unittest.TestCase):
     def test_versions_and_identity_are_stable(self) -> None:
         self.assertEqual(contracts.ADDON_ID, "boneweaver")
-        self.assertEqual(contracts.ADDON_VERSION, "0.3.0")
+        self.assertEqual(contracts.ADDON_VERSION, "0.3.1")
         self.assertEqual(contracts.SCHEMA_VERSION, "4.0.0")
         self.assertEqual(
             contracts.ALGORITHM_VERSION,

@@ -153,7 +153,18 @@ def _write_metadata_state(armature, state):
             armature.data[key] = value
 
 
-def _validate(context, plan, armature, before, after, mesh_before, neutral_before):
+def _validate(
+    context,
+    plan,
+    armature,
+    before,
+    after,
+    mesh_before,
+    neutral_before,
+    *,
+    mesh_validation_enabled=True,
+    neutral_validation_enabled=True,
+):
     issues = []
     proposals = {proposal.bone_name: proposal for proposal in plan.proposals}
     if set(after) != set(before):
@@ -204,26 +215,28 @@ def _validate(context, plan, armature, before, after, mesh_before, neutral_befor
                 if child_proposal.component_id and after[child_name]["use_connect"]:
                     issues.append("BONEWEAVER_QUICK_BRANCH_CHILD_CONNECTED")
 
-    mesh_after = _mesh_digests(armature)
-    for name, digests in mesh_before.items():
-        if mesh_after.get(name) != digests:
-            issues.append("BONEWEAVER_QUICK_MESH_DIGEST_CHANGED")
-    current_neutral = _capture_neutral(armature)
-    settings = context.scene.boneweaver_settings
-    for name, (capture, baseline_max, baseline_rms) in neutral_before.items():
-        if name not in current_neutral:
-            issues.append("BONEWEAVER_QUICK_NEUTRAL_MESH_CHANGED")
-            continue
-        result = evaluate_mesh_tolerance(
-            capture,
-            current_neutral[name],
-            mode=settings.validation_tolerance_mode,
-            custom_relative_factor=settings.position_epsilon_factor,
-            baseline_max_delta=baseline_max,
-            baseline_rms_delta=baseline_rms,
-        )
-        if result.result == "FAIL_AND_ROLLBACK":
-            issues.append("BONEWEAVER_QUICK_NEUTRAL_MESH_CHANGED")
+    if mesh_validation_enabled:
+        mesh_after = _mesh_digests(armature)
+        for name, digests in mesh_before.items():
+            if mesh_after.get(name) != digests:
+                issues.append("BONEWEAVER_QUICK_MESH_DIGEST_CHANGED")
+    if neutral_validation_enabled:
+        current_neutral = _capture_neutral(armature)
+        settings = context.scene.boneweaver_settings
+        for name, (capture, baseline_max, baseline_rms) in neutral_before.items():
+            if name not in current_neutral:
+                issues.append("BONEWEAVER_QUICK_NEUTRAL_MESH_CHANGED")
+                continue
+            result = evaluate_mesh_tolerance(
+                capture,
+                current_neutral[name],
+                mode=settings.validation_tolerance_mode,
+                custom_relative_factor=settings.position_epsilon_factor,
+                baseline_max_delta=baseline_max,
+                baseline_rms_delta=baseline_rms,
+            )
+            if result.result == "FAIL_AND_ROLLBACK":
+                issues.append("BONEWEAVER_QUICK_NEUTRAL_MESH_CHANGED")
     return tuple(sorted(set(issues)))
 
 
@@ -241,10 +254,27 @@ def _mutation_count(before, after, proposals):
     return count
 
 
-def apply_quick_plan(context, plan, *, validator=None):
+def apply_quick_plan(context, plan, *, validator=None, strict_validation=True):
     armature = bpy.data.objects[plan.armature_object_name]
-    mesh_before = _mesh_digests(armature)
-    neutral_before = _neutral_baseline(armature)
+    diagnostic_issues = []
+    mesh_validation_enabled = True
+    neutral_validation_enabled = True
+    try:
+        mesh_before = _mesh_digests(armature)
+    except Exception:
+        if strict_validation:
+            raise
+        mesh_before = {}
+        mesh_validation_enabled = False
+        diagnostic_issues.append("BONEWEAVER_QUICK_MESH_DIAGNOSTIC_SKIPPED")
+    try:
+        neutral_before = _neutral_baseline(armature)
+    except Exception:
+        if strict_validation:
+            raise
+        neutral_before = {}
+        neutral_validation_enabled = False
+        diagnostic_issues.append("BONEWEAVER_QUICK_NEUTRAL_DIAGNOSTIC_SKIPPED")
     metadata_before = _metadata_state(armature)
     snapshot_id = ""
     text_name = ""
@@ -271,6 +301,8 @@ def apply_quick_plan(context, plan, *, validator=None):
                 "pre_bones": before,
                 "expected_post_bones": {},
                 "mesh_digests": mesh_before,
+                "mesh_validation_enabled": mesh_validation_enabled,
+                "neutral_validation_enabled": neutral_validation_enabled,
                 "pre_metadata": metadata_before,
                 "expected_post_metadata": {},
                 "status": "CREATED",
@@ -296,14 +328,30 @@ def apply_quick_plan(context, plan, *, validator=None):
             after = _capture_edit_state(armature)
             bpy.ops.object.mode_set(mode="OBJECT")
             context.view_layer.update()
-            validation_issues = _validate(
-                context, plan, armature, before, after, mesh_before, neutral_before
+            try:
+                validation_issues = _validate(
+                    context,
+                    plan,
+                    armature,
+                    before,
+                    after,
+                    mesh_before,
+                    neutral_before,
+                    mesh_validation_enabled=mesh_validation_enabled,
+                    neutral_validation_enabled=neutral_validation_enabled,
+                )
+            except Exception:
+                validation_issues = (
+                    "BONEWEAVER_QUICK_POST_DIAGNOSTIC_SKIPPED",
+                )
+            validation_issues = tuple(
+                sorted(set(validation_issues + tuple(diagnostic_issues)))
             )
             if validator is not None and not validator(context, plan):
                 validation_issues = tuple(
                     sorted(set(validation_issues + ("BONEWEAVER_QUICK_CUSTOM_VALIDATION_FAILED",)))
                 )
-            if validation_issues:
+            if validation_issues and strict_validation:
                 raise RuntimeError("post validation failed: " + ", ".join(validation_issues))
 
             armature.data[_VERSION_PROP] = QUICK_REORIENT_ALGORITHM_VERSION
@@ -316,12 +364,13 @@ def apply_quick_plan(context, plan, *, validator=None):
             payload["connected_edge_count"] = sum(
                 1 for proposal in plan.proposals if proposal.target_use_connect
             )
+            payload["validation_issues"] = validation_issues
             payload["status"] = "APPLIED"
             text.clear()
             text.write(json.dumps(payload, ensure_ascii=False, sort_keys=True, indent=2))
             return QuickTransactionResult(
                 True, False, snapshot_id, text_name, mutation_count,
-                payload["connected_edge_count"], (), None,
+                payload["connected_edge_count"], validation_issues, None,
             )
         except Exception as error:
             try:
@@ -360,11 +409,12 @@ def restore_quick_snapshot(context, text_name):
     armature = bpy.data.objects.get(info["object_name"])
     if armature is None or armature.data.name != info["data_name"]:
         return False, "BONEWEAVER_QUICK_RESTORE_CONFLICT"
-    try:
-        if _mesh_digests(armature) != payload.get("mesh_digests", {}):
+    if payload.get("mesh_validation_enabled", True):
+        try:
+            if _mesh_digests(armature) != payload.get("mesh_digests", {}):
+                return False, "BONEWEAVER_QUICK_RESTORE_CONFLICT"
+        except RuntimeError:
             return False, "BONEWEAVER_QUICK_RESTORE_CONFLICT"
-    except RuntimeError:
-        return False, "BONEWEAVER_QUICK_RESTORE_CONFLICT"
     if _metadata_state(armature) != payload.get("expected_post_metadata", {}):
         return False, "BONEWEAVER_QUICK_RESTORE_CONFLICT"
     with ContextStateGuard(context):

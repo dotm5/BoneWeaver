@@ -352,7 +352,7 @@ def quick_reorient_view_from_context(context) -> QuickReorientView:
         total_bones=runtime.quick_total_bones,
         component_count=runtime.quick_component_count,
         connected_edges=runtime.quick_connected_edges,
-        blocker_count=runtime.quick_blocker_count,
+        blocker_count=0,
         warning_count=runtime.quick_warning_count,
         restore_enabled=bool(
             snapshot_exists

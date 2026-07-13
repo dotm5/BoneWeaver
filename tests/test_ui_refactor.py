@@ -32,6 +32,17 @@ class UIRefactorTests(unittest.TestCase):
         self.assertIn('OPERATOR_IDS["quick_reorient_auto"]', source)
         self.assertIn("全自动转换并重建 L 键骨链", source)
 
+    def test_quick_reorient_is_a_true_single_click_action(self):
+        path = (
+            Path(__file__).resolve().parents[1]
+            / "boneweaver"
+            / "operators"
+            / "quick_reorient.py"
+        )
+        source = path.read_text(encoding="utf-8")
+        self.assertNotIn("invoke_confirm", source)
+        self.assertIn("return self.execute(context)", source)
+
     def test_panel_layers_and_primary_operators_are_registered(self):
         for name in (
             "BONEWEAVER_PT_main", "BONEWEAVER_PT_advanced", "BONEWEAVER_PT_details",
