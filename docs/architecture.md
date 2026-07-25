@@ -13,30 +13,33 @@ Armature Bone Head + Parent Hierarchy + Rest Axes + Weight Evidence
 
 `Analyze` reads Blender RNA and freezes ordinary Python dataclasses. `_PLAN_STORE` holds no Blender RNA references. `Apply` accepts one exact `plan_id`, recomputes source and settings fingerprints, creates `BONEWEAVER_SNAPSHOT::<sha256>`, modifies only allowed EditBone fields, then validates. UI lists and viewport caches are views, never transaction inputs.
 
-The one-click Quick Reorient path is independent of the selective Physics Graph
-Plan but follows the same immutable-plan and snapshot-backed transaction model:
+The three Quick Reorient modes are independent of the selective Physics Graph
+Apply but share one immutable-plan and snapshot-backed transaction model:
 
 ```text
 Complete Armature EditBone capture + importer metadata
-  -> immutable QuickReorientPlan
-  -> UEFormat-compatible direction proposals
+  -> complete UEFormat-compatible fallback proposals
+  -> original | link-only | confident multi-feature per-bone overlay
+  -> immutable mode-specific QuickReorientPlan
   -> maximal linear LinkedChainComponents
   -> snapshot-backed tail / roll / use_connect transaction
   -> mesh, invariant, native-component diagnostics
   -> force-complete commit; rollback only on Blender edit exception
 ```
 
-`QuickReorientController` owns this full workflow and all related runtime-state
-writes. Its operators are thin adapters and the panel renders a pure
+`QuickReorientController` owns these workflows and all related runtime-state
+writes. Their operators are thin adapters and the panel renders a pure
 `QuickReorientView`. `_QUICK_PLAN_STORE` contains immutable values only. The
 persistent `BONEWEAVER_QUICK_SNAPSHOT::<sha256>` Text datablock is the sole
 cross-session recovery record.
 
 The panel controller calls Quick Transaction with `strict_validation=False`.
-All diagnostic codes are persisted and surfaced as automatic-compatibility
-counts, but they cannot transition the UI to `BLOCKED`. Direct backend callers
-may still opt into strict validation; this keeps the scoped safety workflow and
-test instrumentation independent from the force-complete user action.
+All diagnostic codes are persisted and surfaced as non-blocking counts, but
+they cannot transition the UI to `BLOCKED`. Hybrid planning converts precision
+blockers to advisory evidence and retains the already-computed fallback for an
+unreliable bone. Direct backend callers may still opt into strict validation;
+this keeps the scoped safety workflow and test instrumentation independent from
+the force-complete user actions.
 
 The interaction layer is controller-owned: `WorkflowController` owns workflow transitions, `PreviewController` owns the draw handler/cache/runtime flag, `SessionController` owns Plan loss and lifecycle cleanup, and `SelectionController` owns selection identity and issue location. Operators are thin adapters. The main panel renders pure view models; technical state and raw codes stay in opt-in diagnostics.
 

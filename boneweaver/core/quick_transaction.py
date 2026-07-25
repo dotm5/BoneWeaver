@@ -24,6 +24,7 @@ _TAIL_EPSILON = 1.0e-6
 _ROLL_EPSILON = 1.0e-5
 _VERSION_PROP = "boneweaver_quick_reorient_version"
 _FINGERPRINT_PROP = "boneweaver_quick_reorient_source_fingerprint"
+_MODE_PROP = "boneweaver_quick_reorient_mode"
 
 
 def discover_latest_quick_snapshot() -> str:
@@ -141,6 +142,7 @@ def _metadata_state(armature):
     return {
         _VERSION_PROP: armature.data.get(_VERSION_PROP),
         _FINGERPRINT_PROP: armature.data.get(_FINGERPRINT_PROP),
+        _MODE_PROP: armature.data.get(_MODE_PROP),
     }
 
 
@@ -355,6 +357,7 @@ def apply_quick_plan(context, plan, *, validator=None, strict_validation=True):
                 raise RuntimeError("post validation failed: " + ", ".join(validation_issues))
 
             armature.data[_VERSION_PROP] = QUICK_REORIENT_ALGORITHM_VERSION
+            armature.data[_MODE_PROP] = plan.mode
             armature.data[_FINGERPRINT_PROP] = current_quick_source_fingerprint(context, armature)
             metadata_after = _metadata_state(armature)
             mutation_count = _mutation_count(before, after, plan.proposals)
@@ -415,7 +418,11 @@ def restore_quick_snapshot(context, text_name):
                 return False, "BONEWEAVER_QUICK_RESTORE_CONFLICT"
         except RuntimeError:
             return False, "BONEWEAVER_QUICK_RESTORE_CONFLICT"
-    if _metadata_state(armature) != payload.get("expected_post_metadata", {}):
+    current_metadata = _metadata_state(armature)
+    expected_metadata = payload.get("expected_post_metadata", {})
+    if _MODE_PROP not in expected_metadata:
+        current_metadata.pop(_MODE_PROP, None)
+    if current_metadata != expected_metadata:
         return False, "BONEWEAVER_QUICK_RESTORE_CONFLICT"
     with ContextStateGuard(context):
         _activate(context, armature)

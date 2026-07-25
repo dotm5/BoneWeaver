@@ -30,7 +30,11 @@ class UIRefactorTests(unittest.TestCase):
             self.assertNotIn(forbidden, source)
         self.assertIn("panel_view_state_from_context", source)
         self.assertIn('OPERATOR_IDS["quick_reorient_auto"]', source)
-        self.assertIn("全自动转换并重建 L 键骨链", source)
+        self.assertIn('OPERATOR_IDS["quick_reorient_links_only"]', source)
+        self.assertIn('OPERATOR_IDS["quick_reorient_hybrid_auto"]', source)
+        self.assertIn("原版：全自动转换并重建 L 键骨链", source)
+        self.assertIn("仅重建连接：保留现有朝向", source)
+        self.assertIn("实验性：多特征识别 + UEFormat 回退", source)
 
     def test_quick_reorient_is_a_true_single_click_action(self):
         path = (
@@ -41,7 +45,7 @@ class UIRefactorTests(unittest.TestCase):
         )
         source = path.read_text(encoding="utf-8")
         self.assertNotIn("invoke_confirm", source)
-        self.assertIn("return self.execute(context)", source)
+        self.assertEqual(source.count("return self.execute(context)"), 3)
 
     def test_panel_layers_and_primary_operators_are_registered(self):
         for name in (

@@ -4,6 +4,16 @@ from __future__ import annotations
 
 import bpy
 
+from ..contracts import (
+    QUICK_REORIENT_MODE_HYBRID,
+    QUICK_REORIENT_MODE_LINKS_ONLY,
+    QUICK_REORIENT_MODE_UEFORMAT,
+)
+from ..core.hybrid_reorient import (
+    build_hybrid_reorient_plan,
+    is_multi_feature_source,
+    is_ueformat_fallback_source,
+)
 from ..core.quick_reorient import build_quick_reorient_plan
 from ..core.quick_transaction import (
     apply_quick_plan,
@@ -15,6 +25,26 @@ from .selection import SelectionController
 
 
 class QuickReorientController:
+    _MODE_PROGRESS = {
+        QUICK_REORIENT_MODE_UEFORMAT: (
+            "正在分析整个骨架",
+            "正在执行原版全自动转换",
+        ),
+        QUICK_REORIENT_MODE_LINKS_ONLY: (
+            "正在分析整个骨架的线性层级",
+            "正在重建 Blender 原生连接",
+        ),
+        QUICK_REORIENT_MODE_HYBRID: (
+            "正在运行多特征识别并准备逐骨回退",
+            "正在执行混合全自动转换",
+        ),
+    }
+    _MODE_SUMMARY = {
+        QUICK_REORIENT_MODE_UEFORMAT: "原版转换完成",
+        QUICK_REORIENT_MODE_LINKS_ONLY: "仅连接重建完成",
+        QUICK_REORIENT_MODE_HYBRID: "混合转换完成",
+    }
+
     @staticmethod
     def _ensure_editable_armature(context):
         armature, _source = SelectionController.armature_from_context(context)
@@ -42,6 +72,7 @@ class QuickReorientController:
         runtime.quick_state = "IDLE"
         runtime.quick_plan_id = ""
         runtime.quick_source = ""
+        runtime.quick_mode = ""
         runtime.quick_summary = ""
         runtime.quick_snapshot_text_name = ""
         runtime.quick_total_bones = 0
@@ -51,6 +82,8 @@ class QuickReorientController:
         runtime.quick_mutation_count = 0
         runtime.quick_blocker_count = 0
         runtime.quick_warning_count = 0
+        runtime.quick_precision_bones = 0
+        runtime.quick_fallback_bones = 0
         runtime.quick_already_normalized = False
         if rediscover_snapshot:
             QuickReorientController.refresh_snapshot(context)
@@ -86,6 +119,7 @@ class QuickReorientController:
     def _populate_runtime(runtime, plan) -> None:
         runtime.quick_plan_id = plan.plan_id
         runtime.quick_source = plan.source_adapter
+        runtime.quick_mode = plan.mode
         runtime.quick_total_bones = len(plan.bone_states)
         runtime.quick_processed_bones = sum(
             not proposal.skipped for proposal in plan.proposals
@@ -96,18 +130,33 @@ class QuickReorientController:
         )
         runtime.quick_blocker_count = 0
         runtime.quick_warning_count = len(plan.issues)
+        runtime.quick_precision_bones = sum(
+            is_multi_feature_source(proposal.source)
+            for proposal in plan.proposals
+            if not proposal.skipped
+        )
+        runtime.quick_fallback_bones = sum(
+            is_ueformat_fallback_source(proposal.source)
+            for proposal in plan.proposals
+            if not proposal.skipped
+        )
         runtime.quick_already_normalized = plan.already_normalized
 
     @classmethod
-    def run(cls, context) -> bool:
+    def run(cls, context, *, mode=QUICK_REORIENT_MODE_UEFORMAT) -> bool:
         runtime = context.window_manager.boneweaver_runtime
         runtime.is_busy = True
         runtime.quick_state = "ANALYZING"
-        runtime.quick_summary = "正在分析整个骨架"
+        analyze_summary, apply_summary = cls._MODE_PROGRESS[mode]
+        runtime.quick_summary = analyze_summary
         runtime.quick_mutation_count = 0
+        runtime.last_error = ""
         try:
             cls._ensure_editable_armature(context)
-            plan = build_quick_reorient_plan(context)
+            if mode == QUICK_REORIENT_MODE_HYBRID:
+                plan = build_hybrid_reorient_plan(context)
+            else:
+                plan = build_quick_reorient_plan(context, mode=mode)
             if plan is None:
                 runtime.quick_state = "ERROR"
                 runtime.quick_summary = "未找到可编辑骨架"
@@ -117,7 +166,7 @@ class QuickReorientController:
             cls._populate_runtime(runtime, plan)
 
             runtime.quick_state = "APPLYING"
-            runtime.quick_summary = "正在强制完成自动转换"
+            runtime.quick_summary = apply_summary
             result = apply_quick_plan(context, plan, strict_validation=False)
             runtime.quick_snapshot_text_name = result.snapshot_text_name
             runtime.quick_mutation_count = result.mutation_count
@@ -137,17 +186,27 @@ class QuickReorientController:
 
             runtime.quick_state = "RESTORABLE"
             summary = (
-                f"完成：{result.mutation_count} 根骨骼已修改，"
+                f"{cls._MODE_SUMMARY[mode]}：{result.mutation_count} 根骨骼已修改，"
                 f"{result.connected_edge_count} 条原生连接"
             )
+            if mode == QUICK_REORIENT_MODE_HYBRID:
+                summary += (
+                    f"；多特征 {runtime.quick_precision_bones} 根，"
+                    f"UEFormat 自动回退 {runtime.quick_fallback_bones} 根"
+                )
             if runtime.quick_warning_count:
-                summary += f"；自动兼容 {runtime.quick_warning_count} 项限制"
+                if mode == QUICK_REORIENT_MODE_HYBRID:
+                    summary += (
+                        f"；记录 {runtime.quick_warning_count} 条非阻断诊断"
+                    )
+                else:
+                    summary += f"；自动兼容 {runtime.quick_warning_count} 项限制"
             runtime.quick_summary = summary
             runtime.last_error = ""
             return True
         except Exception as error:
             runtime.quick_state = "ERROR"
-            runtime.quick_summary = "全自动转换发生内部错误"
+            runtime.quick_summary = "全自动流程发生内部错误"
             runtime.last_error = str(error)
             return False
         finally:

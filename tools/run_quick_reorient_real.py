@@ -16,6 +16,13 @@ import bpy
 from mathutils import Vector
 
 
+_OPERATORS = {
+    "UEFORMAT_AUTO": lambda: bpy.ops.boneweaver.quick_reorient_auto(),
+    "LINKS_ONLY": lambda: bpy.ops.boneweaver.quick_reorient_links_only(),
+    "HYBRID_MULTI_FEATURE": lambda: bpy.ops.boneweaver.quick_reorient_hybrid_auto(),
+}
+
+
 def _sha256(path: Path):
     digest = hashlib.sha256()
     with path.open("rb") as stream:
@@ -143,7 +150,13 @@ def _native_selection_checks(armature, plan):
     return checks
 
 
-def run_loaded_scene(source: Path, output: Path, *, expected_adapter: str | None = None):
+def run_loaded_scene(
+    source: Path,
+    output: Path,
+    *,
+    expected_adapter: str | None = None,
+    mode: str = "UEFORMAT_AUTO",
+):
     from boneweaver.core.quick_source_adapter import capture_quick_source
     from boneweaver.core.runtime_store import get_quick_plan
 
@@ -162,19 +175,22 @@ def run_loaded_scene(source: Path, output: Path, *, expected_adapter: str | None
     armature = armatures[0]
     _activate(armature)
     before, _metadata = capture_quick_source(bpy.context, armature)
-    first_apply = bpy.ops.boneweaver.quick_reorient_auto()
+    first_apply = _OPERATORS[mode]()
     runtime = bpy.context.window_manager.boneweaver_runtime
     plan = get_quick_plan(runtime.quick_plan_id) if runtime.quick_plan_id else None
     if first_apply != {"FINISHED"} or plan is None:
         blockers = [issue.code for issue in plan.issues if issue.severity == "BLOCKER"] if plan else []
-        raise RuntimeError(f"one-button conversion failed: {first_apply}, {blockers}, {runtime.last_error}")
+        raise RuntimeError(
+            f"{mode} one-button conversion failed: "
+            f"{first_apply}, {blockers}, {runtime.last_error}"
+        )
     first_snapshot_name = runtime.quick_snapshot_text_name
     first_mutations = runtime.quick_mutation_count
     after_apply, _metadata = capture_quick_source(bpy.context, armature)
     invariants = _invariant_changes(before, after_apply)
     selections = _native_selection_checks(armature, plan)
 
-    second_apply = bpy.ops.boneweaver.quick_reorient_auto()
+    second_apply = _OPERATORS[mode]()
     second_plan = get_quick_plan(runtime.quick_plan_id)
     second_mutations = runtime.quick_mutation_count
     second_snapshot_name = runtime.quick_snapshot_text_name
@@ -188,6 +204,7 @@ def run_loaded_scene(source: Path, output: Path, *, expected_adapter: str | None
     failed_selection = [name for name, item in selections.items() if item["status"] == "FAIL"]
     success = bool(
         (expected_adapter is None or plan.source_adapter == expected_adapter)
+        and plan.mode == mode
         and second_apply == {"FINISHED"}
         and second_plan.already_normalized
         and second_mutations == 0
@@ -207,10 +224,21 @@ def run_loaded_scene(source: Path, output: Path, *, expected_adapter: str | None
         "source_hash_after": source_hash_after,
         "blender_version": bpy.app.version_string,
         "armature": armature.name,
+        "mode": mode,
         "source_adapter": plan.source_adapter,
         "already_reoriented": plan.already_reoriented,
         "total_bones": len(plan.bone_states),
         "processed_bones": sum(not proposal.skipped for proposal in plan.proposals),
+        "multi_feature_bones": sum(
+            proposal.source.startswith("MULTI_FEATURE:")
+            for proposal in plan.proposals
+            if not proposal.skipped
+        ),
+        "ueformat_fallback_bones": sum(
+            proposal.source.startswith("UEFORMAT_FALLBACK:")
+            for proposal in plan.proposals
+            if not proposal.skipped
+        ),
         "skipped_sockets": sum(proposal.skip_reason == "SOCKET" for proposal in plan.proposals),
         "component_count": len(plan.linked_components),
         "connected_edges": snapshot.get("connected_edge_count", 0),
@@ -239,6 +267,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", required=True)
     parser.add_argument("--output", required=True)
+    parser.add_argument("--mode", choices=tuple(_OPERATORS), default="UEFORMAT_AUTO")
     args = parser.parse_args(argv)
     source = Path(args.input).resolve(strict=True)
     root = Path(__file__).resolve().parents[1]
@@ -246,7 +275,11 @@ def main():
     import boneweaver
     boneweaver.register()
     try:
-        return run_loaded_scene(source, Path(args.output).resolve())
+        return run_loaded_scene(
+            source,
+            Path(args.output).resolve(),
+            mode=args.mode,
+        )
     finally:
         boneweaver.unregister()
 

@@ -18,15 +18,31 @@ class BONEWEAVER_PT_main(bpy.types.Panel):
         view = panel_view_state_from_context(context)
         quick = quick_reorient_view_from_context(context)
         quick_box = layout.box()
-        quick_box.label(text="全自动骨架转换", icon="MOD_ARMATURE")
-        quick_box.label(text="自动重定向并重建 Blender 原生 L 键骨链")
-        quick_row = quick_box.row()
-        quick_row.scale_y = 1.6
-        quick_row.enabled = quick.button_enabled
-        quick_row.operator(
+        quick_box.label(text="三种全自动骨架处理", icon="MOD_ARMATURE")
+        quick_box.label(text="全部作用于整个骨架；单骨识别失败不会阻断流程")
+        original_row = quick_box.row()
+        original_row.scale_y = 1.45
+        original_row.enabled = quick.button_enabled
+        original_row.operator(
             OPERATOR_IDS["quick_reorient_auto"],
-            text="全自动转换并重建 L 键骨链",
+            text="原版：全自动转换并重建 L 键骨链",
             icon="PLAY",
+        )
+        links_row = quick_box.row()
+        links_row.scale_y = 1.45
+        links_row.enabled = quick.button_enabled
+        links_row.operator(
+            OPERATOR_IDS["quick_reorient_links_only"],
+            text="仅重建连接：保留现有朝向",
+            icon="LINKED",
+        )
+        hybrid_row = quick_box.row()
+        hybrid_row.scale_y = 1.45
+        hybrid_row.enabled = quick.button_enabled
+        hybrid_row.operator(
+            OPERATOR_IDS["quick_reorient_hybrid_auto"],
+            text="实验性：多特征识别 + UEFormat 回退",
+            icon="EXPERIMENTAL",
         )
         if quick.summary:
             icon = "ERROR" if quick.state in {"ERROR", "ROLLED_BACK"} else "CHECKMARK"
@@ -38,6 +54,10 @@ class BONEWEAVER_PT_main(bpy.types.Panel):
                     f"{quick.connected_edges} 条连接"
                 )
             )
+            if quick.mode_label:
+                quick_box.label(text=f"模式：{quick.mode_label}", icon="SETTINGS")
+            if quick.automation_detail:
+                quick_box.label(text=quick.automation_detail, icon="INFO")
             if quick.source:
                 quick_box.label(text=f"来源：{quick.source}", icon="INFO")
         if quick.restore_enabled:

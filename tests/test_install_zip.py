@@ -36,6 +36,13 @@ def main() -> int:
     module = importlib.import_module("bl_ext.user_default.boneweaver")
     if not hasattr(bpy.types.Scene, "boneweaver_settings"):
         module.register()
+    for operator_name in (
+        "BONEWEAVER_OT_quick_reorient_auto",
+        "BONEWEAVER_OT_quick_reorient_links_only",
+        "BONEWEAVER_OT_quick_reorient_hybrid_auto",
+    ):
+        if not hasattr(bpy.types, operator_name):
+            raise RuntimeError(f"installed extension is missing {operator_name}")
     for _ in range(3):
         module.unregister()
         if hasattr(bpy.types.Scene, "boneweaver_settings"):

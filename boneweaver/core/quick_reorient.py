@@ -7,7 +7,15 @@ import math
 import bpy
 from mathutils import Matrix, Quaternion, Vector
 
-from ..contracts import ADDON_VERSION, QUICK_REORIENT_ALGORITHM_VERSION, QUICK_REORIENT_SCHEMA_VERSION
+from ..contracts import (
+    ADDON_VERSION,
+    QUICK_REORIENT_ALGORITHM_VERSION,
+    QUICK_REORIENT_MODE_HYBRID,
+    QUICK_REORIENT_MODE_LINKS_ONLY,
+    QUICK_REORIENT_MODE_UEFORMAT,
+    QUICK_REORIENT_MODES,
+    QUICK_REORIENT_SCHEMA_VERSION,
+)
 from .armature_reader import resolve_active_armature
 from .canonical import sha256
 from .linked_components import component_lookup, decompose_linear_components
@@ -27,6 +35,7 @@ _EPSILON = 1.0e-7
 _MIN_UEFORMAT_LENGTH = 0.01
 _VERSION_PROP = "boneweaver_quick_reorient_version"
 _FINGERPRINT_PROP = "boneweaver_quick_reorient_source_fingerprint"
+_MODE_PROP = "boneweaver_quick_reorient_mode"
 
 
 def dominant_axis(vector) -> tuple[float, float, float]:
@@ -103,7 +112,8 @@ def _issue(severity, code, message, *, bones=(), objects=()):
 
 
 def _build_proposals(states, metadata, *, source_adapter, already_reoriented,
-                     already_normalized, allowed_child_map, connect_linear_chains):
+                     already_normalized, allowed_child_map, connect_linear_chains,
+                     mode):
     by_name = {state.bone_name: state for state in states}
     processed = frozenset(
         state.bone_name
@@ -131,7 +141,11 @@ def _build_proposals(states, metadata, *, source_adapter, already_reoriented,
         )
         for name in structural
     }
-    skip_stage_a = already_normalized or already_reoriented
+    skip_stage_a = (
+        already_normalized
+        or already_reoriented
+        or mode == QUICK_REORIENT_MODE_LINKS_ONLY
+    )
     solved_local: dict[str, tuple[float, float, float]] = {}
     solved_armature: dict[str, Vector] = {}
     stage_a_tails: dict[str, Vector] = {}
@@ -224,10 +238,18 @@ def _build_proposals(states, metadata, *, source_adapter, already_reoriented,
             )
         tail = final_tails.get(name, Vector(state.tail))
         old_rotation = _matrix3(state)
+        if already_normalized:
+            proposal_source = "ALREADY_NORMALIZED"
+        elif mode == QUICK_REORIENT_MODE_LINKS_ONLY:
+            proposal_source = "EXISTING_ORIENTATION_LINK_ONLY"
+        elif mode == QUICK_REORIENT_MODE_HYBRID:
+            proposal_source = f"UEFORMAT_FALLBACK:{source_adapter}"
+        else:
+            proposal_source = source_adapter
         proposals.append(
             QuickBoneProposal(
                 bone_name=name,
-                source=source_adapter,
+                source=proposal_source,
                 target_direction_local=target_local.get(name),
                 target_tail=tuple(float(value) for value in tail),
                 target_roll_reference=tuple(float(value) for value in old_rotation.col[2]),
@@ -332,8 +354,13 @@ def _quick_preflight(context, armature, states, metadata, proposals, structural_
 
 
 def build_quick_reorient_plan(
-    context, *, connect_linear_chains: bool = True
+    context,
+    *,
+    connect_linear_chains: bool = True,
+    mode: str = QUICK_REORIENT_MODE_UEFORMAT,
 ) -> QuickReorientPlan | None:
+    if mode not in QUICK_REORIENT_MODES:
+        raise ValueError(f"unsupported Quick Reorient mode: {mode}")
     armature = resolve_active_armature(context)
     if armature is None:
         return None
@@ -342,6 +369,7 @@ def build_quick_reorient_plan(
     source_fingerprint = quick_source_fingerprint(armature, states, metadata)
     already_normalized = bool(
         armature.data.get(_VERSION_PROP) == QUICK_REORIENT_ALGORITHM_VERSION
+        and armature.data.get(_MODE_PROP) == mode
         and armature.data.get(_FINGERPRINT_PROP) == source_fingerprint
     )
     proposals, components, structural_edges = _build_proposals(
@@ -352,6 +380,7 @@ def build_quick_reorient_plan(
         already_normalized=already_normalized,
         allowed_child_map=read_allowed_child_map(armature),
         connect_linear_chains=connect_linear_chains,
+        mode=mode,
     )
     issues = _quick_preflight(
         context, armature, states, metadata, proposals, structural_edges
@@ -362,6 +391,7 @@ def build_quick_reorient_plan(
             QUICK_REORIENT_SCHEMA_VERSION,
             QUICK_REORIENT_ALGORITHM_VERSION,
             ADDON_VERSION,
+            mode,
             connect_linear_chains,
             source_fingerprint,
             source_adapter,
@@ -379,6 +409,7 @@ def build_quick_reorient_plan(
         plan_id=plan_id,
         source_fingerprint=source_fingerprint,
         source_adapter=source_adapter,
+        mode=mode,
         armature_object_name=armature.name,
         armature_data_name=armature.data.name,
         already_reoriented=already_reoriented,

@@ -1,25 +1,28 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "boneweaver://schema/quick-reorient-plan/1.0.0",
+  "$id": "boneweaver://schema/quick-reorient-plan/1.1.0",
   "title": "BoneWeaver Quick Reorient Plan",
   "type": "object",
   "additionalProperties": false,
   "required": [
     "kind", "schema_version", "algorithm_version", "addon_version", "plan_id",
-    "source_fingerprint", "source_adapter", "armature_object_name",
+    "source_fingerprint", "source_adapter", "mode", "armature_object_name",
     "armature_data_name", "already_reoriented", "already_normalized",
     "connect_linear_chains",
     "bone_states", "proposals", "linked_components", "issues"
   ],
   "properties": {
     "kind": {"const": "boneweaver.quick_reorient_plan"},
-    "schema_version": {"const": "1.0.0"},
+    "schema_version": {"const": "1.1.0"},
     "algorithm_version": {"type": "string"},
     "addon_version": {"type": "string"},
     "plan_id": {"type": "string"},
     "source_fingerprint": {"type": "string"},
     "source_adapter": {
       "enum": ["UEFORMAT_METADATA", "UEFORMAT_ALREADY_REORIENTED", "GENERIC_JOINT_HIERARCHY"]
+    },
+    "mode": {
+      "enum": ["UEFORMAT_AUTO", "LINKS_ONLY", "HYBRID_MULTI_FEATURE"]
     },
     "armature_object_name": {"type": "string"},
     "armature_data_name": {"type": "string"},

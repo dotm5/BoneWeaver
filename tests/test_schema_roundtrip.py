@@ -14,7 +14,7 @@ class SchemaAndManifestTests(unittest.TestCase):
     def test_manifest_identity(self) -> None:
         manifest = tomllib.loads((PACKAGE / "blender_manifest.toml").read_text(encoding="utf-8"))
         self.assertEqual(manifest["id"], "boneweaver")
-        self.assertEqual(manifest["version"], "0.3.1")
+        self.assertEqual(manifest["version"], "0.4.0")
         self.assertEqual(manifest["blender_version_min"], "4.2.0")
         self.assertEqual(manifest["type"], "add-on")
 
@@ -28,7 +28,7 @@ class SchemaAndManifestTests(unittest.TestCase):
             "hierarchy-inspection.schema.json": "boneweaver://schema/hierarchy-inspection/1.0.0",
             "semantic-rule-set.schema.json": "boneweaver://schemas/semantic-rule-set.schema.json",
             "semantic-discovery-plan.schema.json": "boneweaver://schemas/semantic-discovery-plan/2.0.0",
-            "quick-reorient-plan.schema.json": "boneweaver://schema/quick-reorient-plan/1.0.0",
+            "quick-reorient-plan.schema.json": "boneweaver://schema/quick-reorient-plan/1.1.0",
         }
         for filename, schema_id in expected.items():
             with self.subTest(filename=filename):

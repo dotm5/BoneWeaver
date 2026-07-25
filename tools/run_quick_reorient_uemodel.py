@@ -18,6 +18,11 @@ def main():
     parser.add_argument("--input", required=True)
     parser.add_argument("--output", required=True)
     parser.add_argument("--module-root", required=True)
+    parser.add_argument(
+        "--mode",
+        choices=("UEFORMAT_AUTO", "LINKS_ONLY", "HYBRID_MULTI_FEATURE"),
+        default="UEFORMAT_AUTO",
+    )
     args = parser.parse_args(argv)
     source = Path(args.input).resolve(strict=True)
     root = Path(__file__).resolve().parents[1]
@@ -36,7 +41,10 @@ def main():
         if result != {"FINISHED"}:
             raise RuntimeError(f"UEFormat import failed: {result}")
         return run_loaded_scene(
-            source, Path(args.output).resolve(), expected_adapter="UEFORMAT_METADATA"
+            source,
+            Path(args.output).resolve(),
+            expected_adapter="UEFORMAT_METADATA",
+            mode=args.mode,
         )
     finally:
         boneweaver.unregister()

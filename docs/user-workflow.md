@@ -2,10 +2,13 @@
 
 ## 全自动转换与原生 L 键选择
 
-需要一次完成整个 UE 骨架的方向转换与层级整理时，选中 Armature，打开
-`N 面板 > BoneWeaver`，点击顶部的“全自动转换并重建 L 键骨链”。按钮会立即执行，
-无需二次确认；Action、NLA、Driver、Constraint、Pose、B-Bone、Bone Parent、
-Envelope、Modifier 与 Mesh 诊断都只提示、不阻断。
+选中 Armature 并打开 `N 面板 > BoneWeaver` 后，顶部有三个立即执行的按钮：
+原版 UEFormat 兼容转换、面向朝向良好骨架的“仅重建连接”，以及逐骨采用可信
+多特征结果并自动回退 UEFormat 的实验性混合转换。三种模式都无需二次确认；
+Action、NLA、Driver、Constraint、Pose、B-Bone、Bone Parent、Envelope、
+Modifier 与 Mesh 诊断都只提示、不阻断。混合模式中无法可靠识别的单根骨骼
+也只会触发该骨骼的回退，不会终止全局流程。
+
 BoneWeaver 会自动捕获全骨架、生成不可变 Plan、排除 Socket/控制/零长度骨、
 修改合格骨骼、重建最大线性 Connected 分量、验证结果并保存恢复快照。
 
@@ -14,7 +17,7 @@ BoneWeaver 会自动捕获全骨架、生成不可变 Plan、排除 Socket/控�
 不会把多个兄弟分支合成一个 L 键分量。再次运行不会产生额外几何修改；不满意时
 可点击“恢复全自动转换前状态”，若转换后已有手工修改则恢复会安全拒绝。
 
-这条全自动路径处理整个合格 Armature。只想处理指定次级链、查看详细 Physics
+这三条全自动路径都处理整个合格 Armature。只想处理指定次级链、查看详细 Physics
 Graph 或选择 BoneX/Wiggle Profile 时，继续使用下方标准流程。
 
 ## 标准流程
