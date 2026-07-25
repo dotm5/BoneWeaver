@@ -2,6 +2,27 @@
 
 All notable changes to BoneWeaver are documented here.
 
+## 0.4.0 - 2026-07-26
+
+- Replaced the single panel-top action with three explicit one-click choices:
+  original UEFormat-compatible conversion, link-only native-chain rebuilding,
+  and experimental multi-feature conversion with per-bone fallback.
+- Added whole-Armature link-only planning for already well-oriented rigs. It
+  performs no direction inference and rebuilds maximal linear components for
+  Blender's native `L` selection.
+- Wrapped the existing weight, hierarchy, branch, terminal, and roll evidence
+  pipeline as an automatic hybrid planner. Only confident per-bone proposals are
+  accepted; every missing, ambiguous, invalid, or low-confidence result keeps
+  the precomputed UEFormat-compatible fallback.
+- Converted precision-planner blockers to advisory evidence in hybrid mode, so
+  one unresolved bone or a complete precision-planner exception cannot stop the
+  force-complete operation.
+- Added mode-specific idempotence metadata, persistent Snapshot recovery, UI
+  source counts, injected invalid-result regressions, and three-mode real-asset
+  acceptance tooling.
+- Validated 230 Blender-hosted tests and all three modes independently on the
+  existing `x1.blend` and a raw 157-bone `.uemodel`.
+
 ## 0.3.1 - 2026-07-13
 
 - Changed the panel-top Quick Reorient action to force-complete mode: all

@@ -17,7 +17,7 @@ class BoneWeaverIdentityTests(unittest.TestCase):
         boneweaver.register()
         self.addCleanup(boneweaver.unregister)
         self.assertEqual(boneweaver.bl_info["name"], "BoneWeaver")
-        self.assertEqual(boneweaver.bl_info["version"], (0, 3, 1))
+        self.assertEqual(boneweaver.bl_info["version"], (0, 4, 0))
         self.assertTrue(PACKAGE.is_dir())
         legacy_package = ROOT / "ue_chain_prep"
         self.assertFalse((legacy_package / "__init__.py").exists())

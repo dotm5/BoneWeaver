@@ -135,6 +135,8 @@ class QuickReorientView:
     state: str
     summary: str
     source: str
+    mode_label: str
+    automation_detail: str
     processed_bones: int
     total_bones: int
     component_count: int
@@ -343,11 +345,24 @@ def quick_reorient_view_from_context(context) -> QuickReorientView:
         and runtime.quick_snapshot_text_name
         and texts.get(runtime.quick_snapshot_text_name)
     )
+    mode_labels = {
+        "UEFORMAT_AUTO": "原版 UEFormat 兼容自动转换",
+        "LINKS_ONLY": "仅重建层级连接",
+        "HYBRID_MULTI_FEATURE": "实验性多特征混合转换",
+    }
+    automation_detail = ""
+    if runtime.quick_mode == "HYBRID_MULTI_FEATURE":
+        automation_detail = (
+            f"多特征采用 {runtime.quick_precision_bones} 根 · "
+            f"UEFormat 自动回退 {runtime.quick_fallback_bones} 根"
+        )
     return QuickReorientView(
         button_enabled=bool(armature is not None and not runtime.is_busy),
         state=runtime.quick_state,
         summary=runtime.quick_summary,
         source=runtime.quick_source,
+        mode_label=mode_labels.get(runtime.quick_mode, ""),
+        automation_detail=automation_detail,
         processed_bones=runtime.quick_processed_bones,
         total_bones=runtime.quick_total_bones,
         component_count=runtime.quick_component_count,

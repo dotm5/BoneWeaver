@@ -252,6 +252,7 @@ class BONEWEAVER_PG_Runtime(bpy.types.PropertyGroup):
     quick_state: StringProperty(default="IDLE")
     quick_plan_id: StringProperty(default="")
     quick_source: StringProperty(default="")
+    quick_mode: StringProperty(default="")
     quick_summary: StringProperty(default="")
     quick_snapshot_text_name: StringProperty(default="")
     quick_total_bones: IntProperty(default=0, min=0)
@@ -261,6 +262,8 @@ class BONEWEAVER_PG_Runtime(bpy.types.PropertyGroup):
     quick_mutation_count: IntProperty(default=0, min=0)
     quick_blocker_count: IntProperty(default=0, min=0)
     quick_warning_count: IntProperty(default=0, min=0)
+    quick_precision_bones: IntProperty(default=0, min=0)
+    quick_fallback_bones: IntProperty(default=0, min=0)
     quick_already_normalized: BoolProperty(default=False)
 
 
@@ -374,6 +377,7 @@ def register_properties() -> None:
         runtime.quick_state = "IDLE"
         runtime.quick_plan_id = ""
         runtime.quick_source = ""
+        runtime.quick_mode = ""
         runtime.quick_summary = ""
         runtime.quick_snapshot_text_name = ""
         runtime.quick_total_bones = 0
@@ -383,6 +387,8 @@ def register_properties() -> None:
         runtime.quick_mutation_count = 0
         runtime.quick_blocker_count = 0
         runtime.quick_warning_count = 0
+        runtime.quick_precision_bones = 0
+        runtime.quick_fallback_bones = 0
         runtime.quick_already_normalized = False
         from .core.quick_transaction import discover_latest_quick_snapshot
         runtime.quick_snapshot_text_name = discover_latest_quick_snapshot()

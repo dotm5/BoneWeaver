@@ -8,7 +8,7 @@ from boneweaver import contracts
 class ContractSnapshotTests(unittest.TestCase):
     def test_versions_and_identity_are_stable(self) -> None:
         self.assertEqual(contracts.ADDON_ID, "boneweaver")
-        self.assertEqual(contracts.ADDON_VERSION, "0.3.1")
+        self.assertEqual(contracts.ADDON_VERSION, "0.4.0")
         self.assertEqual(contracts.SCHEMA_VERSION, "4.0.0")
         self.assertEqual(
             contracts.ALGORITHM_VERSION,
@@ -73,6 +73,8 @@ class ContractSnapshotTests(unittest.TestCase):
                 "clear_semantic_discovery": "boneweaver.clear_semantic_discovery",
                 "export_semantic_discovery": "boneweaver.export_semantic_discovery",
                 "quick_reorient_auto": "boneweaver.quick_reorient_auto",
+                "quick_reorient_links_only": "boneweaver.quick_reorient_links_only",
+                "quick_reorient_hybrid_auto": "boneweaver.quick_reorient_hybrid_auto",
                 "quick_reorient_restore": "boneweaver.quick_reorient_restore",
             },
         )
@@ -93,6 +95,9 @@ class ContractSnapshotTests(unittest.TestCase):
             "BONEWEAVER_HIERARCHY_ARMATURE_CHANGED",
             "BONEWEAVER_SEMANTIC_CONFIRMATION_REQUIRED",
             "BONEWEAVER_SCOPE_SOURCE_CONFLICT",
+            "BONEWEAVER_HYBRID_MULTI_FEATURE_UNAVAILABLE",
+            "BONEWEAVER_HYBRID_UEFORMAT_FALLBACK_USED",
+            "BONEWEAVER_HYBRID_MULTI_FEATURE_USED",
         }
         self.assertTrue(required.issubset(contracts.ERROR_CODES))
         self.assertTrue(all(code.startswith("BONEWEAVER_") for code in contracts.ERROR_CODES))

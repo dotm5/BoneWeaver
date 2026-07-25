@@ -2,6 +2,7 @@
 
 | Target | Status |
 |---|---|
+| Blender 5.2.0 LTS `fbe6228777e7` | v0.4.0 validated with 230 automated tests and independent original/link-only/hybrid acceptance on raw `.uemodel` plus existing `.blend`; native `L`, idempotence, exact Restore, and unchanged source hashes passed |
 | Blender 5.2.0 LTS RC `710df102694f` | v0.3.1 validated with 223 automated tests, combined former-blocker force-complete coverage, fixed UEFormat parity, raw `.uemodel` and existing `.blend` one-click/native-`L` acceptance, exact Restore, and isolated ZIP installation |
 | Blender 4.2 | Manifest minimum; executable unavailable locally, external validation pending |
 | Blender 5.1 | Executable unavailable locally, external validation pending |
@@ -37,3 +38,8 @@ one-click execution policy to force-complete. Existing 0.3.0 idempotence markers
 remain valid, so upgrading does not reorient an unchanged converted Armature a
 second time. Evidence is recorded in `artifacts/release-0.3.1-report.md` and
 `docs/releases/v0.3.1.md`.
+
+v0.4.0 adds Quick Reorient Plan Schema 1.1.0 and algorithm v2.0.0. The new
+mode-specific marker prevents one automatic mode from making another mode appear
+already normalized. Hybrid Plans retain the UEFormat-compatible fallback for
+every bone and record which bones accepted confident multi-feature results.

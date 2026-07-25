@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 import json
+import math
 import unittest
 
 import bpy
@@ -14,6 +15,8 @@ from tests.fixture_builders import (
     make_quick_straight_chain,
 )
 from boneweaver.core.quick_reorient import average_offsets, dominant_axis
+from boneweaver.core.hybrid_reorient import build_hybrid_reorient_plan
+from boneweaver.core.planner import build_plan
 from boneweaver.core.quick_source_adapter import capture_quick_source
 from boneweaver.core.quick_transaction import apply_quick_plan
 from boneweaver.core.runtime_store import get_quick_plan
@@ -92,6 +95,140 @@ class QuickReorientBlenderTests(unittest.TestCase):
         states = {state.bone_name: state for state in self._states(bpy.context.object)}
         for root in ("thumb_01", "index_01", "middle_01"):
             self.assertFalse(states[root].use_connect)
+
+    def test_links_only_preserves_good_orientation_and_rebuilds_native_l_chains(self):
+        rig = make_quick_straight_chain()
+        bpy.ops.object.mode_set(mode="EDIT")
+        for index in range(1, 4):
+            parent = rig.data.edit_bones[f"chain_{index:02d}"]
+            child = rig.data.edit_bones[f"chain_{index + 1:02d}"]
+            parent.tail = child.head
+        bpy.ops.object.mode_set(mode="OBJECT")
+        before = self._states(rig)
+
+        self.assertEqual(
+            bpy.ops.boneweaver.quick_reorient_links_only(), {"FINISHED"}
+        )
+        runtime = bpy.context.window_manager.boneweaver_runtime
+        plan = get_quick_plan(runtime.quick_plan_id)
+        after = self._states(rig)
+        self.assertEqual(plan.mode, "LINKS_ONLY")
+        self.assertEqual(runtime.quick_mode, "LINKS_ONLY")
+        self.assertEqual(
+            [(state.head, state.tail, state.roll) for state in after],
+            [(state.head, state.tail, state.roll) for state in before],
+        )
+        self.assertFalse(after[0].use_connect)
+        self.assertTrue(all(state.use_connect for state in after[1:]))
+        self.assertEqual(
+            {
+                proposal.source
+                for proposal in plan.proposals
+                if not proposal.skipped
+            },
+            {"EXISTING_ORIENTATION_LINK_ONLY"},
+        )
+
+    def test_links_only_normalization_does_not_suppress_original_mode(self):
+        make_quick_straight_chain()
+        self.assertEqual(
+            bpy.ops.boneweaver.quick_reorient_links_only(), {"FINISHED"}
+        )
+        self.assertEqual(bpy.ops.boneweaver.quick_reorient_auto(), {"FINISHED"})
+        runtime = bpy.context.window_manager.boneweaver_runtime
+        self.assertEqual(runtime.quick_mode, "UEFORMAT_AUTO")
+        self.assertFalse(runtime.quick_already_normalized)
+
+    def test_hybrid_operator_uses_precision_and_per_bone_ueformat_fallback(self):
+        rig = make_quick_straight_chain()
+        make_bound_mesh(rig, name="HybridMesh")
+        self.assertEqual(
+            bpy.ops.boneweaver.quick_reorient_hybrid_auto(), {"FINISHED"}
+        )
+        runtime = bpy.context.window_manager.boneweaver_runtime
+        plan = get_quick_plan(runtime.quick_plan_id)
+        self.assertEqual(runtime.quick_state, "RESTORABLE")
+        self.assertEqual(plan.mode, "HYBRID_MULTI_FEATURE")
+        self.assertGreater(runtime.quick_precision_bones, 0)
+        self.assertGreater(runtime.quick_fallback_bones, 0)
+        self.assertEqual(runtime.quick_blocker_count, 0)
+        self.assertFalse(any(issue.severity == "BLOCKER" for issue in plan.issues))
+        self.assertTrue(
+            any(
+                proposal.source.startswith("MULTI_FEATURE:")
+                for proposal in plan.proposals
+            )
+        )
+        self.assertTrue(
+            any(
+                proposal.source.startswith("UEFORMAT_FALLBACK:")
+                for proposal in plan.proposals
+            )
+        )
+
+    def test_hybrid_invalid_single_bone_result_falls_back_without_blocking(self):
+        rig = make_quick_straight_chain()
+        make_bound_mesh(rig, name="HybridInvalidMesh")
+        invalid_names = []
+
+        def precision_builder(context, *, scope_names):
+            precision = build_plan(context, scope_names=scope_names)
+            proposals = list(precision.proposals)
+            invalid_names.append(proposals[0].bone_name)
+            proposals[0] = dataclasses.replace(
+                proposals[0], proposed_tail=(math.nan, 0.0, 0.0)
+            )
+            return dataclasses.replace(precision, proposals=tuple(proposals))
+
+        plan = build_hybrid_reorient_plan(
+            bpy.context, precision_builder=precision_builder
+        )
+        proposal = next(
+            item for item in plan.proposals if item.bone_name == invalid_names[0]
+        )
+        self.assertTrue(proposal.source.startswith("UEFORMAT_FALLBACK:"))
+        result = apply_quick_plan(bpy.context, plan, strict_validation=False)
+        self.assertTrue(result.success)
+        self.assertFalse(result.rolled_back)
+
+    def test_hybrid_planner_exception_falls_back_for_entire_armature(self):
+        make_quick_straight_chain()
+
+        def unavailable(*_args, **_kwargs):
+            raise RuntimeError("simulated single-pass recognition failure")
+
+        plan = build_hybrid_reorient_plan(
+            bpy.context, precision_builder=unavailable
+        )
+        self.assertTrue(
+            all(
+                proposal.skipped
+                or proposal.source.startswith("UEFORMAT_FALLBACK:")
+                for proposal in plan.proposals
+            )
+        )
+        self.assertIn(
+            "BONEWEAVER_HYBRID_MULTI_FEATURE_UNAVAILABLE",
+            {issue.code for issue in plan.issues},
+        )
+        self.assertFalse(any(issue.severity == "BLOCKER" for issue in plan.issues))
+        result = apply_quick_plan(bpy.context, plan, strict_validation=False)
+        self.assertTrue(result.success)
+
+    def test_hybrid_second_run_is_idempotent(self):
+        rig = make_quick_straight_chain()
+        make_bound_mesh(rig, name="HybridIdempotentMesh")
+        self.assertEqual(
+            bpy.ops.boneweaver.quick_reorient_hybrid_auto(), {"FINISHED"}
+        )
+        first = self._states(rig)
+        self.assertEqual(
+            bpy.ops.boneweaver.quick_reorient_hybrid_auto(), {"FINISHED"}
+        )
+        runtime = bpy.context.window_manager.boneweaver_runtime
+        self.assertTrue(runtime.quick_already_normalized)
+        self.assertEqual(runtime.quick_mutation_count, 0)
+        self.assertEqual(self._states(rig), first)
 
     def test_ueformat_already_reoriented_and_socket_are_preserved(self):
         rig = make_quick_finger_tree()
@@ -248,6 +385,26 @@ class QuickReorientBlenderTests(unittest.TestCase):
         self.assertEqual(bpy.ops.boneweaver.quick_reorient_restore(), {"CANCELLED"})
         self.assertEqual(runtime.last_error, "BONEWEAVER_QUICK_RESTORE_CONFLICT")
         self.assertEqual(self._states(rig), manual)
+
+    def test_restore_accepts_legacy_quick_snapshot_without_mode_metadata(self):
+        rig = make_quick_straight_chain()
+        before = self._states(rig)
+        self.assertEqual(bpy.ops.boneweaver.quick_reorient_auto(), {"FINISHED"})
+        runtime = bpy.context.window_manager.boneweaver_runtime
+        text = bpy.data.texts[runtime.quick_snapshot_text_name]
+        payload = json.loads(text.as_string())
+        payload["pre_metadata"].pop("boneweaver_quick_reorient_mode", None)
+        payload["expected_post_metadata"].pop(
+            "boneweaver_quick_reorient_mode", None
+        )
+        del rig.data["boneweaver_quick_reorient_mode"]
+        text.clear()
+        text.write(json.dumps(payload))
+
+        self.assertEqual(
+            bpy.ops.boneweaver.quick_reorient_restore(), {"FINISHED"}
+        )
+        self.assertEqual(self._states(rig), before)
 
     def test_plan_is_frozen_and_serializable(self):
         make_quick_straight_chain()

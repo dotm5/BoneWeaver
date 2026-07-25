@@ -7,9 +7,10 @@ reviewable, physics-ready chains for BoneX and Wiggle.
 
 ## Highlights
 
-- Run **Auto Convert and Rebuild L-key Chains** once to apply UEFormat-compatible
-  bone reorientation to the active Armature and rebuild safe linear segments as
-  native Blender connected chains.
+- Choose one of three panel-top automatic actions: the original
+  UEFormat-compatible conversion, link-only rebuilding for already well-oriented
+  rigs, or the experimental multi-feature conversion with automatic per-bone
+  UEFormat fallback.
 - Inspect parent, root, descendant, branch, and semantic secondary-chain scopes
   before changing selection or rest geometry.
 - Build an immutable Physics Graph from bone heads and hierarchy, with explicit
@@ -24,13 +25,13 @@ reviewable, physics-ready chains for BoneX and Wiggle.
 ## Safety contract
 
 Analyze, hierarchy inspection, and semantic discovery are read-only. Apply and
-the one-click conversion may change only EditBone `tail`, `roll`, and
+the three panel-top automatic actions may change only EditBone `tail`, `roll`, and
 `use_connect`. They do
 not rebind meshes, recalculate weights, apply pose as rest pose, recreate
 Armature modifiers, or create production proxy bones.
 
 Scoped Apply consumes an exact frozen plan and keeps its strict validation
-contract. The one-click action uses force-complete mode: Action, NLA, Driver,
+contract. All three automatic actions use force-complete mode: Action, NLA, Driver,
 Constraint, Pose, B-Bone, parenting, envelope, modifier, and mesh diagnostics
 are advisory and never block conversion. It still writes a persistent Snapshot;
 Blender editing exceptions roll back, and Restore refuses to overwrite later
@@ -47,20 +48,23 @@ not bundled dependencies.
 
 ## Installation
 
-Download `boneweaver-0.3.1.zip` from the
-[v0.3.1 release](https://github.com/dotm5/BoneWeaver/releases/tag/v0.3.1).
-In Blender, open **Edit > Preferences > Extensions > Install from Disk**, select
-the ZIP, and enable BoneWeaver.
+Install `dist/boneweaver-0.4.0.zip`. In Blender, open
+**Edit > Preferences > Extensions > Install from Disk**, select the ZIP, and
+enable BoneWeaver.
 
 ## Quick start
 
 1. Import the UE model and preserve its original weights.
 2. Select its Armature and open **3D Viewport > Sidebar > BoneWeaver**.
-3. Click **Auto Convert and Rebuild L-key Chains** at the top of the panel. It
-   starts immediately with no second confirmation and no policy blocker.
-4. BoneWeaver reorients eligible bones, rebuilds maximal
-   linear segments with native `use_connect`, validates the result, and stores a
-   persistent Snapshot automatically.
+3. Choose one of the three top-level buttons:
+   - **Original** applies the v0.3.1 UEFormat-compatible conversion.
+   - **Links only** keeps the current orientation and rebuilds native connected
+     linear chains.
+   - **Experimental hybrid** uses confident multi-feature results per bone and
+     automatically falls back to the original UEFormat-compatible result for
+     every unresolved bone.
+4. The selected action starts immediately, processes the complete eligible
+   Armature, validates the result, and stores a persistent Snapshot.
 5. In Edit Mode, hover a converted segment and press `L` to select the linked
    native chain. Branch boundaries remain separate by design.
 6. Use **Restore Pre-conversion State** if the result is not wanted. Restore
@@ -87,15 +91,16 @@ mesh/modifier drift make the conversion unsafe. A successful Apply records a
 field-level mutation ledger. Export also performs an independent second-process
 reopen validation before reporting success.
 
-These blockers do not apply to the panel-top one-click action in v0.3.1. Its
-diagnostics remain visible as an automatic-compatibility count after conversion.
+These blockers do not apply to the three panel-top automatic actions in v0.4.0.
+Hybrid recognition blockers are converted to advisory diagnostics and trigger
+per-bone fallback instead of stopping the operation.
 
 ## Tested release
 
-BoneWeaver v0.3.1 was validated with Blender 5.2.0 LTS RC build
-`710df102694f`:
+BoneWeaver v0.4.0 was validated locally with Blender 5.2.0 LTS build
+`fbe6228777e7`:
 
-- 223 Blender-hosted automated tests passed with zero failures or errors.
+- 230 Blender-hosted automated tests passed with zero failures or errors.
 - A combined force-complete fixture containing Action, NLA, Driver, non-identity
   Pose, bone/object Constraints, B-Bone segments, Bone parenting, envelopes,
   duplicate Armature modifiers, and shared Armature data completed in one click
@@ -103,19 +108,25 @@ BoneWeaver v0.3.1 was validated with Blender 5.2.0 LTS RC build
 - A fixed UEFormat 1.0.0 comparison covered 154 eligible bones: maximum direction
   error `0.033878°`, maximum length error `1.164412e-7`, with unchanged heads,
   parents, and sockets.
-- The one-click workflow passed on a raw 157-bone `.uemodel` and an existing
-  `x1.blend`: native `L` selection worked on finger, hair, ribbon, and spine
-  chains; a second run was idempotent; exact Restore passed; both source hashes
-  remained unchanged.
+- All three modes passed independently on a raw 157-bone `.uemodel` and the
+  existing `x1.blend`. Native `L` selection worked on finger, hair, ribbon, and
+  spine chains; every second run made zero additional mutations; exact Restore
+  passed; both source hashes remained unchanged. Hybrid selected 94 confident
+  multi-feature results and automatically fell back on 61 bones.
 - The release ZIP passed an isolated install and repeated registration cycle.
-- Archive: `boneweaver-0.3.1.zip`
-- Size: `186108` bytes
-- SHA-256: `1FDFBA24BD878E07EA3FC194D8D8477F8FD6765B0FD5093154A006BDFD660987`
+- Archive: `boneweaver-0.4.0.zip`
+- Size: `190353` bytes
+- SHA-256: `A68C65050DAFE9DC91A53C0F9DA91C4610EBC343F153D0F21DC540C0A1E4E709`
 
 ## Known limitations
 
-- The one-click tool reorients rest-bone display geometry; it does not rewrite
+- The original and hybrid tools reorient rest-bone display geometry; they do not rewrite
   UEFormat `post_quat` animation metadata or retarget animation bases.
+- Link-only mode performs no orientation inference. To create native connected
+  edges without moving child heads, a linear parent's tail is normalized to its
+  existing child head when those points differ.
+- Hybrid mode is experimental; its confidence gate deliberately prefers the
+  UEFormat-compatible fallback whenever the multi-feature result is unresolved.
 - Blender 4.2 is the manifest minimum, but this release's local executable
   validation was performed on the Blender 5.2 build above.
 - BoneX/Wiggle runtime behavior still requires project-specific manual tuning.

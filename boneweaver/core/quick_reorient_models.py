@@ -65,6 +65,7 @@ class QuickReorientPlan:
     plan_id: str
     source_fingerprint: str
     source_adapter: str
+    mode: str
     armature_object_name: str
     armature_data_name: str
     already_reoriented: bool

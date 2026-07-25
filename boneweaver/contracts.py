@@ -6,11 +6,19 @@ from enum import Enum
 
 
 ADDON_ID = "boneweaver"
-ADDON_VERSION = "0.3.1"
+ADDON_VERSION = "0.4.0"
 SCHEMA_VERSION = "4.0.0"
 ALGORITHM_VERSION = "boneweaver-physics-graph-v4-tip-helper-branch-island-visual-cleanup"
-QUICK_REORIENT_ALGORITHM_VERSION = "boneweaver-quick-reorient-v1.0.0"
-QUICK_REORIENT_SCHEMA_VERSION = "1.0.0"
+QUICK_REORIENT_ALGORITHM_VERSION = "boneweaver-quick-reorient-v2.0.0"
+QUICK_REORIENT_SCHEMA_VERSION = "1.1.0"
+QUICK_REORIENT_MODE_UEFORMAT = "UEFORMAT_AUTO"
+QUICK_REORIENT_MODE_LINKS_ONLY = "LINKS_ONLY"
+QUICK_REORIENT_MODE_HYBRID = "HYBRID_MULTI_FEATURE"
+QUICK_REORIENT_MODES = (
+    QUICK_REORIENT_MODE_UEFORMAT,
+    QUICK_REORIENT_MODE_LINKS_ONLY,
+    QUICK_REORIENT_MODE_HYBRID,
+)
 
 
 class StableStringEnum(str, Enum):
@@ -237,6 +245,8 @@ OPERATOR_IDS = {
     "clear_semantic_discovery": "boneweaver.clear_semantic_discovery",
     "export_semantic_discovery": "boneweaver.export_semantic_discovery",
     "quick_reorient_auto": "boneweaver.quick_reorient_auto",
+    "quick_reorient_links_only": "boneweaver.quick_reorient_links_only",
+    "quick_reorient_hybrid_auto": "boneweaver.quick_reorient_hybrid_auto",
     "quick_reorient_restore": "boneweaver.quick_reorient_restore",
 }
 
@@ -332,5 +342,8 @@ ERROR_CODES = frozenset(
         "BONEWEAVER_QUICK_STATE_CHANGED",
         "BONEWEAVER_QUICK_POST_VALIDATION_FAILED",
         "BONEWEAVER_QUICK_RESTORE_CONFLICT",
+        "BONEWEAVER_HYBRID_MULTI_FEATURE_UNAVAILABLE",
+        "BONEWEAVER_HYBRID_UEFORMAT_FALLBACK_USED",
+        "BONEWEAVER_HYBRID_MULTI_FEATURE_USED",
     }
 )
