@@ -103,6 +103,7 @@ def conversion_plan_to_data(plan):
         "armature": {"object_name": plan.armature_object_name, "data_name": plan.armature_data_name},
         "profile": plan.profile,
         "tip_helper_usage": plan.tip_helper_usage,
+        "animation_basis_rebase": bool(plan.animation_basis_rebase),
         "scoring_profile": dict(plan.scoring_profile),
         "meshes": [to_data(item) for item in plan.mesh_states],
         "bones": [to_data(item) for item in plan.bone_states],

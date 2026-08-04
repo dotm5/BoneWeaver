@@ -355,6 +355,7 @@ class ConversionPlan:
     topology_ledger: TopologyProjectionLedger | None = None
     tip_helpers: tuple[TipHelperClassification, ...] = ()
     tip_helper_usage: str = "REFERENCE_ONLY"
+    animation_basis_rebase: bool = True
 
 
 @dataclass(frozen=True, slots=True)

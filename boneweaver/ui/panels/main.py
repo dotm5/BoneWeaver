@@ -20,6 +20,11 @@ class BONEWEAVER_PT_main(bpy.types.Panel):
         quick_box = layout.box()
         quick_box.label(text="三种全自动骨架处理", icon="MOD_ARMATURE")
         quick_box.label(text="全部作用于整个骨架；单骨识别失败不会阻断流程")
+        quick_box.prop(
+            context.scene.boneweaver_settings,
+            "animation_basis_rebase",
+            text="保护现有动画与 UEFormat Basis",
+        )
         original_row = quick_box.row()
         original_row.scale_y = 1.45
         original_row.enabled = quick.button_enabled
@@ -45,7 +50,7 @@ class BONEWEAVER_PT_main(bpy.types.Panel):
             icon="EXPERIMENTAL",
         )
         if quick.summary:
-            icon = "ERROR" if quick.state in {"ERROR", "ROLLED_BACK"} else "CHECKMARK"
+            icon = "ERROR" if quick.state in {"ERROR", "ROLLED_BACK", "BLOCKED"} else "CHECKMARK"
             quick_box.label(text=quick.summary, icon=icon)
             quick_box.label(
                 text=(

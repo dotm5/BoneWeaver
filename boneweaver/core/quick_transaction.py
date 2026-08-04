@@ -12,6 +12,19 @@ from mathutils import Vector
 from ..contracts import QUICK_REORIENT_ALGORITHM_VERSION
 from .canonical import sha256
 from .context_guard import ContextStateGuard
+from .animation_basis import (
+    animation_state_matches,
+    capture_action_pose_samples,
+    capture_animation_state,
+    capture_bone_metadata,
+    capture_rest_matrices,
+    compute_basis_changes,
+    normalize_bone_metadata,
+    rebase_action_from_samples,
+    restore_animation_state,
+    restore_bone_metadata,
+    write_basis_metadata,
+)
 from .fingerprint import base_mesh_digest, modifier_digest, weight_digest
 from .mesh_resolver import find_associated_meshes
 from .quick_reorient import current_quick_source_fingerprint
@@ -278,14 +291,27 @@ def apply_quick_plan(context, plan, *, validator=None, strict_validation=True):
         neutral_validation_enabled = False
         diagnostic_issues.append("BONEWEAVER_QUICK_NEUTRAL_DIAGNOSTIC_SKIPPED")
     metadata_before = _metadata_state(armature)
+    animation_compatibility = bool(plan.animation_basis_rebase)
+    bone_metadata_before = (
+        capture_bone_metadata(armature) if animation_compatibility else None
+    )
+    rest_matrices_before = (
+        capture_rest_matrices(armature) if animation_compatibility else None
+    )
+    animation_before = (
+        capture_animation_state(armature) if animation_compatibility else None
+    )
     snapshot_id = ""
     text_name = ""
     payload = {}
     before = {}
     validation_issues = ()
+    action_session = None
     with ContextStateGuard(context):
         try:
             _activate(context, armature)
+            if animation_compatibility:
+                action_session = capture_action_pose_samples(context, armature)
             bpy.ops.object.mode_set(mode="EDIT")
             before = _capture_edit_state(armature)
             bpy.ops.object.mode_set(mode="OBJECT")
@@ -307,6 +333,11 @@ def apply_quick_plan(context, plan, *, validator=None, strict_validation=True):
                 "neutral_validation_enabled": neutral_validation_enabled,
                 "pre_metadata": metadata_before,
                 "expected_post_metadata": {},
+                "pre_bone_metadata": bone_metadata_before,
+                "expected_post_bone_metadata": {},
+                "pre_animation_state": animation_before,
+                "expected_post_animation_state": None,
+                "animation_basis_rebase": animation_compatibility,
                 "status": "CREATED",
             }
             text = bpy.data.texts.new(text_name)
@@ -330,6 +361,21 @@ def apply_quick_plan(context, plan, *, validator=None, strict_validation=True):
             after = _capture_edit_state(armature)
             bpy.ops.object.mode_set(mode="OBJECT")
             context.view_layer.update()
+            if animation_compatibility:
+                basis_changes = compute_basis_changes(armature, rest_matrices_before)
+                changed_names = tuple(
+                    change.bone_name for change in basis_changes if change.changed
+                )
+                if action_session is not None and changed_names:
+                    rebase_action_from_samples(
+                        context,
+                        armature,
+                        action_session,
+                        affected_names=changed_names,
+                    )
+                write_basis_metadata(armature, basis_changes)
+                payload["expected_post_bone_metadata"] = capture_bone_metadata(armature)
+                payload["expected_post_animation_state"] = capture_animation_state(armature)
             try:
                 validation_issues = _validate(
                     context,
@@ -383,6 +429,10 @@ def apply_quick_plan(context, plan, *, validator=None, strict_validation=True):
                     _write_edit_state(armature, before)
                 bpy.ops.object.mode_set(mode="OBJECT")
                 _write_metadata_state(armature, metadata_before)
+                if animation_compatibility:
+                    restore_bone_metadata(armature, bone_metadata_before)
+                    if animation_before is not None:
+                        restore_animation_state(armature, animation_before)
                 context.view_layer.update()
                 if text_name and text_name in bpy.data.texts:
                     payload["status"] = "ROLLED_BACK"
@@ -424,6 +474,17 @@ def restore_quick_snapshot(context, text_name):
         current_metadata.pop(_MODE_PROP, None)
     if current_metadata != expected_metadata:
         return False, "BONEWEAVER_QUICK_RESTORE_CONFLICT"
+    animation_compatibility = bool(payload.get("animation_basis_rebase", False))
+    if animation_compatibility:
+        expected_bone_metadata = normalize_bone_metadata(
+            payload["expected_post_bone_metadata"]
+        )
+        if capture_bone_metadata(armature) != expected_bone_metadata:
+            return False, "BONEWEAVER_QUICK_RESTORE_CONFLICT"
+        if not animation_state_matches(
+            armature, payload.get("expected_post_animation_state")
+        ):
+            return False, "BONEWEAVER_QUICK_RESTORE_CONFLICT"
     with ContextStateGuard(context):
         _activate(context, armature)
         bpy.ops.object.mode_set(mode="EDIT")
@@ -449,6 +510,11 @@ def restore_quick_snapshot(context, text_name):
         _write_edit_state(armature, payload["pre_bones"])
         bpy.ops.object.mode_set(mode="OBJECT")
         _write_metadata_state(armature, payload.get("pre_metadata", {}))
+        if animation_compatibility:
+            restore_bone_metadata(armature, payload["pre_bone_metadata"])
+            pre_animation = payload.get("pre_animation_state")
+            if pre_animation is not None:
+                restore_animation_state(armature, pre_animation)
         context.view_layer.update()
     payload["status"] = "RESTORED"
     text.clear()

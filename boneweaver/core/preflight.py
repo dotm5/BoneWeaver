@@ -8,6 +8,7 @@ import bpy
 from mathutils import Matrix
 
 from .armature_reader import read_bone_states, resolve_active_armature, resolve_scope_names
+from .animation_basis import action_rebase_supported
 from .mesh_resolver import find_associated_meshes
 from .models import PreflightResult, ValidationIssue
 
@@ -48,6 +49,20 @@ def run_preflight(context, *, scope_names: tuple[str, ...] | None = None) -> Pre
         if scope_names is not None
         else resolve_scope_names(context, armature, scope_mode)
     )
+    animation = armature.animation_data
+    animation_compatibility = bool(
+        settings and getattr(settings, "animation_basis_rebase", True)
+    )
+    action_rebase_supported_now = True
+    action_rebase_reason = None
+    if animation_compatibility:
+        action_rebase_supported_now, action_rebase_reason = action_rebase_supported(armature)
+    action_rebase_allowed = bool(
+        animation_compatibility
+        and action_rebase_supported_now
+        and animation
+        and animation.action
+    )
     missing_scope_names = tuple(name for name in selected if name not in armature.data.bones)
     if missing_scope_names:
         issues.append(_issue(
@@ -85,17 +100,24 @@ def run_preflight(context, *, scope_names: tuple[str, ...] | None = None) -> Pre
     strict_whole_pose = settings.strict_whole_armature_pose if settings else True
     pose_bones = armature.pose.bones if strict_whole_pose else tuple(armature.pose.bones.get(name) for name in selected)
     non_identity = tuple(pose_bone.name for pose_bone in pose_bones if pose_bone and not _is_identity(pose_bone.matrix_basis))
+    if action_rebase_allowed:
+        non_identity = ()
     if non_identity:
         issues.append(_issue("BLOCKER", "BONEWEAVER_NON_IDENTITY_POSE", "Armature pose is not identity", bones=non_identity))
 
-    animation = armature.animation_data
     if animation:
-        if animation.action:
+        if animation.action and action_rebase_allowed:
+            issues.append(_issue("WARNING", "BONEWEAVER_ACTION_WILL_BE_REBASED", "Active Action will be sampled and rebased", objects=(armature.name,)))
+        elif animation.action and animation_compatibility and action_rebase_reason:
+            issues.append(_issue("BLOCKER", action_rebase_reason, "Active Action cannot be safely rebased", objects=(armature.name,)))
+        elif animation.action:
             issues.append(_issue("BLOCKER", "BONEWEAVER_RELATED_ACTION", "Armature has an active Action", objects=(armature.name,)))
-        if animation.nla_tracks:
+        if animation.nla_tracks and action_rebase_reason != "BONEWEAVER_REBASE_NLA_UNSUPPORTED":
             issues.append(_issue("BLOCKER", "BONEWEAVER_RELATED_NLA", "Armature has NLA tracks", objects=(armature.name,)))
-        if animation.drivers:
+        if animation.drivers and action_rebase_reason != "BONEWEAVER_REBASE_DRIVER_UNSUPPORTED":
             issues.append(_issue("BLOCKER", "BONEWEAVER_RELATED_DRIVER", "Armature has drivers", objects=(armature.name,)))
+    if animation_compatibility and action_rebase_reason and not (animation and animation.action):
+        issues.append(_issue("BLOCKER", action_rebase_reason, "Rig animation dependencies cannot be safely rebased", objects=(armature.name,)))
 
     for obj in bpy.data.objects:
         if obj.parent == armature and obj.parent_type == "BONE" and obj.parent_bone in selected_set:

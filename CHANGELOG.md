@@ -2,6 +2,18 @@
 
 All notable changes to BoneWeaver are documented here.
 
+## 0.4.1 - 2026-08-04
+
+- Added parent-local rest-basis delta tracking and cumulative UEFormat
+  `post_quat` composition across Quick Original, Links Only, Hybrid, and scoped
+  Apply transactions.
+- Added sampling and rebasing for one safe, unshared Active Action, including
+  connected-child topology preservation and exact Action/metadata Restore.
+- Added explicit blocking for active NLA strips, pose Drivers, effective pose
+  constraints, shared Actions, missing bones, and unsupported FCurve paths.
+- Preserved all three v0.4.0 automatic operators and Hybrid's confident
+  multi-feature result with per-bone UEFormat fallback.
+
 ## 0.4.0 - 2026-07-26
 
 - Replaced the single panel-top action with three explicit one-click choices:

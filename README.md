@@ -48,7 +48,7 @@ not bundled dependencies.
 
 ## Installation
 
-Install `dist/boneweaver-0.4.0.zip`. In Blender, open
+Install `dist/boneweaver-0.4.1.zip`. In Blender, open
 **Edit > Preferences > Extensions > Install from Disk**, select the ZIP, and
 enable BoneWeaver.
 
@@ -91,20 +91,23 @@ mesh/modifier drift make the conversion unsafe. A successful Apply records a
 field-level mutation ledger. Export also performs an independent second-process
 reopen validation before reporting success.
 
-These blockers do not apply to the three panel-top automatic actions in v0.4.0.
+The three panel-top automatic actions keep their v0.4.0 behavior when animation
+compatibility is disabled. With **Protect Existing Animation and UEFormat Basis**
+enabled, BoneWeaver rebases one safe Active Action and blocks unsupported active
+animation stacks before changing the rest basis.
 Hybrid recognition blockers are converted to advisory diagnostics and trigger
 per-bone fallback instead of stopping the operation.
 
 ## Tested release
 
-BoneWeaver v0.4.0 was validated locally with Blender 5.2.0 LTS build
+BoneWeaver v0.4.1 was validated locally with Blender 5.2.0 LTS build
 `fbe6228777e7`:
 
 - 230 Blender-hosted automated tests passed with zero failures or errors.
-- A combined force-complete fixture containing Action, NLA, Driver, non-identity
-  Pose, bone/object Constraints, B-Bone segments, Bone parenting, envelopes,
-  duplicate Armature modifiers, and shared Armature data completed in one click
-  with zero blockers and exact Restore.
+- Animation probes passed parent-local basis delta, cumulative `post_quat`,
+  Active Action rebasing, connected topology, idempotence, and exact
+  Action/metadata Restore. Unsupported active animation stacks blocked before
+  mutation; an empty Action used the explicit Quick fallback.
 - A fixed UEFormat 1.0.0 comparison covered 154 eligible bones: maximum direction
   error `0.033878°`, maximum length error `1.164412e-7`, with unchanged heads,
   parents, and sockets.
@@ -114,14 +117,15 @@ BoneWeaver v0.4.0 was validated locally with Blender 5.2.0 LTS build
   passed; both source hashes remained unchanged. Hybrid selected 94 confident
   multi-feature results and automatically fell back on 61 bones.
 - The release ZIP passed an isolated install and repeated registration cycle.
-- Archive: `boneweaver-0.4.0.zip`
-- Size: `190353` bytes
-- SHA-256: `A68C65050DAFE9DC91A53C0F9DA91C4610EBC343F153D0F21DC540C0A1E4E709`
+- Archive: `boneweaver-0.4.1.zip`
+- Size: `200097` bytes
+- SHA-256: `7D5160229B8FA33D9C29B36D53BC8A8903B88ACD1F3C72434B5D524D94CEB059`
 
 ## Known limitations
 
-- The original and hybrid tools reorient rest-bone display geometry; they do not rewrite
-  UEFormat `post_quat` animation metadata or retarget animation bases.
+- Animation compatibility supports one local, unshared Active Action containing
+  only supported pose-bone transform FCurves. Active NLA strips, pose Drivers,
+  effective pose constraints, shared Actions, and unsupported paths block.
 - Link-only mode performs no orientation inference. To create native connected
   edges without moving child heads, a linear parent's tail is normalized to its
   existing child head when those points differ.

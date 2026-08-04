@@ -101,6 +101,7 @@ def capture_quick_source(context, armature):
             item_metadata = QuickSourceMetadata(
                 orig_loc=_finite_tuple(bone.get("orig_loc"), 3),
                 orig_quat=_finite_tuple(bone.get("orig_quat"), 4),
+                post_quat=_finite_tuple(bone.get("post_quat"), 4),
                 reorient_direction=_finite_tuple(bone.get("reorient_direction"), 3),
                 is_socket=bool(bone.get("is_socket", False)),
                 collection_names=collections,

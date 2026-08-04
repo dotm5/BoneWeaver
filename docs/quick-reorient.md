@@ -1,6 +1,6 @@
 # One-click Quick Reorient
 
-BoneWeaver 0.4.0 provides three whole-Armature actions at the top of the Sidebar.
+BoneWeaver 0.4.1 provides three whole-Armature actions at the top of the Sidebar.
 All three are immediate, force-complete operations with persistent Snapshot
 recovery.
 

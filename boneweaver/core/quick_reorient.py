@@ -17,6 +17,7 @@ from ..contracts import (
     QUICK_REORIENT_SCHEMA_VERSION,
 )
 from .armature_reader import resolve_active_armature
+from .animation_basis import action_rebase_supported, capture_animation_state
 from .canonical import sha256
 from .linked_components import component_lookup, decompose_linear_components
 from .mesh_resolver import find_associated_meshes
@@ -96,6 +97,7 @@ def quick_source_fingerprint(armature, states, metadata) -> str:
             world,
             states,
             metadata_payload,
+            capture_animation_state(armature),
         )
     )
 
@@ -113,7 +115,7 @@ def _issue(severity, code, message, *, bones=(), objects=()):
 
 def _build_proposals(states, metadata, *, source_adapter, already_reoriented,
                      already_normalized, allowed_child_map, connect_linear_chains,
-                     mode):
+                     preserve_connect, mode):
     by_name = {state.bone_name: state for state in states}
     processed = frozenset(
         state.bone_name
@@ -227,6 +229,12 @@ def _build_proposals(states, metadata, *, source_adapter, already_reoriented,
                 and len(structural_children[parent]) == 1
             )
 
+    if preserve_connect:
+        final_connect = {state.bone_name: state.use_connect for state in states}
+        for state in states:
+            if state.use_connect and state.parent_name in by_name:
+                final_tails[state.parent_name] = Vector(state.head)
+
     proposals = []
     for name in sorted(by_name):
         state = by_name[name]
@@ -264,7 +272,18 @@ def _build_proposals(states, metadata, *, source_adapter, already_reoriented,
     return tuple(proposals), components, structural_edges
 
 
-def _quick_preflight(context, armature, states, metadata, proposals, structural_edges):
+def _quick_preflight(
+    context,
+    armature,
+    states,
+    metadata,
+    proposals,
+    structural_edges,
+    *,
+    animation_basis_rebase,
+    animation_blocker,
+    animation_fallback,
+):
     """Collect advisory diagnostics for the force-complete one-click workflow.
 
     Quick Reorient runs after import, where animation and rig relationships are
@@ -317,9 +336,37 @@ def _quick_preflight(context, armature, states, metadata, proposals, structural_
         ):
             issues.append(_issue("WARNING", "BONEWEAVER_QUICK_ZERO_LENGTH", "Coincident joint edge was excluded", bones=(parent_name, child.bone_name)))
     animation = armature.animation_data
-    if animation:
+    if animation_blocker:
+        issues.append(
+            _issue(
+                "BLOCKER",
+                animation_blocker,
+                "Animation-compatible rest-basis conversion is unsafe for this rig",
+                objects=(armature.name,),
+            )
+        )
+    elif animation_basis_rebase:
+        if animation and animation.action:
+            issues.append(
+                _issue(
+                    "WARNING",
+                    "BONEWEAVER_ACTION_WILL_BE_REBASED",
+                    "The single Active Action will be sampled and rebased",
+                    objects=(armature.name,),
+                )
+            )
+    elif animation_fallback:
+        issues.append(
+            _issue(
+                "WARNING",
+                animation_fallback,
+                "No keyed pose-bone curves were found; Quick Reorient used the legacy transaction",
+                objects=(armature.name,),
+            )
+        )
+    if animation and not animation_basis_rebase:
         if animation.action:
-            issues.append(_issue("WARNING", "BONEWEAVER_QUICK_RELATED_ACTION", "Active Action is preserved", objects=(armature.name,)))
+            issues.append(_issue("WARNING", "BONEWEAVER_QUICK_RELATED_ACTION", "Active Action is preserved without rest-basis rebasing", objects=(armature.name,)))
         if animation.nla_tracks:
             issues.append(_issue("WARNING", "BONEWEAVER_QUICK_RELATED_NLA", "NLA tracks are preserved", objects=(armature.name,)))
         if animation.drivers:
@@ -349,7 +396,7 @@ def _quick_preflight(context, armature, states, metadata, proposals, structural_
         modifier = bpy.data.objects[binding.object_name].modifiers[binding.modifier_name]
         if modifier.use_bone_envelopes:
             issues.append(_issue("WARNING", "BONEWEAVER_QUICK_ENVELOPE_DEFORMATION", "Envelope deformation is preserved", objects=(binding.object_name,)))
-    rank = {"WARNING": 0, "INFO": 1}
+    rank = {"BLOCKER": 0, "WARNING": 1, "INFO": 2}
     return tuple(sorted(issues, key=lambda item: (rank.get(item.severity, 3), item.code, item.bone_names, item.object_names)))
 
 
@@ -367,6 +414,29 @@ def build_quick_reorient_plan(
     states, metadata = capture_quick_source(context, armature)
     source_adapter, already_reoriented = detect_source(metadata)
     source_fingerprint = quick_source_fingerprint(armature, states, metadata)
+    animation_requested = bool(
+        getattr(context.scene.boneweaver_settings, "animation_basis_rebase", True)
+    )
+    animation_supported, animation_reason = (
+        action_rebase_supported(armature)
+        if animation_requested
+        else (False, None)
+    )
+    animation_fallback = (
+        animation_reason
+        if animation_reason == "BONEWEAVER_REBASE_NO_POSE_CURVES"
+        else None
+    )
+    animation_blocker = (
+        animation_reason
+        if animation_requested and not animation_supported and not animation_fallback
+        else None
+    )
+    animation_basis_rebase = bool(animation_requested and animation_supported)
+    animation = armature.animation_data
+    preserve_connect = bool(
+        animation_basis_rebase and animation and animation.action
+    )
     already_normalized = bool(
         armature.data.get(_VERSION_PROP) == QUICK_REORIENT_ALGORITHM_VERSION
         and armature.data.get(_MODE_PROP) == mode
@@ -380,10 +450,19 @@ def build_quick_reorient_plan(
         already_normalized=already_normalized,
         allowed_child_map=read_allowed_child_map(armature),
         connect_linear_chains=connect_linear_chains,
+        preserve_connect=preserve_connect,
         mode=mode,
     )
     issues = _quick_preflight(
-        context, armature, states, metadata, proposals, structural_edges
+        context,
+        armature,
+        states,
+        metadata,
+        proposals,
+        structural_edges,
+        animation_basis_rebase=animation_basis_rebase,
+        animation_blocker=animation_blocker,
+        animation_fallback=animation_fallback,
     )
     plan_id = sha256(
         (
@@ -393,6 +472,7 @@ def build_quick_reorient_plan(
             ADDON_VERSION,
             mode,
             connect_linear_chains,
+            animation_basis_rebase,
             source_fingerprint,
             source_adapter,
             states,
@@ -415,6 +495,7 @@ def build_quick_reorient_plan(
         already_reoriented=already_reoriented,
         already_normalized=already_normalized,
         connect_linear_chains=connect_linear_chains,
+        animation_basis_rebase=animation_basis_rebase,
         bone_states=states,
         proposals=proposals,
         linked_components=components,

@@ -68,6 +68,7 @@ class BONEWEAVER_PT_advanced(bpy.types.Panel):
         preview.prop(settings, "preview_show_virtual_tips", text="显示虚拟末端")
         safety = layout.box()
         safety.label(text="安全与验证")
+        safety.prop(settings, "animation_basis_rebase", text="保护动画 Rest Basis")
         safety.prop(settings, "strict_whole_armature_pose", text="要求中性姿态")
         safety.prop(settings, "validate_full_mesh", text="验证全部相关网格")
         safety.prop(settings, "validation_tolerance_mode", text="验证容差")

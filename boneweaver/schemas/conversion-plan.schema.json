@@ -7,6 +7,7 @@
   "required": [
     "kind", "schema_version", "algorithm_version", "addon_version", "plan_id",
     "source_fingerprint", "settings_fingerprint", "armature", "profile", "tip_helper_usage",
+    "animation_basis_rebase",
     "scoring_profile", "meshes", "bones", "physics_graph", "weight_clouds",
     "tip_helpers", "terminal_solutions", "proposals", "segment_sampling_hints",
     "branch_resolutions", "topology_ledger", "issues"
@@ -22,6 +23,7 @@
     "armature": {"$ref": "#/$defs/armature"},
     "profile": {"enum": ["BONEX_ROTATION_CHAIN", "BONEX_TRANSLATION_ALLOWED", "WIGGLE2_ROTATION_CHAIN", "WIGGLE2_STRETCH_CHAIN", "GEOMETRY_ONLY", "VISUAL_CHAIN_CLEANUP"]},
     "tip_helper_usage": {"enum": ["REFERENCE_ONLY", "INCLUDE_AS_PHYSICS_TERMINAL"]},
+    "animation_basis_rebase": {"type": "boolean"},
     "scoring_profile": {"type": "object", "additionalProperties": {"type": "number"}},
     "meshes": {"type": "array", "items": {"$ref": "#/$defs/meshState"}},
     "bones": {"type": "array", "items": {"$ref": "#/$defs/boneState"}},

@@ -128,8 +128,12 @@ class QuickReorientController:
         runtime.quick_connected_edges = sum(
             proposal.target_use_connect for proposal in plan.proposals
         )
-        runtime.quick_blocker_count = 0
-        runtime.quick_warning_count = len(plan.issues)
+        runtime.quick_blocker_count = sum(
+            issue.severity == "BLOCKER" for issue in plan.issues
+        )
+        runtime.quick_warning_count = sum(
+            issue.severity == "WARNING" for issue in plan.issues
+        )
         runtime.quick_precision_bones = sum(
             is_multi_feature_source(proposal.source)
             for proposal in plan.proposals
@@ -164,6 +168,14 @@ class QuickReorientController:
                 return False
             put_quick_plan(plan)
             cls._populate_runtime(runtime, plan)
+            blockers = tuple(
+                issue for issue in plan.issues if issue.severity == "BLOCKER"
+            )
+            if blockers:
+                runtime.quick_state = "BLOCKED"
+                runtime.quick_summary = f"动画兼容检查已阻断：{blockers[0].code}"
+                runtime.last_error = blockers[0].code
+                return False
 
             runtime.quick_state = "APPLYING"
             runtime.quick_summary = apply_summary

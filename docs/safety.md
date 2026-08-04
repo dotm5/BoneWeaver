@@ -21,7 +21,8 @@ The legacy `create_role_collections` setting remains readable for compatibility 
 Analyze is read-only. Apply requires an exact current fingerprint, persistent snapshot, context guard, and post validation. Any validation failure restores allowed fields. Restore refuses conflicts rather than overwriting manual edits.
 
 Quick Reorient captures and plans before mutation and writes a persistent
-Snapshot. In v0.4.0 all three panel-top actions are explicitly force-complete:
+Snapshot. With animation compatibility disabled, all three panel-top actions
+retain the v0.4.0 force-complete behavior:
 preflight and post-diagnostic findings never become policy blockers. Action,
 NLA, Driver, Constraint, Pose, B-Bone, parenting, envelope, modifier, transform,
 mesh-digest, and neutral-mesh findings remain visible as advisory evidence. An

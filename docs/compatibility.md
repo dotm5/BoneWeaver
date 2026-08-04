@@ -2,6 +2,7 @@
 
 | Target | Status |
 |---|---|
+| Blender 5.2.0 LTS `fbe6228777e7` | v0.4.1 validated with the complete v0.4.0 suite plus Active Action rest-basis rebasing, cumulative `post_quat`, idempotence, and exact Restore checks |
 | Blender 5.2.0 LTS `fbe6228777e7` | v0.4.0 validated with 230 automated tests and independent original/link-only/hybrid acceptance on raw `.uemodel` plus existing `.blend`; native `L`, idempotence, exact Restore, and unchanged source hashes passed |
 | Blender 5.2.0 LTS RC `710df102694f` | v0.3.1 validated with 223 automated tests, combined former-blocker force-complete coverage, fixed UEFormat parity, raw `.uemodel` and existing `.blend` one-click/native-`L` acceptance, exact Restore, and isolated ZIP installation |
 | Blender 4.2 | Manifest minimum; executable unavailable locally, external validation pending |

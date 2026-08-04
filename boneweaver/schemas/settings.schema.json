@@ -9,6 +9,7 @@
     "physics_profile", "tip_helper_usage", "branch_resolution_mode", "weight_island_policy",
     "terminal_mode", "bone_forward_axis", "tip_length_mode",
     "roll_mode", "minimum_candidate_score", "candidate_minimum_margin",
+    "animation_basis_rebase",
     "minimum_confidence", "medium_confidence", "semantic_source_adapter_rule_path",
     "semantic_game_rule_path", "semantic_user_rule_path"
   ],
@@ -26,6 +27,7 @@
     "bone_forward_axis": {"enum": ["AUTO", "X_POSITIVE", "X_NEGATIVE", "Y_POSITIVE", "Y_NEGATIVE", "Z_POSITIVE", "Z_NEGATIVE"]},
     "tip_length_mode": {"enum": ["AUTO_EVIDENCE", "WEIGHT_PERCENTILE", "PREVIOUS_SEGMENT", "CHAIN_MEDIAN", "ABSOLUTE"]},
     "roll_mode": {"enum": ["MINIMAL_TWIST", "PARALLEL_TRANSPORT", "RADIAL_REFERENCE", "KEEP_NUMERIC_ROLL"]},
+    "animation_basis_rebase": {"type": "boolean"},
     "minimum_candidate_score": {"type": "number", "minimum": 0, "maximum": 1},
     "candidate_minimum_margin": {"type": "number", "minimum": 0, "maximum": 1},
     "candidate_direction_merge_angle_degrees": {"type": "number", "minimum": 0, "maximum": 45},
