@@ -37,12 +37,19 @@ def main() -> int:
     if not hasattr(bpy.types.Scene, "boneweaver_settings"):
         module.register()
     for operator_name in (
+        "BONEWEAVER_OT_auto_cleanup",
+        "BONEWEAVER_OT_restore_auto_cleanup",
         "BONEWEAVER_OT_quick_reorient_auto",
         "BONEWEAVER_OT_quick_reorient_links_only",
         "BONEWEAVER_OT_quick_reorient_hybrid_auto",
     ):
         if not hasattr(bpy.types, operator_name):
             raise RuntimeError(f"installed extension is missing {operator_name}")
+    mode_property = bpy.ops.boneweaver.auto_cleanup.get_rna_type().properties["mode"]
+    if mode_property.default != "AUTO" or {item.identifier for item in mode_property.enum_items} != {
+        "AUTO", "REORIENT", "CONNECT", "CLEANUP",
+    }:
+        raise RuntimeError("installed auto cleanup operator has incorrect modes")
     for _ in range(3):
         module.unregister()
         if hasattr(bpy.types.Scene, "boneweaver_settings"):

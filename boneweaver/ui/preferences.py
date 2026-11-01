@@ -3,7 +3,12 @@
 import bpy
 from bpy.props import BoolProperty, FloatVectorProperty
 
-from ..contracts import ADDON_ID
+ADDON_ID = __package__.rpartition(".")[0]
+
+
+def addon_preferences(context):
+    addon = context.preferences.addons.get(ADDON_ID)
+    return addon.preferences if addon else None
 
 
 def _hierarchy_color_changed(_preferences, context) -> None:

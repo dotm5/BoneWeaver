@@ -1,6 +1,7 @@
 """Advanced algorithm and preview settings, closed by default."""
 
 import bpy
+from ..preferences import addon_preferences
 from ..view_model import advanced_panel_view_from_context
 
 
@@ -15,6 +16,10 @@ class BONEWEAVER_PT_advanced(bpy.types.Panel):
 
     def draw(self, context):
         layout = self.layout
+        preferences = addon_preferences(context)
+        if preferences is not None:
+            layout.prop(preferences, "enable_developer_diagnostics", text="启用开发者诊断")
+        layout.label(text="以下参数用于旧版与手动流程", icon="INFO")
         settings = context.scene.boneweaver_settings
         visual_cleanup = settings.physics_profile == "VISUAL_CHAIN_CLEANUP"
         view = advanced_panel_view_from_context(context)

@@ -11,7 +11,7 @@ class BONEWEAVER_PT_semantic_discovery(bpy.types.Panel):
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = "BoneWeaver"
-    bl_parent_id = "BONEWEAVER_PT_main"
+    bl_parent_id = "BONEWEAVER_PT_advanced"
     bl_options = {"DEFAULT_CLOSED"}
 
     def draw(self, context):
