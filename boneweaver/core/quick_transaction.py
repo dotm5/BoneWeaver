@@ -26,6 +26,7 @@ from .animation_basis import (
     write_basis_metadata,
 )
 from .fingerprint import base_mesh_digest, modifier_digest, weight_digest
+from .mesh_scan_cache import mesh_digest_pair
 from .mesh_resolver import find_associated_meshes
 from .quick_reorient import current_quick_source_fingerprint
 from .quick_reorient_models import QuickTransactionResult
@@ -99,14 +100,12 @@ def _mesh_digests(armature):
     bindings, issues = find_associated_meshes(armature)
     if issues:
         raise RuntimeError(", ".join(issue.code for issue in issues))
-    return {
-        binding.object_name: {
-            "weight": weight_digest(bpy.data.objects[binding.object_name]),
-            "base": base_mesh_digest(bpy.data.objects[binding.object_name]),
-            "modifier": modifier_digest(bpy.data.objects[binding.object_name]),
-        }
-        for binding in bindings
-    }
+    result = {}
+    for binding in bindings:
+        obj = bpy.data.objects[binding.object_name]
+        weights, base = mesh_digest_pair(obj)
+        result[binding.object_name] = {"weight": weights, "base": base, "modifier": modifier_digest(obj)}
+    return result
 
 
 def _capture_neutral(armature):
@@ -269,7 +268,7 @@ def _mutation_count(before, after, proposals):
     return count
 
 
-def apply_quick_plan(context, plan, *, validator=None, strict_validation=True):
+def apply_quick_plan(context, plan, *, validator=None, strict_validation=True, after_reorient=None, neutral_baseline=None):
     armature = bpy.data.objects[plan.armature_object_name]
     diagnostic_issues = []
     mesh_validation_enabled = True
@@ -283,7 +282,7 @@ def apply_quick_plan(context, plan, *, validator=None, strict_validation=True):
         mesh_validation_enabled = False
         diagnostic_issues.append("BONEWEAVER_QUICK_MESH_DIAGNOSTIC_SKIPPED")
     try:
-        neutral_before = _neutral_baseline(armature)
+        neutral_before = neutral_baseline if neutral_baseline is not None else _neutral_baseline(armature)
     except Exception:
         if strict_validation:
             raise
@@ -376,6 +375,8 @@ def apply_quick_plan(context, plan, *, validator=None, strict_validation=True):
                 write_basis_metadata(armature, basis_changes)
                 payload["expected_post_bone_metadata"] = capture_bone_metadata(armature)
                 payload["expected_post_animation_state"] = capture_animation_state(armature)
+            if after_reorient is not None:
+                after_reorient(context, armature)
             try:
                 validation_issues = _validate(
                     context,

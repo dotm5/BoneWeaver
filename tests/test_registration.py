@@ -50,6 +50,8 @@ class RegistrationTests(unittest.TestCase):
             "BONEWEAVER_OT_analyze", "BONEWEAVER_OT_apply", "BONEWEAVER_OT_validate",
             "BONEWEAVER_OT_preview_toggle", "BONEWEAVER_OT_restore_snapshot",
             "BONEWEAVER_OT_export_report", "BONEWEAVER_OT_clear_runtime",
+            "BONEWEAVER_OT_auto_cleanup",
+            "BONEWEAVER_OT_restore_auto_cleanup",
             "BONEWEAVER_OT_quick_reorient_auto",
             "BONEWEAVER_OT_quick_reorient_links_only",
             "BONEWEAVER_OT_quick_reorient_hybrid_auto",

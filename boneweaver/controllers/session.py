@@ -164,6 +164,8 @@ class SessionController:
             SessionController.invalidate_for_scene_change(bpy.context, "load_post")
             SessionController.refresh_snapshot(bpy.context)
             QuickReorientController.refresh_snapshot(bpy.context)
+            from .auto_cleanup import AutoCleanupController
+            AutoCleanupController.refresh_snapshot(bpy.context)
 
     @staticmethod
     @persistent
