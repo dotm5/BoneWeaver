@@ -1,4 +1,22 @@
-# BoneWeaver
+# BoneWeaver 0.6.0
+
+Main actions: **AUTO / REORIENT / CONNECT / CLEANUP**. Cleanup handles complete zero helper subtrees while preserving IK, weapon/gameplay nodes and required structural ancestors.
+
+Select a mesh or armature and click **全自动整理** in the BoneWeaver sidebar.
+
+The automatic mode orients original non-root, non-leaf bones, then removes only
+evidence-backed, unweighted helper subtrees. It keeps the original
+Armature as a persistent recovery point. Debug, the three legacy modes and
+manual tools are under collapsed **Advanced** settings.
+
+Run before automatic skinning and animation authoring, preferably with original
+imported weights. Already weighted helpers are protected; this is not a weight
+repair operation. This mode does not rewrite existing Action animation.
+Install `dist/boneweaver-0.6.0.zip` and restart Blender after upgrading.
+See [selection, recovery and UEFormat audit](docs/auto-cleanup.md).
+
+## Legacy workflow (Advanced)
+
 
 [中文说明](README_zh.md)
 

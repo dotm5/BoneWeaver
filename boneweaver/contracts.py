@@ -6,7 +6,7 @@ from enum import Enum
 
 
 ADDON_ID = "boneweaver"
-ADDON_VERSION = "0.4.1"
+ADDON_VERSION = "0.6.0"
 SCHEMA_VERSION = "4.0.0"
 ALGORITHM_VERSION = "boneweaver-physics-graph-v4-tip-helper-branch-island-visual-cleanup"
 QUICK_REORIENT_ALGORITHM_VERSION = "boneweaver-quick-reorient-v2.0.0"

@@ -1,3 +1,9 @@
+# Automatic cleanup safety (0.6.0)
+
+The default workflow may delete verified zero-weight helper subtrees after reorientation. It edits a single-user Armature copy, retains the full original datablock and pose settings, validates unchanged weights and evaluated mesh, and refuses conflicting restoration. See [auto-cleanup.md](auto-cleanup.md). Existing Actions are not rewritten by this workflow.
+
+The following contract describes the legacy Physics Graph / Quick Reorient modes, not the new topology-cleanup operation.
+
 # Safety Contract
 
 BoneWeaver does not:

@@ -2,6 +2,22 @@
 
 All notable changes to BoneWeaver are documented here.
 
+## 0.6.0 — 2026-11-01
+
+- Four parallel one-click modes: automatic, reorient, connect, cleanup.
+- Bottom-up zero helper subtree cleanup, including SR/ST and MassCenter branches.
+- Preserve weighted ancestors, IK, weapon/socket/gameplay subtrees and live references.
+- Mode-aware v2 snapshots and separate reorientation/connection/deletion ledger counts.
+- Cross-game CUE4Parse corpus: eight characters from three games/four installations.
+
+## 0.5.0 — 2026-11-01
+
+- New one-click interior-bone reorientation and evidence-based terminal helper deletion.
+- Persistent full-topology restore, static-pose deformation preservation, idempotence, reference and LOD weight checks.
+- Root/leaf orientation exclusion, current-frame branch inference and zero-sum protection; UEFormat upstream audit.
+- Main UI reduced to automatic preparation and restore; legacy/debug tools nested under Advanced.
+- New mode blocks existing Actions instead of assuming pose-matrix preservation guarantees skin deformation.
+
 ## 0.4.1 - 2026-08-04
 
 - Added parent-local rest-basis delta tracking and cumulative UEFormat
