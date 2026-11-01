@@ -1,6 +1,7 @@
 """Advanced algorithm and preview settings, closed by default."""
 
 import bpy
+from ..preferences import addon_preferences
 from ..view_model import advanced_panel_view_from_context
 
 
@@ -15,6 +16,10 @@ class BONEWEAVER_PT_advanced(bpy.types.Panel):
 
     def draw(self, context):
         layout = self.layout
+        preferences = addon_preferences(context)
+        if preferences is not None:
+            layout.prop(preferences, "enable_developer_diagnostics", text="启用开发者诊断")
+        layout.label(text="以下参数用于旧版与手动流程", icon="INFO")
         settings = context.scene.boneweaver_settings
         visual_cleanup = settings.physics_profile == "VISUAL_CHAIN_CLEANUP"
         view = advanced_panel_view_from_context(context)
@@ -68,6 +73,7 @@ class BONEWEAVER_PT_advanced(bpy.types.Panel):
         preview.prop(settings, "preview_show_virtual_tips", text="显示虚拟末端")
         safety = layout.box()
         safety.label(text="安全与验证")
+        safety.prop(settings, "animation_basis_rebase", text="保护动画 Rest Basis")
         safety.prop(settings, "strict_whole_armature_pose", text="要求中性姿态")
         safety.prop(settings, "validate_full_mesh", text="验证全部相关网格")
         safety.prop(settings, "validation_tolerance_mode", text="验证容差")

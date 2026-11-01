@@ -30,6 +30,11 @@
     "topology_ledger": {"type": "object"},
     "post_validation": {"type": "object"},
     "whole_armature_post_digest": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
-    "whole_armature_post_state": {"type": "object"}
+    "whole_armature_post_state": {"type": "object"},
+    "animation_basis_rebase": {"type": "boolean"},
+    "pre_bone_metadata": {"type": ["object", "null"]},
+    "expected_post_bone_metadata": {"type": "object"},
+    "pre_animation_state": {"type": ["object", "null"]},
+    "expected_post_animation_state": {"type": ["object", "null"]}
   }
 }

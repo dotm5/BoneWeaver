@@ -10,6 +10,13 @@ import bpy
 from mathutils import Vector
 
 from .context_guard import ContextStateGuard
+from .animation_basis import (
+    animation_state_matches,
+    capture_bone_metadata,
+    normalize_bone_metadata,
+    restore_animation_state,
+    restore_bone_metadata,
+)
 from .fingerprint import modifier_digest, weight_digest
 from .validation import armature_state_matches
 
@@ -47,6 +54,16 @@ def restore_snapshot(context, text_name):
             return False, "BONEWEAVER_RESTORE_CONFLICT"
     expected = payload["expected_post_bones"]
     pre = payload["pre_bones"]
+    animation_compatibility = bool(payload.get("animation_basis_rebase", False))
+    if animation_compatibility:
+        if capture_bone_metadata(armature) != normalize_bone_metadata(
+            payload["expected_post_bone_metadata"]
+        ):
+            return False, "BONEWEAVER_RESTORE_CONFLICT"
+        if not animation_state_matches(
+            armature, payload.get("expected_post_animation_state")
+        ):
+            return False, "BONEWEAVER_RESTORE_CONFLICT"
     with ContextStateGuard(context), _mirror_disabled(armature):
         if context.object and context.object.mode != "OBJECT":
             bpy.ops.object.mode_set(mode="OBJECT")
@@ -87,6 +104,11 @@ def restore_snapshot(context, text_name):
         for name, state in pre.items():
             armature.data.edit_bones[name].use_connect = state["use_connect"]
         bpy.ops.object.mode_set(mode="OBJECT")
+        if animation_compatibility:
+            restore_bone_metadata(armature, payload["pre_bone_metadata"])
+            pre_animation = payload.get("pre_animation_state")
+            if pre_animation is not None:
+                restore_animation_state(armature, pre_animation)
     payload["status"] = "RESTORED"
     text.clear()
     text.write(json.dumps(payload, ensure_ascii=False, sort_keys=True, indent=2))

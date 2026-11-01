@@ -12,6 +12,17 @@ from mathutils import Vector
 
 from .canonical import sha256
 from .context_guard import ContextStateGuard
+from .animation_basis import (
+    capture_action_pose_samples,
+    capture_animation_state,
+    capture_bone_metadata,
+    capture_rest_matrices,
+    compute_basis_changes,
+    rebase_action_from_samples,
+    restore_animation_state,
+    restore_bone_metadata,
+    write_basis_metadata,
+)
 from .models import TransactionResult
 from .mutation_ledger import (
     build_mutation_records,
@@ -81,10 +92,23 @@ def apply_plan(context, plan, *, validator=None):
     mutation_records = ()
     topology_ledger = plan.topology_ledger
     original_use_mirror_x = bool(armature.data.use_mirror_x)
+    animation_compatibility = bool(plan.animation_basis_rebase)
+    bone_metadata_before = (
+        capture_bone_metadata(armature) if animation_compatibility else None
+    )
+    rest_matrices_before = (
+        capture_rest_matrices(armature) if animation_compatibility else None
+    )
+    animation_before = (
+        capture_animation_state(armature) if animation_compatibility else None
+    )
+    action_session = None
     with ContextStateGuard(context):
         try:
             _activate_armature(context, armature)
             armature.data.use_mirror_x = False
+            if animation_compatibility:
+                action_session = capture_action_pose_samples(context, armature)
             bpy.ops.object.mode_set(mode="EDIT")
             pre_state = _capture_edit_state(armature, proposal_names)
             bpy.ops.object.mode_set(mode="OBJECT")
@@ -137,6 +161,11 @@ def apply_plan(context, plan, *, validator=None):
                 "post_validation": {},
                 "whole_armature_post_digest": None,
                 "whole_armature_post_state": {},
+                "animation_basis_rebase": animation_compatibility,
+                "pre_bone_metadata": bone_metadata_before,
+                "expected_post_bone_metadata": {},
+                "pre_animation_state": animation_before,
+                "expected_post_animation_state": None,
                 "status": "CREATED",
             }
             text = bpy.data.texts.new(text_name)
@@ -164,6 +193,21 @@ def apply_plan(context, plan, *, validator=None):
             payload["topology_ledger"] = dataclasses.asdict(topology_ledger)
             bpy.ops.object.mode_set(mode="OBJECT")
             context.view_layer.update()
+            if animation_compatibility:
+                basis_changes = compute_basis_changes(armature, rest_matrices_before)
+                changed_names = tuple(
+                    change.bone_name for change in basis_changes if change.changed
+                )
+                if action_session is not None and changed_names:
+                    rebase_action_from_samples(
+                        context,
+                        armature,
+                        action_session,
+                        affected_names=changed_names,
+                    )
+                write_basis_metadata(armature, basis_changes)
+                payload["expected_post_bone_metadata"] = capture_bone_metadata(armature)
+                payload["expected_post_animation_state"] = capture_animation_state(armature)
             validation_started = time.perf_counter()
             if custom_validator is None:
                 validation = validate_post_apply(context, plan, neutral_baseline, armature_baseline)
@@ -198,6 +242,10 @@ def apply_plan(context, plan, *, validator=None):
                 bpy.ops.object.mode_set(mode="EDIT")
                 _write_fields(armature, pre_state)
                 bpy.ops.object.mode_set(mode="OBJECT")
+                if animation_compatibility:
+                    restore_bone_metadata(armature, bone_metadata_before)
+                    if animation_before is not None:
+                        restore_animation_state(armature, animation_before)
                 context.view_layer.update()
                 if text_name and text_name in bpy.data.texts:
                     payload["status"] = "ROLLED_BACK"

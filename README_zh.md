@@ -1,4 +1,20 @@
-# BoneWeaver
+# BoneWeaver 0.6.0
+
+主界面并列提供 **全自动整理 / 仅父子重定向 / 仅连接骨链 / 仅清理辅助骨**。零权重辅助子树自底向上筛选；IK、武器槽位、游戏功能节点及有效骨骼的父级保留。
+
+选择模型或骨架，在 N 面板 → BoneWeaver 点击 **全自动整理**。
+
+- 只重定向原来的非根、非末级骨骼；先使用末端位置确定父骨方向，再移除证据充分的无权重辅助子树。
+- 检查所有相关网格及骨骼引用；有权重、挂点、约束、驱动等用途的末端骨保留。
+- 保留原始骨架备份，可用 **恢复整理前状态** 恢复，包括已清理的末端骨。
+- Debug、旧版三种模式及手动流程均位于折叠的 **高级设置**。
+
+请在重新蒙皮、制作动画前使用，优先保留导入时的原始权重。已被自动蒙皮赋权的辅助骨不会强行删除；此功能不修复已有串权。
+此新模式不自动重写已有 Action 动画。安装 `dist/boneweaver-0.6.0.zip`，升级后重启 Blender。
+详细筛选规则、恢复机制及 UEFormat 上游追踪见 [自动整理算法说明](docs/auto-cleanup.md)。
+
+## 旧版流程说明（高级设置）
+
 
 [English](README.md)
 
@@ -36,7 +52,7 @@ BoneX、Wiggle、Auto-Rig Pro 与 UEFormat 只是可选工作流集成，不随�
 
 ## 安装
 
-安装 `dist/boneweaver-0.4.0.zip`。在 Blender 中打开
+安装 `dist/boneweaver-0.4.1.zip`。在 Blender 中打开
 **编辑 > 偏好设置 > 扩展 > 从磁盘安装**，选择 ZIP 并启用 BoneWeaver。
 
 ## 快速开始
@@ -69,31 +85,32 @@ BoneX、Wiggle、Auto-Rig Pro 与 UEFormat 只是可选工作流集成，不随�
 末端低置信度或 Mesh/Modifier 漂移导致风险时，精细 Physics Graph 流程会阻断 Apply。成功 Apply
 会记录字段级 Mutation Ledger；导出还会启动第二个 Blender 进程独立重开验证，成功后才报告完成。
 
-这些阻断不适用于 v0.4.0 面板顶部的三个全自动入口。混合模式中的识别阻断会降级为
-提示并触发逐骨 UEFormat 回退，不会终止全局流程。
+关闭动画兼容时，面板顶部三个全自动入口保持 v0.4.0 行为。启用“保护现有动画与
+UEFormat Basis”后，BoneWeaver 会重基一个安全的 Active Action，并在修改 Rest Basis
+前阻断不支持的活动动画栈。混合模式中的识别阻断仍会降级为逐骨 UEFormat 自动回退。
 
 ## 已验证版本
 
-BoneWeaver v0.4.0 已在 Blender 5.2.0 LTS build `fbe6228777e7` 上完成本地验证：
+BoneWeaver v0.4.1 已在 Blender 5.2.0 LTS build `fbe6228777e7` 上完成本地验证：
 
 - 230 个 Blender 宿主自动化测试全部通过，无 Failure 或 Error。
-- 同一强制完成 Fixture 同时包含 Action、NLA、Driver、非单位 Pose、骨骼/对象 Constraint、
-  B-Bone、Bone Parent、Envelope、重复 Armature Modifier 与共享 Armature Data，仍一键完成、
-  `BLOCKER=0` 且精确 Restore 通过。
+- 动画验证覆盖父局部 Basis Delta、累计 `post_quat`、Active Action 重基、连接拓扑、
+  幂等和 Action/元数据精确 Restore。不支持的活动动画栈会在修改前阻断，空 Action
+  使用明确的 Quick 安全回退。
 - 对固定 UEFormat 1.0.0 实现比较了 154 根合格骨骼：最大方向误差 `0.033878°`、
   最大长度误差 `1.164412e-7`，Head、Parent 与 Socket 均未改变。
 - 三种模式分别在原始 157 骨 `.uemodel` 与现有 `x1.blend` 上通过；手指、头发、飘带、
   脊柱的原生 `L` 键选择均可用，每种模式第二次运行均为零额外修改，精确 Restore 通过，
   两个源文件哈希不变。混合模式采用 94 根可信多特征结果，并对 61 根骨骼自动回退。
 - Release ZIP 通过隔离安装与重复注册/注销验证。
-- 安装包：`boneweaver-0.4.0.zip`
-- 大小：`190353` bytes
-- SHA-256：`A68C65050DAFE9DC91A53C0F9DA91C4610EBC343F153D0F21DC540C0A1E4E709`
+- 安装包：`boneweaver-0.4.1.zip`
+- 大小：`200097` bytes
+- SHA-256：`7D5160229B8FA33D9C29B36D53BC8A8903B88ACD1F3C72434B5D524D94CEB059`
 
 ## 已知限制
 
-- 原版与混合模式会修改静止骨骼的显示方向，但不会改写 UEFormat `post_quat` 动画元数据，
-  也不会重定向动画 Basis。
+- 动画兼容仅支持一个本地、未共享且只包含有效 Pose Bone Transform FCurve 的 Active Action。
+  活动 NLA Strip、Pose Driver、有效 Pose Constraint、共享 Action 与不支持路径会在修改前阻断。
 - 仅连接模式不执行朝向推断；若线性父骨 Tail 与既有子骨 Head 不重合，为建立原生连接，
   会把父骨 Tail 对齐到该子骨 Head，但不会移动子骨 Head。
 - 混合模式为实验性功能；多特征结果不满足可信条件时会优先使用 UEFormat 兼容回退。

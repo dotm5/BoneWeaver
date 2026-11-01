@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
 
 import bpy
 
@@ -28,13 +30,88 @@ class UIRefactorTests(unittest.TestCase):
             "issue.code", "plan_id", "fingerprint",
         ):
             self.assertNotIn(forbidden, source)
-        self.assertIn("panel_view_state_from_context", source)
-        self.assertIn('OPERATOR_IDS["quick_reorient_auto"]', source)
-        self.assertIn('OPERATOR_IDS["quick_reorient_links_only"]', source)
-        self.assertIn('OPERATOR_IDS["quick_reorient_hybrid_auto"]', source)
-        self.assertIn("原版：全自动转换并重建 L 键骨链", source)
-        self.assertIn("仅重建连接：保留现有朝向", source)
-        self.assertIn("实验性：多特征识别 + UEFormat 回退", source)
+        self.assertIn('"boneweaver.auto_cleanup"', source)
+        self.assertIn('"boneweaver.restore_auto_cleanup"', source)
+        for mode, label in (
+            ("AUTO", "全自动整理"), ("REORIENT", "仅父子重定向"),
+            ("CONNECT", "仅连接骨链"), ("CLEANUP", "仅清理辅助骨"),
+        ):
+            self.assertIn(f'"{mode}"', source)
+            self.assertIn(label, source)
+        self.assertNotIn('OPERATOR_IDS["quick_reorient_auto"]', source)
+        legacy = (path.parent / "legacy.py").read_text(encoding="utf-8")
+        for mode in ("quick_reorient_auto", "quick_reorient_links_only", "quick_reorient_hybrid_auto"):
+            self.assertIn(f'OPERATOR_IDS["{mode}"]', legacy)
+
+    def test_main_panel_buttons_dispatch_modes(self):
+        from boneweaver.ui.panels.main import BONEWEAVER_PT_main
+
+        class FakeLayout:
+            def __init__(self):
+                self.buttons = []
+
+            def box(self):
+                return self
+
+            def row(self):
+                return self
+
+            def label(self, **kwargs):
+                pass
+
+            def operator(self, operator_id, **kwargs):
+                properties = SimpleNamespace()
+                self.buttons.append((operator_id, kwargs["text"], properties))
+                return properties
+
+        layout = FakeLayout()
+        view = SimpleNamespace(target=SimpleNamespace(armature_name="Rig", source_kind=""))
+        context = SimpleNamespace(window_manager=SimpleNamespace(
+            boneweaver_runtime=SimpleNamespace(quick_summary="")))
+        with patch("boneweaver.ui.panels.main.panel_view_state_from_context", return_value=view), \
+             patch("boneweaver.ui.panels.main.AutoCleanupController.can_run", return_value=True), \
+             patch("boneweaver.ui.panels.main.AutoCleanupController.can_restore", return_value=False):
+            BONEWEAVER_PT_main.draw(SimpleNamespace(layout=layout), context)
+        self.assertEqual([
+            ("boneweaver.auto_cleanup", "全自动整理", "AUTO"),
+            ("boneweaver.auto_cleanup", "仅父子重定向", "REORIENT"),
+            ("boneweaver.auto_cleanup", "仅连接骨链", "CONNECT"),
+            ("boneweaver.auto_cleanup", "仅清理辅助骨", "CLEANUP"),
+        ], [(op, label, props.mode) for op, label, props in layout.buttons])
+
+    def test_auto_cleanup_operator_modes_and_dispatch(self):
+        from boneweaver.operators.auto_cleanup import BONEWEAVER_OT_auto_cleanup
+        prop = bpy.ops.boneweaver.auto_cleanup.get_rna_type().properties["mode"]
+        self.assertEqual("AUTO", prop.default)
+        self.assertEqual({"AUTO", "REORIENT", "CONNECT", "CLEANUP"},
+                         {item.identifier for item in prop.enum_items})
+        context = SimpleNamespace(window_manager=SimpleNamespace(
+            boneweaver_runtime=SimpleNamespace(quick_summary="done")))
+        for mode in ("AUTO", "REORIENT", "CONNECT", "CLEANUP"):
+            operator = SimpleNamespace(mode=mode, report=lambda *args: None)
+            with patch("boneweaver.operators.auto_cleanup.AutoCleanupController.run", return_value=True) as run:
+                self.assertEqual({"FINISHED"}, BONEWEAVER_OT_auto_cleanup.execute(operator, context))
+                run.assert_called_once_with(context, mode=mode)
+        description = BONEWEAVER_OT_auto_cleanup.description(None, SimpleNamespace(mode="CONNECT"))
+        self.assertIn("已对齐", description)
+        self.assertIn("不重定向或删除", description)
+
+    def test_advanced_panel_hierarchy_and_registration_order(self):
+        from boneweaver.ui.panels import PANEL_CLASSES
+        from boneweaver.ui.preferences import ADDON_ID
+        names = [cls.bl_idname for cls in PANEL_CLASSES]
+        self.assertEqual("BONEWEAVER_PT_main", names[0])
+        self.assertLess(names.index("BONEWEAVER_PT_main"), names.index("BONEWEAVER_PT_advanced"))
+        for cls in PANEL_CLASSES:
+            if cls.bl_idname not in {"BONEWEAVER_PT_main", "BONEWEAVER_PT_advanced"}:
+                self.assertEqual("BONEWEAVER_PT_advanced", cls.bl_parent_id)
+                self.assertLess(names.index("BONEWEAVER_PT_advanced"), names.index(cls.bl_idname))
+        advanced = PANEL_CLASSES[names.index("BONEWEAVER_PT_advanced")]
+        self.assertEqual("BONEWEAVER_PT_main", advanced.bl_parent_id)
+        self.assertIn("DEFAULT_CLOSED", advanced.bl_options)
+        self.assertEqual(boneweaver.__package__, ADDON_ID)
+        source = (Path(__file__).resolve().parents[1] / "boneweaver" / "ui" / "panels" / "advanced.py").read_text(encoding="utf-8")
+        self.assertIn('"enable_developer_diagnostics"', source)
 
     def test_quick_reorient_is_a_true_single_click_action(self):
         path = (
@@ -49,9 +126,10 @@ class UIRefactorTests(unittest.TestCase):
 
     def test_panel_layers_and_primary_operators_are_registered(self):
         for name in (
-            "BONEWEAVER_PT_main", "BONEWEAVER_PT_advanced", "BONEWEAVER_PT_details",
+            "BONEWEAVER_PT_main", "BONEWEAVER_PT_advanced", "BONEWEAVER_PT_legacy", "BONEWEAVER_PT_details",
             "BONEWEAVER_PT_recovery", "BONEWEAVER_PT_developer",
             "BONEWEAVER_OT_check_and_preview", "BONEWEAVER_OT_locate_issue", "BONEWEAVER_OT_load_details",
+            "BONEWEAVER_OT_auto_cleanup", "BONEWEAVER_OT_restore_auto_cleanup",
         ):
             self.assertTrue(hasattr(bpy.types, name), name)
 

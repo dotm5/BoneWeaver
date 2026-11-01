@@ -8,7 +8,7 @@
     "kind", "schema_version", "algorithm_version", "addon_version", "plan_id",
     "source_fingerprint", "source_adapter", "mode", "armature_object_name",
     "armature_data_name", "already_reoriented", "already_normalized",
-    "connect_linear_chains",
+    "connect_linear_chains", "animation_basis_rebase",
     "bone_states", "proposals", "linked_components", "issues"
   ],
   "properties": {
@@ -29,6 +29,7 @@
     "already_reoriented": {"type": "boolean"},
     "already_normalized": {"type": "boolean"},
     "connect_linear_chains": {"type": "boolean"},
+    "animation_basis_rebase": {"type": "boolean"},
     "bone_states": {"type": "array", "items": {"$ref": "#/$defs/boneState"}},
     "proposals": {"type": "array", "items": {"$ref": "#/$defs/proposal"}},
     "linked_components": {"type": "array", "items": {"$ref": "#/$defs/component"}},

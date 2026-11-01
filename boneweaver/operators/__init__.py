@@ -1,5 +1,6 @@
 """Operator class registry."""
 
+from .auto_cleanup import AUTO_CLEANUP_OPERATOR_CLASSES
 from .analyze import BONEWEAVER_OT_analyze
 from .apply import BONEWEAVER_OT_apply
 from .check_and_preview import BONEWEAVER_OT_check_and_preview
@@ -48,4 +49,4 @@ OPERATOR_CLASSES = (
     BONEWEAVER_OT_use_discovered_chains,
     BONEWEAVER_OT_clear_semantic_discovery,
     BONEWEAVER_OT_export_semantic_discovery,
-) + QUICK_REORIENT_OPERATOR_CLASSES
+) + QUICK_REORIENT_OPERATOR_CLASSES + AUTO_CLEANUP_OPERATOR_CLASSES

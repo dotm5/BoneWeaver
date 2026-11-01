@@ -26,6 +26,7 @@ class QuickBoneState:
 class QuickSourceMetadata:
     orig_loc: tuple[float, float, float] | None = None
     orig_quat: tuple[float, float, float, float] | None = None
+    post_quat: tuple[float, float, float, float] | None = None
     reorient_direction: tuple[float, float, float] | None = None
     is_socket: bool = False
     collection_names: tuple[str, ...] = ()
@@ -71,6 +72,7 @@ class QuickReorientPlan:
     already_reoriented: bool
     already_normalized: bool
     connect_linear_chains: bool
+    animation_basis_rebase: bool
     bone_states: tuple[QuickBoneState, ...]
     proposals: tuple[QuickBoneProposal, ...]
     linked_components: tuple[LinkedChainComponent, ...]

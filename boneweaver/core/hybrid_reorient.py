@@ -105,7 +105,13 @@ def _precision_source(proposal, terminal_solution, branch_resolution):
     return f"{_MULTI_FEATURE_PREFIX}{proposal.terminal_source}"
 
 
-def _overlay_precision(base_plan, precision_plan, *, minimum_confidence):
+def _overlay_precision(
+    base_plan,
+    precision_plan,
+    *,
+    minimum_confidence,
+    preserve_connected_topology,
+):
     states = {state.bone_name: state for state in base_plan.bone_states}
     precision_by_name = {
         proposal.bone_name: proposal for proposal in precision_plan.proposals
@@ -140,6 +146,10 @@ def _overlay_precision(base_plan, precision_plan, *, minimum_confidence):
 
         state = states[fallback.bone_name]
         tail = Vector(precision.proposed_tail)
+        if preserve_connected_topology and any(
+            states[child_name].use_connect for child_name in state.child_names
+        ):
+            tail = Vector(fallback.target_tail)
         direction = tail - Vector(state.head)
         local_direction = None
         if direction.length > _EPSILON:
@@ -225,10 +235,15 @@ def build_hybrid_reorient_plan(context, *, precision_builder=None):
     minimum_confidence = float(
         getattr(context.scene.boneweaver_settings, "minimum_confidence", 0.7)
     )
+    armature = context.view_layer.objects[base_plan.armature_object_name]
+    animation = armature.animation_data
     proposals, precision_names, fallback_names = _overlay_precision(
         base_plan,
         precision_plan,
         minimum_confidence=minimum_confidence,
+        preserve_connected_topology=bool(
+            base_plan.animation_basis_rebase and animation and animation.action
+        ),
     )
     if fallback_names:
         issues.append(

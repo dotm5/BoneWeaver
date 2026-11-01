@@ -639,6 +639,7 @@ def build_plan(
         issues_tuple, branch_resolutions, topology_ledger,
         tip_helpers=tip_helpers,
         tip_helper_usage=tip_helper_usage,
+        animation_basis_rebase=bool(settings.animation_basis_rebase),
     )
     payload = dataclasses.asdict(plan)
     payload.pop("plan_id")

@@ -12,6 +12,11 @@ from .canonical import sha256
 from ..contracts import ALGORITHM_VERSION
 from .mesh_scan_cache import mesh_digest_pair
 from .context_guard import ContextStateGuard
+from .animation_basis import capture_animation_state, capture_bone_metadata
+
+
+def _basis_animation_payload(armature):
+    return capture_bone_metadata(armature), capture_animation_state(armature)
 
 
 def weight_digest(mesh_obj):
@@ -100,7 +105,17 @@ def source_fingerprint_from_states(armature, bone_states, mesh_states):
         )
         for state in mesh_states
     )
-    return sha256((ALGORITHM_VERSION, armature.name, armature.data.name, matrix, bone_states, meshes))
+    return sha256(
+        (
+            ALGORITHM_VERSION,
+            armature.name,
+            armature.data.name,
+            matrix,
+            bone_states,
+            meshes,
+            _basis_animation_payload(armature),
+        )
+    )
 
 
 def _current_source_fingerprint_object_mode(context, plan):
@@ -137,7 +152,17 @@ def _current_source_fingerprint_object_mode(context, plan):
             )
         )
     matrix = tuple(float(armature.matrix_world[row][column]) for row in range(4) for column in range(4))
-    return sha256((ALGORITHM_VERSION, armature.name, armature.data.name, matrix, states, tuple(meshes)))
+    return sha256(
+        (
+            ALGORITHM_VERSION,
+            armature.name,
+            armature.data.name,
+            matrix,
+            states,
+            tuple(meshes),
+            _basis_animation_payload(armature),
+        )
+    )
 
 
 def current_source_fingerprint(context, plan):

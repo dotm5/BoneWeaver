@@ -114,6 +114,15 @@ class BONEWEAVER_PG_Settings(bpy.types.PropertyGroup):
     scope_mode: EnumProperty(items=enum_items(ScopeMode), default=ScopeMode.SELECTED_BONES.value, update=_algorithm_setting_changed)
     mesh_scope: EnumProperty(items=enum_items(MeshScope), default=MeshScope.ALL_ASSOCIATED_MESHES.value, update=_algorithm_setting_changed)
     physics_profile: EnumProperty(items=PHYSICS_PROFILE_ITEMS, default=PhysicsProfile.BONEX_ROTATION_CHAIN.value, update=_algorithm_setting_changed)
+    animation_basis_rebase: BoolProperty(
+        name="Animation-compatible rest basis",
+        description=(
+            "Update cumulative UEFormat post_quat metadata and safely sample/rebase "
+            "one supported Active Action when rest-bone bases change"
+        ),
+        default=True,
+        update=_algorithm_setting_changed,
+    )
     tip_helper_usage: EnumProperty(
         items=TIP_HELPER_USAGE_ITEMS,
         default=TipHelperUsage.REFERENCE_ONLY.value,
